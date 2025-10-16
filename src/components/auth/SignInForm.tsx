@@ -75,7 +75,7 @@ export default function SignInForm() {
         // router.push('/dashboard');
         //window.location.href = '/dashboard'; // Temporary redirect
       }
-    } catch (error) {
+    } catch (error:any) {
       console.error("Sign in error:", error);
       
       if (error.response) {

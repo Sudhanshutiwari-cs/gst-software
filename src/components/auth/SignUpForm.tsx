@@ -76,7 +76,7 @@ export default function SignUpForm() {
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
       
       if (error.response) {
