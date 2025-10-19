@@ -5,12 +5,23 @@ import Label from "@/components/form/Label";
 import { ChevronLeftIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState } from "react";
-import api from "@/lib/api"; // Import your axios instance
-// OR if using environment variables directly:
-// import axios from "axios";
+import api from "@/lib/api";
 
-// If using environment variables directly, create this:
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://manhemdigitalsolutions.com/pos-admin/api';
+// Define proper TypeScript interfaces for the error response
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  status?: number;
+}
+
+interface ApiError extends Error {
+  response?: {
+    data: ApiErrorResponse;
+    status: number;
+    statusText: string;
+  };
+  request?: XMLHttpRequest;
+}
 
 export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
@@ -58,14 +69,7 @@ export default function SignUpForm() {
         otp: otp
       };
 
-      // Method 1: Using axios instance with base URL
       const response = await api.post('/vendor/signup', signupData);
-
-      // Method 2: Using environment variable directly
-      // const response = await axios.post(
-      //   `${API_BASE_URL}/vendor/signup`,
-      //   signupData
-      // );
 
       if (response.status === 200 || response.status === 201) {
         alert("Signup successful!");
@@ -76,19 +80,35 @@ export default function SignUpForm() {
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Signup error:", error);
       
-      if (error.response) {
+      // Type guard to check if it's an Axios error
+      const isAxiosError = (err: unknown): err is ApiError => {
+        return typeof err === 'object' && err !== null && 'isAxiosError' in err;
+      };
+
+      if (isAxiosError(error)) {
         // Server responded with error status
-        const errorMessage = error.response.data?.message || error.response.statusText || "Signup failed";
-        alert(`Error: ${errorMessage}`);
-      } else if (error.request) {
-        // Request was made but no response received
-        alert("Network error: Please check your internet connection");
+        if (error.response) {
+          const errorMessage = error.response.data?.message || 
+                             error.response.data?.error || 
+                             error.response.statusText || 
+                             "Signup failed";
+          alert(`Error: ${errorMessage}`);
+        } else if (error.request) {
+          // Request was made but no response received
+          alert("Network error: Please check your internet connection");
+        } else {
+          // Something else happened
+          alert("An unexpected error occurred during signup");
+        }
+      } else if (error instanceof Error) {
+        // Native JavaScript error
+        alert(`Error: ${error.message}`);
       } else {
-        // Something else happened
-        alert("An unexpected error occurred during signup");
+        // Unknown error type
+        alert("An unknown error occurred during signup");
       }
     } finally {
       setIsLoading(false);

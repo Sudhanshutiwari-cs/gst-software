@@ -5,8 +5,127 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon } from "@/icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import api from "@/lib/api"; // Import your axios instance
+import api from "@/lib/api";
+
+// Define proper TypeScript interfaces for the error response
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  status?: number;
+}
+
+interface ApiError extends Error {
+  response?: {
+    data: ApiErrorResponse;
+    status: number;
+    statusText: string;
+  };
+  request?: XMLHttpRequest;
+}
+
+interface User {
+  id: number;
+  role: string;
+  mobile_number: string;
+  email: string | null;
+  otp_expiry: string | null;
+  // Add other user properties as needed
+}
+
+interface SignInResponse {
+  success: boolean;
+  message: string;
+  jwt_token: string;
+  unique_id: string;
+  user: User;
+}
+
+// Token storage utility functions
+const TokenManager = {
+  // Store token based on user's "keep me logged in" preference
+  setToken: (token: string, keepLoggedIn: boolean = false): void => {
+    if (typeof window === 'undefined') return;
+    
+    if (keepLoggedIn) {
+      // Store in localStorage for persistent login
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('tokenExpiry', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString()); // 7 days
+    } else {
+      // Store in sessionStorage for session-only login
+      sessionStorage.setItem('authToken', token);
+    }
+    
+    // Also set a flag to remember the preference
+    localStorage.setItem('keepLoggedIn', keepLoggedIn.toString());
+  },
+
+  // Get token from storage (checks both localStorage and sessionStorage)
+  getToken: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    // Check if token has expired (for localStorage tokens)
+    if (token && localStorage.getItem('authToken')) {
+      const expiry = localStorage.getItem('tokenExpiry');
+      if (expiry && Date.now() > parseInt(expiry)) {
+        TokenManager.clearToken();
+        return null;
+      }
+    }
+    
+    return token;
+  },
+
+  // Clear all tokens
+  clearToken: (): void => {
+    if (typeof window === 'undefined') return;
+    
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('tokenExpiry');
+    localStorage.removeItem('keepLoggedIn');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('uniqueId');
+    sessionStorage.removeItem('authToken');
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return TokenManager.getToken() !== null;
+  },
+
+  // Store user data
+  setUserData: (userData: User, uniqueId: string): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('userData', JSON.stringify(userData));
+    localStorage.setItem('uniqueId', uniqueId);
+  },
+
+  // Get user data
+  getUserData: (): User | null => {
+    if (typeof window === 'undefined') return null;
+    const userData = localStorage.getItem('userData');
+    return userData ? JSON.parse(userData) : null;
+  },
+
+  // Get unique ID
+  getUniqueId: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('uniqueId');
+  },
+
+  // Set default authorization header for API calls
+  setAuthHeader: (token: string): void => {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  },
+
+  // Remove authorization header
+  removeAuthHeader: (): void => {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
 
 export default function SignInForm() {
   const [isChecked, setIsChecked] = useState(false);
@@ -15,6 +134,7 @@ export default function SignInForm() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   // Mock OTP sending function
   const handleSendOtp = () => {
@@ -39,6 +159,38 @@ export default function SignInForm() {
     }
   };
 
+  // Type guard to check if it's an Axios error
+  const isAxiosError = (error: unknown): error is ApiError => {
+    return typeof error === 'object' && error !== null && 'isAxiosError' in error;
+  };
+
+  // Handle successful authentication
+  const handleAuthenticationSuccess = (responseData: SignInResponse) => {
+    const { jwt_token, user, unique_id } = responseData;
+    
+    // Store token based on user preference
+    TokenManager.setToken(jwt_token, isChecked);
+    
+    // Store user data and unique ID
+    TokenManager.setUserData(user, unique_id);
+    
+    // Set default authorization header for future API calls
+    TokenManager.setAuthHeader(jwt_token);
+    
+    console.log("Authentication successful. Token and user data stored:", {
+      storage: isChecked ? 'localStorage (persistent)' : 'sessionStorage (session-only)',
+      user: user,
+      uniqueId: unique_id,
+      token: jwt_token.substring(0, 20) + '...' // Log only first 20 chars for security
+    });
+    
+    alert("Sign in successful!");
+    
+    // Redirect to dashboard or profile page
+    router.push('/profile');
+    // Alternatively: window.location.href = '/dashboard';
+  };
+
   // Handle sign in with REAL API integration
   const handleSignIn = async () => {
     if (!isOtpVerified) {
@@ -55,36 +207,49 @@ export default function SignInForm() {
         keep_me_logged_in: isChecked
       };
 
-      // REAL API call to signin endpoint
-      const response = await api.post('/vendor/login', signInData);
+      // REAL API call to signin endpoint with proper response type
+      const response = await api.post<SignInResponse>('/vendor/login', signInData);
 
       if (response.status === 200) {
         const { data } = response;
         
-        // Store token or user data if needed
-        if (data.token) {
-          localStorage.setItem('authToken', data.token);
-          localStorage.setItem('userData', JSON.stringify(data.user));
+        // Check if login was successful
+        if (data.success && data.jwt_token) {
+          handleAuthenticationSuccess(data);
+        } else {
+          throw new Error(data.message || "Login failed");
         }
 
-        alert("Sign in successful!");
-        console.log("Sign in response:", data, response.data);
-
-        
-        // Redirect to dashboard or home page
-        // router.push('/dashboard');
-        //window.location.href = '/dashboard'; // Temporary redirect
+        console.log("Full sign in response:", data);
       }
-    } catch (error:any) {
+    } catch (error: unknown) {
       console.error("Sign in error:", error);
       
-      if (error.response) {
-        const errorMessage = error.response.data?.message || error.response.statusText || "Sign in failed";
-        alert(`Error: ${errorMessage}`);
-      } else if (error.request) {
-        alert("Network error: Please check your internet connection");
+      // Clear any existing tokens on error
+      TokenManager.clearToken();
+      
+      // Handle different types of errors
+      if (isAxiosError(error)) {
+        // Server responded with error status
+        if (error.response) {
+          const errorMessage = error.response.data?.message || 
+                             error.response.data?.error || 
+                             error.response.statusText || 
+                             "Sign in failed";
+          alert(`Error: ${errorMessage}`);
+        } else if (error.request) {
+          // Request was made but no response received
+          alert("Network error: Please check your internet connection");
+        } else {
+          // Something else happened
+          alert("An unexpected error occurred during sign in");
+        }
+      } else if (error instanceof Error) {
+        // Native JavaScript error
+        alert(`Error: ${error.message}`);
       } else {
-        alert("An unexpected error occurred during sign in");
+        // Unknown error type
+        alert("An unknown error occurred during sign in");
       }
     } finally {
       setIsLoading(false);
@@ -278,3 +443,6 @@ export default function SignInForm() {
     </div>
   );
 }
+
+// Export the TokenManager for use in other components
+export { TokenManager };
