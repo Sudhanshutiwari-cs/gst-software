@@ -33,6 +33,7 @@ interface VendorProfile {
 interface Category {
   id: number;
   name: string;
+  category_name: string;
 }
 
 interface State {
