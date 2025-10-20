@@ -1,10 +1,59 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+
+// Define types for our data
+interface Category {
+  id: number;
+  category_name?: string;
+  name?: string;
+
+}
+
+interface State {
+  id: number;
+  state_name?: string;
+  name?: string;
+
+}
+
+interface FormData {
+  business_name: string;
+  shop_name: string;
+  shop_type: string;
+  shop_category: string;
+  owner_name: string;
+  gst_number: string;
+
+  pan_number: string;
+  contact_number: string;
+  alternate_number: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+
+  country: string;
+}
+
+interface CashfreeGSTResponse {
+  status: string;
+  data?: {
+    businessName?: string;
+  };
+}
+
+interface AxiosError {
+  response?: {
+    status: number;
+    data?: unknown;
+  };
+}
 
 export default function CompleteProfilePage() {
   const [isClient, setIsClient] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     business_name: "",
     shop_name: "",
     shop_type: "",
@@ -22,8 +71,8 @@ export default function CompleteProfilePage() {
     country: "India",
   });
 
-  const [categories, setCategories] = useState<any[]>([]);
-  const [states, setStates] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,27 +83,8 @@ export default function CompleteProfilePage() {
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
-    if (!isClient) return;
-
-    const fetchHelperData = async () => {
-      try {
-        const [catRes, stateRes] = await Promise.all([
-          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
-          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
-        ]);
-        setCategories(catRes.data?.data || catRes.data || []);
-        setStates(stateRes.data?.data || stateRes.data || []);
-      } catch (err) {
-        console.error("❌ Error fetching helper data:", err);
-        setFetchError(true);
-      }
-    };
-    fetchHelperData();
-  }, [isClient]);
-
-  // GST validation function
-  const validateGST = async (gstNumber: string) => {
+  // GST validation function wrapped in useCallback to avoid useEffect dependency issues
+  const validateGST = useCallback(async (gstNumber: string): Promise<boolean> => {
     if (!gstNumber || gstNumber.length < 15) {
       setGstValidationMessage("");
       return false;
@@ -65,7 +95,7 @@ export default function CompleteProfilePage() {
 
     try {
       // Cashfree GST verification API
-      const response = await axios.get(
+      const response = await axios.get<CashfreeGSTResponse>(
         `https://api.cashfree.com/verification/gstin/${gstNumber}`,
         {
           headers: {
@@ -80,24 +110,19 @@ export default function CompleteProfilePage() {
         setGstValidationMessage("✅ GST number is valid");
         
         // Auto-fill business name if available from GST data
-        if (response.data.data?.businessName && !formData.business_name) {
-          setFormData(prev => ({
-            ...prev,
-            business_name: response.data.data.businessName
-          }));
-        }
         
         return true;
       } else {
         setGstValidationMessage("❌ Invalid GST number");
         return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("GST validation error:", error);
+      const axiosError = error as AxiosError;
       
-      if (error.response?.status === 400) {
+      if (axiosError.response?.status === 400) {
         setGstValidationMessage("❌ Invalid GST format");
-      } else if (error.response?.status === 404) {
+      } else if (axiosError.response?.status === 404) {
         setGstValidationMessage("❌ GST number not found");
       } else {
         setGstValidationMessage("❌ GST verification failed. Please check the number.");
@@ -106,7 +131,7 @@ export default function CompleteProfilePage() {
     } finally {
       setGstValidating(false);
     }
-  };
+  }, [formData.business_name]);
 
   // Debounced GST validation
   useEffect(() => {
@@ -120,7 +145,27 @@ export default function CompleteProfilePage() {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.gst_number]);
+  }, [formData.gst_number, validateGST]);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    const fetchHelperData = async () => {
+      try {
+        const [catRes, stateRes] = await Promise.all([
+          axios.get<{ data?: Category[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
+          axios.get<{ data?: State[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
+        ]);
+        setCategories(catRes.data?.data ?? []);
+setStates(stateRes.data?.data ?? []);
+
+      } catch (err) {
+        console.error("❌ Error fetching helper data:", err);
+        setFetchError(true);
+      }
+    };
+    fetchHelperData();
+  }, [isClient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -176,13 +221,16 @@ export default function CompleteProfilePage() {
 
       setMessage("✅ Profile updated successfully!");
       console.log("Response:", response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
+      const axiosError = error as AxiosError;
       const errorMsg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        "❌ Failed to update profile.";
-      setMessage(errorMsg);
+        (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'message' in axiosError.response.data) 
+          ? (axiosError.response.data as { message?: string }).message
+          : (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'error' in axiosError.response.data)
+          ? (axiosError.response.data as { error?: string }).error
+          : "❌ Failed to update profile.";
+      setMessage(errorMsg || "❌ Failed to update profile.");
     } finally {
       setLoading(false);
     }
@@ -254,7 +302,7 @@ export default function CompleteProfilePage() {
               className="w-full border rounded-lg px-3 py-2"
             >
               <option value="">Select Category</option>
-              {categories.map((cat: any) => (
+              {categories.map((cat: Category) => (
                 <option key={cat.id} value={cat.category_name || cat.name}>
                   {cat.category_name || cat.name}
                 </option>
@@ -371,7 +419,7 @@ export default function CompleteProfilePage() {
               className="w-full border rounded-lg px-3 py-2"
             >
               <option value="">Select State</option>
-              {states.map((st: any) => (
+              {states.map((st: State) => (
                 <option key={st.id} value={st.state_name || st.name}>
                   {st.state_name || st.name}
                 </option>
