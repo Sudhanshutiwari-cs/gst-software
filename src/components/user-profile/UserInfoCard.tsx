@@ -1,8 +1,31 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
+// Define the profile type based on the API response structure
+interface UserProfile {
+  owner_name?: string;
+  email?: string;
+  is_verified?: boolean;
+  shop_name?: string;
+  shop_type?: string;
+  shop_category?: string;
+  medical_license?: string;
+  fssai_license?: string;
+  business_name?: string;
+  pan_number?: string;
+  shop_registration_number?: string;
+  msme_number?: string;
+  mobile_number?: string;
+  alternate_number?: string;
+  payment_status?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+}
 
 export default function UserInfoCard() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const getToken = () => {
@@ -12,7 +35,7 @@ export default function UserInfoCard() {
     return null;
   };
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const token = getToken();
@@ -44,11 +67,11 @@ export default function UserInfoCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array since getToken doesn't change
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]); // Now fetchProfile is stable due to useCallback
 
   if (loading) {
     return (
@@ -129,7 +152,6 @@ export default function UserInfoCard() {
               </p>
             </div>
 
-
             <div>
               {profile.shop_category?.toLowerCase() === "medical" ? (
                 <>
@@ -152,8 +174,6 @@ export default function UserInfoCard() {
               )}
             </div>
 
-
-
             <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                 Business Name
@@ -163,7 +183,7 @@ export default function UserInfoCard() {
               </p>
             </div>
 
-              <div>
+            <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                 Pan Number
               </p>
@@ -189,7 +209,6 @@ export default function UserInfoCard() {
                 {profile.msme_number || "N/A"}
               </p>
             </div>
-
 
             <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
