@@ -2,8 +2,19 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api"; // Axios instance
 
+// Define the vendor data interface based on the API response structure
+interface VendorData {
+  country?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  address_line1?: string;
+  address_line2?: string;
+  // Add other properties that might be in the response if needed
+}
+
 export default function UserAddressCard() {
-  const [vendorData, setVendorData] = useState<any>(null);
+  const [vendorData, setVendorData] = useState<VendorData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
