@@ -74,13 +74,31 @@ export default function UserInfoCard() {
             Personal Information
           </h4>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-7 2xl:gap-x-32">
             <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                 Owner Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {profile.owner_name || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Email
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.email || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Is Verified
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.is_verified ? "Yes" : "No"}
               </p>
             </div>
 
@@ -95,6 +113,49 @@ export default function UserInfoCard() {
 
             <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Shop Type
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.shop_type || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Shop Category
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.shop_category || "N/A"}
+              </p>
+            </div>
+
+
+            <div>
+              {profile.shop_category?.toLowerCase() === "medical" ? (
+                <>
+                  <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    Medical License Number
+                  </p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                    {profile.medical_license || "N/A"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    FSSAI License Number
+                  </p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                    {profile.fssai_license || "N/A"}
+                  </p>
+                </>
+              )}
+            </div>
+
+
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                 Business Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
@@ -102,12 +163,56 @@ export default function UserInfoCard() {
               </p>
             </div>
 
+              <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Pan Number
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.pan_number || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Shop Registration Number
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.shop_registration_number || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                MSME Number
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.msme_number || "N/A"}
+              </p>
+            </div>
+
+
             <div>
               <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                 Mobile Number
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {profile.mobile_number || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Alternate Number
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.alternate_number || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                Payment Status
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {profile.payment_status || "N/A"}
               </p>
             </div>
 
