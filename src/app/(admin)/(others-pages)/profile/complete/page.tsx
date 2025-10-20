@@ -7,14 +7,12 @@ interface Category {
   id: number;
   category_name?: string;
   name?: string;
-
 }
 
 interface State {
   id: number;
   state_name?: string;
   name?: string;
-
 }
 
 interface FormData {
@@ -24,7 +22,6 @@ interface FormData {
   shop_category: string;
   owner_name: string;
   gst_number: string;
-
   pan_number: string;
   contact_number: string;
   alternate_number: string;
@@ -33,7 +30,6 @@ interface FormData {
   city: string;
   state: string;
   pincode: string;
-
   country: string;
 }
 
@@ -110,6 +106,7 @@ export default function CompleteProfilePage() {
         setGstValidationMessage("✅ GST number is valid");
         
         // Auto-fill business name if available from GST data
+        // You can add auto-fill logic here if needed
         
         return true;
       } else {
@@ -131,7 +128,7 @@ export default function CompleteProfilePage() {
     } finally {
       setGstValidating(false);
     }
-  }, [formData.business_name]);
+  }, []); // Removed the unnecessary formData.business_name dependency
 
   // Debounced GST validation
   useEffect(() => {
@@ -157,8 +154,7 @@ export default function CompleteProfilePage() {
           axios.get<{ data?: State[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
         ]);
         setCategories(catRes.data?.data ?? []);
-setStates(stateRes.data?.data ?? []);
-
+        setStates(stateRes.data?.data ?? []);
       } catch (err) {
         console.error("❌ Error fetching helper data:", err);
         setFetchError(true);
