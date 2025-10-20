@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
@@ -124,8 +124,8 @@ export default function UserMetaCard() {
     }
   };
 
-  // Fetch vendor profile
-  const fetchProfile = async () => {
+  // Fetch vendor profile - wrapped in useCallback to avoid infinite re-renders
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const token = getToken();
@@ -157,7 +157,7 @@ export default function UserMetaCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Update profile
   const updateProfile = async (data: Partial<VendorProfile>) => {
@@ -179,7 +179,8 @@ export default function UserMetaCard() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        // Remove unused variable 'result'
+        await response.json();
         return true;
       } else {
         console.error('Failed to update profile', await response.text());
@@ -233,7 +234,7 @@ export default function UserMetaCard() {
   useEffect(() => {
     fetchProfile();
     fetchOptions();
-  }, []);
+  }, [fetchProfile]); // Added fetchProfile to dependency array
 
   useEffect(() => {
     if (isOpen && profile) {
