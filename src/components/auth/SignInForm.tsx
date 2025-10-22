@@ -262,7 +262,7 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              Login
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Enter your mobile number and verify with OTP to sign in!
@@ -396,7 +396,7 @@ export default function SignInForm() {
                     </span>
                   </div>
                   <Link
-                    href="/forget"
+                    href="/forget-number"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot Number?
