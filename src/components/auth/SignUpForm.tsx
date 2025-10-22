@@ -21,7 +21,7 @@ interface ApiError extends Error {
   };
   request?: XMLHttpRequest;
 }
-const router = useRouter();
+
 
 export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
