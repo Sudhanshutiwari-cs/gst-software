@@ -32,7 +32,7 @@ export default function SignUpForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const router = useRouter();
   // Mock OTP sending function
   const handleSendOtp = () => {
     if (mobileNumber.length === 10) {
