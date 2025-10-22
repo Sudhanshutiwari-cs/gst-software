@@ -5,7 +5,7 @@ import Label from "@/components/form/Label";
 import Link from "next/link";
 import React, { useState } from "react";
 import api from "@/lib/api";
-
+import { useRouter } from "next/navigation";
 // Define proper TypeScript interfaces for the error response
 interface ApiErrorResponse {
   message?: string;
@@ -21,6 +21,7 @@ interface ApiError extends Error {
   };
   request?: XMLHttpRequest;
 }
+const router = useRouter();
 
 export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
@@ -77,7 +78,7 @@ export default function SignUpForm() {
         console.log("Signup response:", response.data);
         
         // Redirect or perform additional actions on success
-        // router.push('/dashboard');
+         router.push('/');
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
