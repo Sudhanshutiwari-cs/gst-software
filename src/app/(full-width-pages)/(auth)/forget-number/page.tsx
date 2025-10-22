@@ -311,10 +311,10 @@ export default function ForgotDetailsForm() {
                 {/* Additional Help */}
                 <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                   <h3 className="text-sm font-medium text-gray-800 dark:text-white/90 mb-2">
-                    Can't find your details?
+                    Can&apos;t find your details?
                   </h3>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    If you're unable to retrieve your details, please contact our support team for assistance.
+                    If you&apos;re unable to retrieve your details, please contact our support team for assistance.
                   </p>
                 </div>
 
