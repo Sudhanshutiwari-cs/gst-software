@@ -355,7 +355,7 @@ export default function UserMetaCard() {
                     <Label>Shop Name</Label>
                     <Input
                       type="text"
-                      value={formData?.shop_name || "NA"}
+                      value={formData?.shop_name || ""}
                       onChange={(e) => handleInputChange('shop_name', e.target.value)}
                     />
                   </div>
