@@ -15,6 +15,30 @@ interface State {
   name?: string;
 }
 
+interface Vendor {
+  id: number;
+  business_name: string;
+  shop_name: string;
+  shop_type: string;
+  shop_category: string;
+  owner_name: string;
+  gst_number: string;
+  pan_number: string;
+  fssai_license: string;
+  contact_number: string;
+  alternate_number: string;
+  mobile_number: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  status: string;
+  payment_status: string;
+  unique_id?: string;
+}
+
 interface FormData {
   business_name: string;
   shop_name: string;
@@ -23,14 +47,18 @@ interface FormData {
   owner_name: string;
   gst_number: string;
   pan_number: string;
+  fssai_license: string;
   contact_number: string;
   alternate_number: string;
+  mobile_number: string;
   address_line1: string;
   address_line2: string;
   city: string;
   state: string;
   pincode: string;
   country: string;
+  status: string;
+  payment_status: string;
 }
 
 interface CashfreeGSTResponse {
@@ -47,8 +75,9 @@ interface AxiosError {
   };
 }
 
-export default function CompleteProfilePage() {
+export default function EditVendorPage({ vendorId }: { vendorId: string }) {
   const [isClient, setIsClient] = useState(false);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<FormData>({
     business_name: "",
     shop_name: "",
@@ -57,14 +86,18 @@ export default function CompleteProfilePage() {
     owner_name: "",
     gst_number: "",
     pan_number: "",
+    fssai_license: "",
     contact_number: "",
     alternate_number: "",
+    mobile_number: "",
     address_line1: "",
     address_line2: "",
     city: "",
     state: "",
     pincode: "",
     country: "India",
+    status: "active",
+    payment_status: "pending",
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -72,6 +105,7 @@ export default function CompleteProfilePage() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [gstValidating, setGstValidating] = useState(false);
   const [gstValidationMessage, setGstValidationMessage] = useState("");
 
@@ -79,7 +113,87 @@ export default function CompleteProfilePage() {
     setIsClient(true);
   }, []);
 
-  // GST validation function wrapped in useCallback to avoid useEffect dependency issues
+  // Fetch vendor data and helper data
+  useEffect(() => {
+    if (!isClient) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get auth token
+        const storedAuth = localStorage.getItem("authToken");
+        if (!storedAuth) {
+          setError("JWT token not found. Please log in first.");
+          setLoading(false);
+          return;
+        }
+
+        let token = "";
+        try {
+          const parsed = JSON.parse(storedAuth);
+          token = parsed?.access_token || parsed?.token || "";
+        } catch {
+          token = storedAuth;
+        }
+
+        // Fetch vendor data
+        const vendorResponse = await axios.get(
+          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (vendorResponse.data) {
+          setVendor(vendorResponse.data);
+          setFormData({
+            business_name: vendorResponse.data.business_name || "",
+            shop_name: vendorResponse.data.shop_name || "",
+            shop_type: vendorResponse.data.shop_type || "",
+            shop_category: vendorResponse.data.shop_category || "",
+            owner_name: vendorResponse.data.owner_name || "",
+            gst_number: vendorResponse.data.gst_number || "",
+            pan_number: vendorResponse.data.pan_number || "",
+            fssai_license: vendorResponse.data.fssai_license || "",
+            contact_number: vendorResponse.data.contact_number || "",
+            alternate_number: vendorResponse.data.alternate_number || "",
+            mobile_number: vendorResponse.data.mobile_number || "",
+            address_line1: vendorResponse.data.address_line1 || "",
+            address_line2: vendorResponse.data.address_line2 || "",
+            city: vendorResponse.data.city || "",
+            state: vendorResponse.data.state || "",
+            pincode: vendorResponse.data.pincode || "",
+            country: vendorResponse.data.country || "India",
+            status: vendorResponse.data.status || "active",
+            payment_status: vendorResponse.data.payment_status || "pending",
+          });
+        }
+
+        // Fetch helper data
+        const [catRes, stateRes] = await Promise.all([
+          axios.get<{ data?: Category[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
+          axios.get<{ data?: State[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
+        ]);
+        
+        setCategories(catRes.data?.data ?? []);
+        setStates(stateRes.data?.data ?? []);
+      } catch (err) {
+        console.error("❌ Error fetching data:", err);
+        setFetchError(true);
+        setError("Failed to load vendor data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [isClient, vendorId]);
+
+  // GST validation function
   const validateGST = useCallback(async (gstNumber: string): Promise<boolean> => {
     if (!gstNumber || gstNumber.length < 15) {
       setGstValidationMessage("");
@@ -106,7 +220,12 @@ export default function CompleteProfilePage() {
         setGstValidationMessage("✅ GST number is valid");
         
         // Auto-fill business name if available from GST data
-        // You can add auto-fill logic here if needed
+        if (response.data.data?.businessName && !formData.business_name) {
+          setFormData(prev => ({
+            ...prev,
+            business_name: response.data.data?.businessName || prev.business_name
+          }));
+        }
         
         return true;
       } else {
@@ -128,7 +247,7 @@ export default function CompleteProfilePage() {
     } finally {
       setGstValidating(false);
     }
-  }, []); // Removed the unnecessary formData.business_name dependency
+  }, [formData.business_name]);
 
   // Debounced GST validation
   useEffect(() => {
@@ -144,25 +263,6 @@ export default function CompleteProfilePage() {
     return () => clearTimeout(timeoutId);
   }, [formData.gst_number, validateGST]);
 
-  useEffect(() => {
-    if (!isClient) return;
-
-    const fetchHelperData = async () => {
-      try {
-        const [catRes, stateRes] = await Promise.all([
-          axios.get<{ data?: Category[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
-          axios.get<{ data?: State[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
-        ]);
-        setCategories(catRes.data?.data ?? []);
-        setStates(stateRes.data?.data ?? []);
-      } catch (err) {
-        console.error("❌ Error fetching helper data:", err);
-        setFetchError(true);
-      }
-    };
-    fetchHelperData();
-  }, [isClient]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -175,6 +275,7 @@ export default function CompleteProfilePage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setError("");
 
     try {
       if (!isClient) return;
@@ -183,7 +284,7 @@ export default function CompleteProfilePage() {
       if (formData.gst_number && formData.gst_number.length >= 15) {
         const isGstValid = await validateGST(formData.gst_number);
         if (!isGstValid) {
-          setMessage("❌ Please enter a valid GST number before submitting.");
+          setError("❌ Please enter a valid GST number before submitting.");
           setLoading(false);
           return;
         }
@@ -191,7 +292,7 @@ export default function CompleteProfilePage() {
 
       const storedAuth = localStorage.getItem("authToken");
       if (!storedAuth) {
-        setMessage("❌ JWT token not found. Please log in first.");
+        setError("❌ JWT token not found. Please log in first.");
         setLoading(false);
         return;
       }
@@ -204,8 +305,8 @@ export default function CompleteProfilePage() {
         token = storedAuth;
       }
 
-      const response = await axios.post(
-        "https://manhemdigitalsolutions.com/pos-admin/api/vendor/complete-profile",
+      const response = await axios.put(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/update-profile`,
         formData,
         {
           headers: {
@@ -215,7 +316,7 @@ export default function CompleteProfilePage() {
         }
       );
 
-      setMessage("✅ Profile updated successfully!");
+      setMessage("✅ Vendor updated successfully!");
       console.log("Response:", response.data);
     } catch (error: unknown) {
       console.error("Error:", error);
@@ -225,8 +326,8 @@ export default function CompleteProfilePage() {
           ? (axiosError.response.data as { message?: string }).message
           : (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'error' in axiosError.response.data)
           ? (axiosError.response.data as { error?: string }).error
-          : "❌ Failed to update profile.";
-      setMessage(errorMsg || "❌ Failed to update profile.");
+          : "❌ Failed to update vendor.";
+      setError(errorMsg || "❌ Failed to update vendor.");
     } finally {
       setLoading(false);
     }
@@ -234,236 +335,306 @@ export default function CompleteProfilePage() {
 
   if (!isClient) return null;
 
+  if (loading && !vendor) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading vendor data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto bg-white shadow-md rounded-xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Edit Vendor - <span className="text-indigo-600">VEN20250926J5UC</span>
-          </h2>
-          <button
-            onClick={() => window.history.back()}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md"
-          >
-            ← Back
-          </button>
-        </div>
-
-        {fetchError && (
-          <p className="text-red-600 text-center mb-4 font-semibold">
-            ⚠️ Unable to load categories or states. Please try again later.
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <label className="block text-sm font-semibold mb-1">Business Name</label>
-            <input
-              name="business_name"
-              value={formData.business_name}
-              onChange={handleChange}
-              placeholder="Enter Business Name"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Shop Name</label>
-            <input
-              name="shop_name"
-              value={formData.shop_name}
-              onChange={handleChange}
-              placeholder="Enter Shop Name"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Shop Type</label>
-            <input
-              name="shop_type"
-              value={formData.shop_type}
-              onChange={handleChange}
-              placeholder="Enter Shop Type"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Shop Category</label>
-            <select
-              name="shop_category"
-              value={formData.shop_category}
-              onChange={handleChange}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat: Category) => (
-                <option key={cat.id} value={cat.category_name || cat.name}>
-                  {cat.category_name || cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Owner Name</label>
-            <input
-              name="owner_name"
-              value={formData.owner_name}
-              onChange={handleChange}
-              placeholder="Enter Owner Name"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">GST Number</label>
-            <input
-              name="gst_number"
-              value={formData.gst_number}
-              onChange={handleChange}
-              placeholder="Enter GST Number (15 characters)"
-              className="w-full border rounded-lg px-3 py-2"
-              maxLength={15}
-            />
-            {gstValidationMessage && (
-              <p
-                className={`text-sm mt-1 ${
-                  gstValidationMessage.startsWith("✅")
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {gstValidating ? "🔄 Validating..." : gstValidationMessage}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">PAN Number</label>
-            <input
-              name="pan_number"
-              value={formData.pan_number}
-              onChange={handleChange}
-              placeholder="Enter PAN Number"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Mobile Number</label>
-            <input
-              name="contact_number"
-              value={formData.contact_number}
-              onChange={handleChange}
-              placeholder="Enter Contact Number"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Alternate Number</label>
-            <input
-              name="alternate_number"
-              value={formData.alternate_number}
-              onChange={handleChange}
-              placeholder="Enter Alternate Number"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold mb-1">Address Line 1</label>
-            <input
-              name="address_line1"
-              value={formData.address_line1}
-              onChange={handleChange}
-              placeholder="Address Line 1"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold mb-1">Address Line 2</label>
-            <input
-              name="address_line2"
-              value={formData.address_line2}
-              onChange={handleChange}
-              placeholder="Address Line 2"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">City</label>
-            <input
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              placeholder="Enter City"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">State</label>
-            <select
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="">Select State</option>
-              {states.map((st: State) => (
-                <option key={st.id} value={st.state_name || st.name}>
-                  {st.state_name || st.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Pincode</label>
-            <input
-              name="pincode"
-              value={formData.pincode}
-              onChange={handleChange}
-              placeholder="Enter Pincode"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1">Country</label>
-            <input
-              name="country"
-              value={formData.country}
-              onChange={handleChange}
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div className="md:col-span-2 flex justify-end mt-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+          <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-800">
+              Edit Vendor - {vendor ? (vendor.shop_name || vendor.unique_id) : "Loading..."}
+            </h2>
             <button
-              type="submit"
-              disabled={loading || gstValidating}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50"
+              onClick={() => window.history.back()}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm"
             >
-              {loading ? "Updating..." : "Update Vendor"}
+              ← Back
             </button>
           </div>
-        </form>
 
-        {message && (
-          <p
-            className={`mt-5 text-center font-semibold ${
-              message.startsWith("✅") ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {message}
-          </p>
-        )}
+          <div className="p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
+                {message}
+              </div>
+            )}
+
+            {fetchError && (
+              <p className="text-red-600 text-center mb-4 font-semibold">
+                ⚠️ Unable to load categories or states. Please try again later.
+              </p>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                  <input
+                    type="text"
+                    name="business_name"
+                    value={formData.business_name}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+                  <input
+                    type="text"
+                    name="shop_name"
+                    value={formData.shop_name}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Type</label>
+                  <input
+                    type="text"
+                    name="shop_type"
+                    value={formData.shop_type}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Category</label>
+                  <select
+                    name="shop_category"
+                    value={formData.shop_category}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat: Category) => (
+                      <option key={cat.id} value={cat.category_name || cat.name}>
+                        {cat.category_name || cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
+                  <input
+                    type="text"
+                    name="owner_name"
+                    value={formData.owner_name}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+                  <input
+                    type="text"
+                    name="gst_number"
+                    value={formData.gst_number}
+                    onChange={handleChange}
+                    placeholder="Enter GST Number (15 characters)"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    maxLength={15}
+                  />
+                  {gstValidationMessage && (
+                    <p
+                      className={`text-sm mt-1 ${
+                        gstValidationMessage.startsWith("✅")
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {gstValidating ? "🔄 Validating..." : gstValidationMessage}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    name="pan_number"
+                    value={formData.pan_number}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">FSSAI License</label>
+                  <input
+                    type="text"
+                    name="fssai_license"
+                    value={formData.fssai_license}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                  <input
+                    type="text"
+                    name="contact_number"
+                    value={formData.contact_number}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Number</label>
+                  <input
+                    type="text"
+                    name="alternate_number"
+                    value={formData.alternate_number}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <input
+                    type="text"
+                    name="mobile_number"
+                    value={formData.mobile_number}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                  
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                  <input
+                    type="text"
+                    name="address_line1"
+                    value={formData.address_line1}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                  <input
+                    type="text"
+                    name="address_line2"
+                    value={formData.address_line2}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <select
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select State</option>
+                    {states.map((st: State) => (
+                      <option key={st.id} value={st.state_name || st.name}>
+                        {st.state_name || st.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                  <select
+                    name="payment_status"
+                    value={formData.payment_status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  type="submit"
+                  disabled={loading || gstValidating}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50"
+                >
+                  {loading ? "Updating..." : "Update Vendor"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

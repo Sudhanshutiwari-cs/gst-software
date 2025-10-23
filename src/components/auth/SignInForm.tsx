@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import api from "@/lib/api";
+import { toast } from "react-hot-toast"; // Import toast
 
 // Define proper TypeScript interfaces for the error response
 interface ApiErrorResponse {
@@ -142,9 +143,13 @@ export default function SignInForm() {
       console.log(`Mock OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
       // Mock OTP - in real app this would come from backend
-      alert(`Mock OTP: 123456 (This would be sent via SMS in production)`);
+      toast.success(`Mock OTP sent to ${mobileNumber}`);
+      toast('Mock OTP: 123456 (This would be sent via SMS in production)', {
+        icon: 'ℹ️',
+        duration: 6000,
+      });
     } else {
-      alert("Please enter a valid 10-digit mobile number");
+      toast.error("Please enter a valid 10-digit mobile number");
     }
   };
 
@@ -152,9 +157,9 @@ export default function SignInForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") { // Mock OTP validation
       setIsOtpVerified(true);
-      alert("Mobile number verified successfully!");
+      toast.success("Mobile number verified successfully!");
     } else {
-      alert("Invalid OTP. Please try again.");
+      toast.error("Invalid OTP. Please try again.");
     }
   };
 
@@ -183,7 +188,7 @@ export default function SignInForm() {
       token: jwt_token.substring(0, 20) + '...' // Log only first 20 chars for security
     });
     
-    alert("Sign in successful!");
+    toast.success("Sign in successful! Redirecting...");
     
     // Redirect to dashboard or profile page
     router.push('/profile');
@@ -193,7 +198,7 @@ export default function SignInForm() {
   // Handle sign in with REAL API integration
   const handleSignIn = async () => {
     if (!isOtpVerified) {
-      alert("Please verify your mobile number first");
+      toast.error("Please verify your mobile number first");
       return;
     }
 
@@ -235,20 +240,20 @@ export default function SignInForm() {
                              error.response.data?.error || 
                              error.response.statusText || 
                              "Sign in failed";
-          alert(`Error: ${errorMessage}`);
+          toast.error(`Error: ${errorMessage}`);
         } else if (error.request) {
           // Request was made but no response received
-          alert("Network error: Please check your internet connection");
+          toast.error("Network error: Please check your internet connection");
         } else {
           // Something else happened
-          alert("An unexpected error occurred during sign in");
+          toast.error("An unexpected error occurred during sign in");
         }
       } else if (error instanceof Error) {
         // Native JavaScript error
-        alert(`Error: ${error.message}`);
+        toast.error(`Error: ${error.message}`);
       } else {
         // Unknown error type
-        alert("An unknown error occurred during sign in");
+        toast.error("An unknown error occurred during sign in");
       }
     } finally {
       setIsLoading(false);

@@ -2,12 +2,12 @@
     "name": "free-nextjs-admin-dashboard",
     "version": "2.0.2",
     "private": true,
-   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint"
-},
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
     "dependencies": {
         "@fullcalendar/core": "^6.1.15",
         "@fullcalendar/daygrid": "^6.1.15",
@@ -30,6 +30,7 @@
         "react-dnd-html5-backend": "^16.0.1",
         "react-dom": "^19.0.0",
         "react-dropzone": "^14.3.5",
+        "react-hot-toast": "^2.6.0",
         "swiper": "^11.2.0",
         "tailwind-merge": "^2.6.0"
     },
