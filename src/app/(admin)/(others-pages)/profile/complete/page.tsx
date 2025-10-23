@@ -352,7 +352,7 @@ export default function EditVendorPage({ vendorId }: { vendorId: string }) {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">
-              Edit Vendor - {vendor ? (vendor.shop_name || vendor.unique_id) : "Loading..."}
+              Edit Vendor 
             </h2>
             <button
               onClick={() => window.history.back()}
