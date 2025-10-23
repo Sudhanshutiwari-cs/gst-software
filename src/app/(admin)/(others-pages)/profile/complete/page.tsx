@@ -75,7 +75,7 @@ interface AxiosError {
   };
 }
 
-export default function EditVendorPage({ vendorId }: { vendorId: string }) {
+export default function EditVendorPage() {
   const [isClient, setIsClient] = useState(false);
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<FormData>({
