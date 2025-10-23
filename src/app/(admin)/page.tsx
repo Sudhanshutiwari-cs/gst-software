@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 const GSTSoftwareLanding = () => {
   return (
@@ -54,10 +55,13 @@ const GSTSoftwareLanding = () => {
               </div>
             </div>
             <div className="bg-white p-8 rounded-2xl shadow-xl">
-              <img 
+              <Image 
                 src="/api/placeholder/600/400" 
                 alt="GST Software Dashboard"
+                width={600}
+                height={400}
                 className="rounded-lg w-full"
+                priority
               />
             </div>
           </div>
@@ -150,7 +154,7 @@ const GSTSoftwareLanding = () => {
                     <p className="text-sm text-gray-600">{testimonial.company}</p>
                   </div>
                 </div>
-                <p className="text-gray-700">"{testimonial.quote}"</p>
+                <p className="text-gray-700">&ldquo;{testimonial.quote}&rdquo;</p>
               </div>
             ))}
           </div>
