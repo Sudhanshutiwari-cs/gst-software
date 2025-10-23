@@ -191,7 +191,7 @@ export default function EditVendorPage() {
     };
     
     fetchData();
-  }, [isClient, vendorId]);
+  }, [isClient]);
 
   // GST validation function
   const validateGST = useCallback(async (gstNumber: string): Promise<boolean> => {
