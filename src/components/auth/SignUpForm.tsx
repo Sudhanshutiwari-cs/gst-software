@@ -6,6 +6,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from 'react-toastify';
 // Define proper TypeScript interfaces for the error response
 interface ApiErrorResponse {
   message?: string;
@@ -74,11 +75,15 @@ export default function SignUpForm() {
       const response = await api.post('/vendor/signup', signupData);
 
       if (response.status === 200 || response.status === 201) {
-        alert("Signup successful!");
-        console.log("Signup response:", response.data);
+        toast.success("Account Created successful!", {
+          autoClose: 2000,
+          onClose: () => router.push("/dashboard"),
+        });
+       
+       // console.log("Signup response:", response.data);
         
         // Redirect or perform additional actions on success
-         router.push('/');
+        // router.push('/');
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
@@ -119,7 +124,7 @@ export default function SignUpForm() {
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
-      
+      <ToastContainer />
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">

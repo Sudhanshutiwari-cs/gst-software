@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { ToastContainer, toast } from 'react-toastify';
 
 // Define types for our data
 interface Category {
@@ -315,9 +316,10 @@ export default function EditVendorPage() {
           },
         }
       );
-
-      setMessage("✅ Vendor updated successfully!");
-      console.log("Response:", response.data);
+      toast.success("Profile Completed successfully !", {
+        position: "bottom-right",
+      });
+ 
     } catch (error: unknown) {
       console.error("Error:", error);
       const axiosError = error as AxiosError;
@@ -348,6 +350,7 @@ export default function EditVendorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      <ToastContainer />
       <div className="max-w-6xl mx-auto">
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">

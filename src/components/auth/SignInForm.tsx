@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import api from "@/lib/api";
-import { toast } from "react-hot-toast"; // Import toast
+import { ToastContainer, toast } from 'react-toastify';
 
 // Define proper TypeScript interfaces for the error response
 interface ApiErrorResponse {
@@ -143,13 +143,9 @@ export default function SignInForm() {
       console.log(`Mock OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
       // Mock OTP - in real app this would come from backend
-      toast.success(`Mock OTP sent to ${mobileNumber}`);
-      toast('Mock OTP: 123456 (This would be sent via SMS in production)', {
-        icon: 'ℹ️',
-        duration: 6000,
-      });
+      alert(`Mock OTP: 123456 (This would be sent via SMS in production)`);
     } else {
-      toast.error("Please enter a valid 10-digit mobile number");
+      alert("Please enter a valid 10-digit mobile number");
     }
   };
 
@@ -157,9 +153,9 @@ export default function SignInForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") { // Mock OTP validation
       setIsOtpVerified(true);
-      toast.success("Mobile number verified successfully!");
+      alert("Mobile number verified successfully!");
     } else {
-      toast.error("Invalid OTP. Please try again.");
+      alert("Invalid OTP. Please try again.");
     }
   };
 
@@ -188,17 +184,22 @@ export default function SignInForm() {
       token: jwt_token.substring(0, 20) + '...' // Log only first 20 chars for security
     });
     
-    toast.success("Sign in successful! Redirecting...");
+    toast.success("Login successful!", {
+  autoClose: 2000,
+  onClose: () => router.push("/profile"),
+});
+
+    
     
     // Redirect to dashboard or profile page
-    router.push('/profile');
+   // router.push('/profile');
     // Alternatively: window.location.href = '/dashboard';
   };
 
   // Handle sign in with REAL API integration
   const handleSignIn = async () => {
     if (!isOtpVerified) {
-      toast.error("Please verify your mobile number first");
+      alert("Please verify your mobile number first");
       return;
     }
 
@@ -240,20 +241,20 @@ export default function SignInForm() {
                              error.response.data?.error || 
                              error.response.statusText || 
                              "Sign in failed";
-          toast.error(`Error: ${errorMessage}`);
+          alert(`Error: ${errorMessage}`);
         } else if (error.request) {
           // Request was made but no response received
-          toast.error("Network error: Please check your internet connection");
+          alert("Network error: Please check your internet connection");
         } else {
           // Something else happened
-          toast.error("An unexpected error occurred during sign in");
+          alert("An unexpected error occurred during sign in");
         }
       } else if (error instanceof Error) {
         // Native JavaScript error
-        toast.error(`Error: ${error.message}`);
+        alert(`Error: ${error.message}`);
       } else {
         // Unknown error type
-        toast.error("An unknown error occurred during sign in");
+        alert("An unknown error occurred during sign in");
       }
     } finally {
       setIsLoading(false);
@@ -262,7 +263,7 @@ export default function SignInForm() {
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      
+      <ToastContainer />
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
@@ -401,7 +402,7 @@ export default function SignInForm() {
                     </span>
                   </div>
                   <Link
-                    href="/forget-number"
+                    href="/forget"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot Number?
