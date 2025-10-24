@@ -306,7 +306,8 @@ export default function EditVendorPage() {
         token = storedAuth;
       }
 
-      const response = await axios.put(
+      // Remove the unused response variable assignment
+      await axios.put(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/update-profile`,
         formData,
         {
@@ -316,6 +317,7 @@ export default function EditVendorPage() {
           },
         }
       );
+      
       toast.success("Profile Completed successfully !", {
         position: "bottom-right",
       });

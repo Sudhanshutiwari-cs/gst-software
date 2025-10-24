@@ -88,7 +88,11 @@ export default function SignUpForm() {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
     } catch (error: unknown) {
-      console.error("Signup error:", error);
+
+      toast.error("Signup error:", {
+          autoClose: 2000
+        });
+      
       
       // Type guard to check if it's an Axios error
       const isAxiosError = (err: unknown): err is ApiError => {
@@ -105,10 +109,16 @@ export default function SignUpForm() {
           alert(`Error: ${errorMessage}`);
         } else if (error.request) {
           // Request was made but no response received
-          alert("Network error: Please check your internet connection");
+           toast.error("Please check your internet connection", {
+          autoClose: 2000
+        });
+         // alert("Network error: Please check your internet connection");
         } else {
           // Something else happened
-          alert("An unexpected error occurred during signup");
+          toast.error("unexpected error", {
+          autoClose: 2000
+        });
+          //alert("An unexpected error occurred during signup");
         }
       } else if (error instanceof Error) {
         // Native JavaScript error
