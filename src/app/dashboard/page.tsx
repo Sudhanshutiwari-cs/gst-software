@@ -71,6 +71,7 @@ export default function Ecommerce() {
         if (!token) {
           setError("No authentication token found");
           setLoading(false);
+          router.push("/login");
           return;
         }
 
