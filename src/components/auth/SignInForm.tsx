@@ -143,9 +143,14 @@ export default function SignInForm() {
       console.log(`Mock OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
       // Mock OTP - in real app this would come from backend
-      alert(`Mock OTP: 123456 (This would be sent via SMS in production)`);
+      toast.success("Mock OTP: 123456", {
+      autoClose: 1500
+    });
+
     } else {
-      alert("Please enter a valid 10-digit mobile number");
+      toast.error("Please enter a valid 10-digit mobile number", {
+      autoClose: 1500
+    });
     }
   };
 
@@ -153,9 +158,14 @@ export default function SignInForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") { // Mock OTP validation
       setIsOtpVerified(true);
-      alert("Mobile number verified successfully!");
+      toast.success("Mobile number verified successfully!", {
+      autoClose: 1500
+    });
     } else {
-      alert("Invalid OTP. Please try again.");
+      toast.error("Invalid OTP. Please try again", {
+      autoClose: 1500
+    });
+      
     }
   };
 
@@ -243,7 +253,10 @@ export default function SignInForm() {
             error.response.data?.error ||
             error.response.statusText ||
             "Sign in failed";
-          alert(`Error: ${errorMessage}`);
+            toast.error(errorMessage, {
+            autoClose: 2000,
+          });
+          
         } else if (error.request) {
           // Request was made but no response received
           toast.error("Network error", {
