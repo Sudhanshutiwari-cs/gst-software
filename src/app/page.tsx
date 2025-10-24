@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from "next/link";
 
 const GSTSoftwareLanding = () => {
   return (
@@ -23,12 +24,16 @@ const GSTSoftwareLanding = () => {
               <a href="#contact" className="text-gray-700 hover:text-blue-600">Contact</a>
             </div>
             <div className="flex space-x-4">
-              <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition duration-200 font-semibold">
-                Login
-              </button>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
-                Sign Up
-              </button>
+              <Link href="/login">
+                <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition duration-200 font-semibold">
+                  Login
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
+                  Sign Up
+                </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -40,11 +45,11 @@ const GSTSoftwareLanding = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Simplify Your GST Filing with 
+                Simplify Your GST Filing with
                 <span className="text-blue-600"> Intelligent Software</span>
               </h1>
               <p className="text-xl text-gray-600 mt-6">
-                Automated GST compliance, error-free filing, and real-time tracking. 
+                Automated GST compliance, error-free filing, and real-time tracking.
                 Trusted by 50,000+ businesses across India.
               </p>
               <div className="mt-8 flex space-x-4">
@@ -60,8 +65,8 @@ const GSTSoftwareLanding = () => {
               </div>
             </div>
             <div className="bg-white p-8 rounded-2xl shadow-xl">
-              <Image 
-                src="/api/placeholder/600/400" 
+              <Image
+                src="/api/placeholder/600/400"
                 alt="GST Software Dashboard"
                 width={600}
                 height={400}
@@ -82,7 +87,7 @@ const GSTSoftwareLanding = () => {
               Comprehensive features designed to make GST filing simple, accurate, and hassle-free
             </p>
           </div>
-          
+
           <div className="mt-16 grid md:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div key={index} className="text-center p-6">
@@ -104,7 +109,7 @@ const GSTSoftwareLanding = () => {
             <h2 className="text-3xl font-bold text-gray-900">Simple, Transparent Pricing</h2>
             <p className="text-gray-600 mt-4">Choose the plan that works best for your business</p>
           </div>
-          
+
           <div className="mt-16 grid md:grid-cols-3 gap-8">
             {pricingPlans.map((plan, index) => (
               <div key={index} className={`bg-white rounded-2xl p-8 ${plan.popular ? 'ring-2 ring-blue-600 relative' : ''}`}>
@@ -128,11 +133,10 @@ const GSTSoftwareLanding = () => {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full mt-8 py-3 rounded-lg font-semibold ${
-                  plan.popular 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                <button className={`w-full mt-8 py-3 rounded-lg font-semibold ${plan.popular
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                } transition duration-200`}>
+                  } transition duration-200`}>
                   Get Started
                 </button>
               </div>
@@ -201,7 +205,7 @@ const GSTSoftwareLanding = () => {
                 Making GST compliance simple and efficient for businesses across India.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-400">
@@ -211,7 +215,7 @@ const GSTSoftwareLanding = () => {
                 <li><a href="#" className="hover:text-white">Integrations</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
@@ -221,7 +225,7 @@ const GSTSoftwareLanding = () => {
                 <li><a href="#" className="hover:text-white">Status</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-gray-400">
