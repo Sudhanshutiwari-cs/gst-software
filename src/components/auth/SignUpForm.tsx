@@ -110,7 +110,7 @@ export default function SignUpForm() {
           if (errorMessage.toLowerCase().includes("already") || 
               errorMessage.toLowerCase().includes("registered") ||
               errorMessage.toLowerCase().includes("exists")) {
-            setMobileError("This mobile number is already registered. Please use a different number or sign in.");
+            setMobileError("This mobile number is already registered. Please use a different number or Login.");
           } else {
             toast.error(`Error: ${errorMessage}`, {
               autoClose: 2000
@@ -357,7 +357,7 @@ export default function SignUpForm() {
                   href="/login"
                   className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                 >
-                  Sign In
+                  Login
                 </Link>
               </p>
             </div>
