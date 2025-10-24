@@ -47,7 +47,7 @@ const TokenManager = {
   // Store token based on user's "keep me logged in" preference
   setToken: (token: string, keepLoggedIn: boolean = false): void => {
     if (typeof window === 'undefined') return;
-    
+
     if (keepLoggedIn) {
       // Store in localStorage for persistent login
       localStorage.setItem('authToken', token);
@@ -56,7 +56,7 @@ const TokenManager = {
       // Store in sessionStorage for session-only login
       sessionStorage.setItem('authToken', token);
     }
-    
+
     // Also set a flag to remember the preference
     localStorage.setItem('keepLoggedIn', keepLoggedIn.toString());
   },
@@ -64,9 +64,9 @@ const TokenManager = {
   // Get token from storage (checks both localStorage and sessionStorage)
   getToken: (): string | null => {
     if (typeof window === 'undefined') return null;
-    
+
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    
+
     // Check if token has expired (for localStorage tokens)
     if (token && localStorage.getItem('authToken')) {
       const expiry = localStorage.getItem('tokenExpiry');
@@ -75,14 +75,14 @@ const TokenManager = {
         return null;
       }
     }
-    
+
     return token;
   },
 
   // Clear all tokens
   clearToken: (): void => {
     if (typeof window === 'undefined') return;
-    
+
     localStorage.removeItem('authToken');
     localStorage.removeItem('tokenExpiry');
     localStorage.removeItem('keepLoggedIn');
@@ -167,39 +167,41 @@ export default function SignInForm() {
   // Handle successful authentication
   const handleAuthenticationSuccess = (responseData: SignInResponse) => {
     const { jwt_token, user, unique_id } = responseData;
-    
+
     // Store token based on user preference
     TokenManager.setToken(jwt_token, isChecked);
-    
+
     // Store user data and unique ID
     TokenManager.setUserData(user, unique_id);
-    
+
     // Set default authorization header for future API calls
     TokenManager.setAuthHeader(jwt_token);
-    
+
     console.log("Authentication successful. Token and user data stored:", {
       storage: isChecked ? 'localStorage (persistent)' : 'sessionStorage (session-only)',
       user: user,
       uniqueId: unique_id,
       token: jwt_token.substring(0, 20) + '...' // Log only first 20 chars for security
     });
-    
-    toast.success("Login successful!", {
-  autoClose: 2000,
-  onClose: () => router.push("/profile"),
-});
 
-    
-    
+    toast.success("Login successful!", {
+      autoClose: 2000,
+      onClose: () => router.push("/profile"),
+    });
+
+
+
     // Redirect to dashboard or profile page
-   // router.push('/profile');
+    // router.push('/profile');
     // Alternatively: window.location.href = '/dashboard';
   };
 
   // Handle sign in with REAL API integration
   const handleSignIn = async () => {
     if (!isOtpVerified) {
-      alert("Please verify your mobile number first");
+      toast.error("Please verify your mobile number first", {
+        autoClose: 2000,
+      });
       return;
     }
 
@@ -217,7 +219,7 @@ export default function SignInForm() {
 
       if (response.status === 200) {
         const { data } = response;
-        
+
         // Check if login was successful
         if (data.success && data.jwt_token) {
           handleAuthenticationSuccess(data);
@@ -229,32 +231,38 @@ export default function SignInForm() {
       }
     } catch (error: unknown) {
       console.error("Sign in error:", error);
-      
+
       // Clear any existing tokens on error
       TokenManager.clearToken();
-      
+
       // Handle different types of errors
       if (isAxiosError(error)) {
         // Server responded with error status
         if (error.response) {
-          const errorMessage = error.response.data?.message || 
-                             error.response.data?.error || 
-                             error.response.statusText || 
-                             "Sign in failed";
+          const errorMessage = error.response.data?.message ||
+            error.response.data?.error ||
+            error.response.statusText ||
+            "Sign in failed";
           alert(`Error: ${errorMessage}`);
         } else if (error.request) {
           // Request was made but no response received
-          alert("Network error: Please check your internet connection");
+          toast.error("Network error", {
+            autoClose: 2000,
+          });
         } else {
           // Something else happened
-          alert("An unexpected error occurred during sign in");
+          toast.error("Network error", {
+            autoClose: 2000,
+          });
         }
       } else if (error instanceof Error) {
         // Native JavaScript error
         alert(`Error: ${error.message}`);
       } else {
         // Unknown error type
-        alert("An unknown error occurred during sign in");
+        toast.error("Network error", {
+            autoClose: 2000,
+          });
       }
     } finally {
       setIsLoading(false);
@@ -347,11 +355,10 @@ export default function SignInForm() {
                         type="button"
                         onClick={handleSendOtp}
                         disabled={mobileNumber.length !== 10}
-                        className={`px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow-theme-xs whitespace-nowrap ${
-                          mobileNumber.length !== 10
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-brand-500 hover:bg-brand-600"
-                        }`}
+                        className={`px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow-theme-xs whitespace-nowrap ${mobileNumber.length !== 10
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-brand-500 hover:bg-brand-600"
+                          }`}
                       >
                         {isOtpSent ? "Resend OTP" : "Send OTP"}
                       </button>
@@ -376,11 +383,10 @@ export default function SignInForm() {
                         type="button"
                         onClick={handleVerifyOtp}
                         disabled={!otp}
-                        className={`px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow-theme-xs whitespace-nowrap ${
-                          !otp
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-brand-500 hover:bg-brand-600"
-                        }`}
+                        className={`px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow-theme-xs whitespace-nowrap ${!otp
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-brand-500 hover:bg-brand-600"
+                          }`}
                       >
                         Verify OTP
                       </button>
@@ -393,8 +399,8 @@ export default function SignInForm() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Checkbox 
-                      checked={isChecked} 
+                    <Checkbox
+                      checked={isChecked}
                       onChange={setIsChecked}
                     />
                     <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
@@ -408,16 +414,16 @@ export default function SignInForm() {
                     Forgot Number?
                   </Link>
                 </div>
-                
+
                 <div>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     size="sm"
                     disabled={!isOtpVerified || isLoading}
                     onClick={handleSignIn}
                   >
-                    {isLoading ? "Signing In..." : 
-                     isOtpVerified ? "Sign In" : "Verify Mobile to Continue"}
+                    {isLoading ? "Signing In..." :
+                      isOtpVerified ? "Sign In" : "Verify Mobile to Continue"}
                   </Button>
                 </div>
               </div>

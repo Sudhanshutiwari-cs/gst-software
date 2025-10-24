@@ -49,16 +49,22 @@ export default function SignUpForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") {
       setIsOtpVerified(true);
-      alert("Mobile number verified successfully!");
+      toast.success("Mobile number verified successfully!", {
+          autoClose: 2000,
+        });
     } else {
-      alert("Invalid OTP. Please try again.");
+      toast.error("Invalid OTP. Please try again.", {
+          autoClose: 2000,
+        });
     }
   };
 
   // Handle form submission with API call using base URL
   const handleSignUp = async () => {
     if (!isOtpVerified || !isChecked || !firstName || !lastName) {
-      alert("Please complete all required fields and verify your mobile number");
+      toast.error("Please complete all required fields and verify your mobile number", {
+          autoClose: 2000,
+        });
       return;
     }
 
@@ -125,7 +131,10 @@ export default function SignUpForm() {
         alert(`Error: ${error.message}`);
       } else {
         // Unknown error type
-        alert("An unknown error occurred during signup");
+        toast.error("unexpected error", {
+          autoClose: 2000
+        });
+   
       }
     } finally {
       setIsLoading(false);
