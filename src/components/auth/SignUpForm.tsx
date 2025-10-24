@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from 'react-toastify';
+
 // Define proper TypeScript interfaces for the error response
 interface ApiErrorResponse {
   message?: string;
@@ -23,7 +24,6 @@ interface ApiError extends Error {
   request?: XMLHttpRequest;
 }
 
-
 export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
   const [mobileNumber, setMobileNumber] = useState("");
@@ -33,15 +33,18 @@ export default function SignUpForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileError, setMobileError] = useState(""); // New state for mobile number error
   const router = useRouter();
+
   // Mock OTP sending function
   const handleSendOtp = () => {
     if (mobileNumber.length === 10) {
       console.log(`OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
+      setMobileError(""); // Clear any previous errors
       alert(`Mock OTP: 123456 (This would be sent via SMS in production)`);
     } else {
-      alert("Please enter a valid 10-digit mobile number");
+      setMobileError("Please enter a valid 10-digit mobile number");
     }
   };
 
@@ -49,13 +52,14 @@ export default function SignUpForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") {
       setIsOtpVerified(true);
+      setMobileError(""); // Clear any previous errors
       toast.success("Mobile number verified successfully!", {
-          autoClose: 2000,
-        });
+        autoClose: 2000,
+      });
     } else {
       toast.error("Invalid OTP. Please try again.", {
-          autoClose: 2000,
-        });
+        autoClose: 2000,
+      });
     }
   };
 
@@ -63,20 +67,20 @@ export default function SignUpForm() {
   const handleSignUp = async () => {
     if (!isOtpVerified || !isChecked || !firstName || !lastName) {
       toast.error("Please complete all required fields and verify your mobile number", {
-          autoClose: 2000,
-        });
+        autoClose: 2000,
+      });
       return;
     }
 
     setIsLoading(true);
+    setMobileError(""); // Clear any previous errors before making the request
 
     try {
       const signupData = {
-  phone: mobileNumber,
-  otp: otp,
-  owner_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-};
-
+        phone: mobileNumber,
+        otp: otp,
+        owner_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      };
 
       const response = await api.post('/vendor/signup', signupData);
 
@@ -85,21 +89,10 @@ export default function SignUpForm() {
           autoClose: 2000,
           onClose: () => router.push("/dashboard"),
         });
-       
-       // console.log("Signup response:", response.data);
-        
-        // Redirect or perform additional actions on success
-        // router.push('/');
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
     } catch (error: unknown) {
-
-      toast.error("Signup error:", {
-          autoClose: 2000
-        });
-      
-      
       // Type guard to check if it's an Axios error
       const isAxiosError = (err: unknown): err is ApiError => {
         return typeof err === 'object' && err !== null && 'isAxiosError' in err;
@@ -112,32 +105,49 @@ export default function SignUpForm() {
                              error.response.data?.error || 
                              error.response.statusText || 
                              "Signup failed";
-          alert(`Error: ${errorMessage}`);
+          
+          // Check if the error indicates the number is already registered
+          if (errorMessage.toLowerCase().includes("already") || 
+              errorMessage.toLowerCase().includes("registered") ||
+              errorMessage.toLowerCase().includes("exists")) {
+            setMobileError("This mobile number is already registered. Please use a different number or sign in.");
+          } else {
+            toast.error(`Error: ${errorMessage}`, {
+              autoClose: 2000
+            });
+          }
         } else if (error.request) {
           // Request was made but no response received
-           toast.error("Please check your internet connection", {
-          autoClose: 2000
-        });
-         // alert("Network error: Please check your internet connection");
+          toast.error("Please check your internet connection", {
+            autoClose: 2000
+          });
         } else {
           // Something else happened
-          toast.error("unexpected error", {
-          autoClose: 2000
-        });
-          //alert("An unexpected error occurred during signup");
+          toast.error("An unexpected error occurred", {
+            autoClose: 2000
+          });
         }
       } else if (error instanceof Error) {
         // Native JavaScript error
-        alert(`Error: ${error.message}`);
-      } else {
-        // Unknown error type
-        toast.error("unexpected error", {
+        toast.error(`Error: ${error.message}`, {
           autoClose: 2000
         });
-   
+      } else {
+        // Unknown error type
+        toast.error("An unexpected error occurred", {
+          autoClose: 2000
+        });
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Clear mobile error when user starts typing
+  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMobileNumber(e.target.value);
+    if (mobileError) {
+      setMobileError("");
     }
   };
 
@@ -252,7 +262,7 @@ export default function SignUpForm() {
                       name="mobile"
                       placeholder="Enter your 10-digit mobile number"
                       value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value)}
+                      onChange={handleMobileNumberChange}
                       disabled={isOtpVerified}
                     />
                     {!isOtpVerified && (
@@ -265,6 +275,12 @@ export default function SignUpForm() {
                       </button>
                     )}
                   </div>
+                  {/* Display error message below mobile number field */}
+                  {mobileError && (
+                    <p className="mt-1 text-sm text-error-500 dark:text-error-400">
+                      {mobileError}
+                    </p>
+                  )}
                 </div>
 
                 {/* <!-- OTP Verification --> */}
