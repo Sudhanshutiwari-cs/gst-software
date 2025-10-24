@@ -22,9 +22,14 @@ const GSTSoftwareLanding = () => {
               <a href="#testimonials" className="text-gray-700 hover:text-blue-600">Testimonials</a>
               <a href="#contact" className="text-gray-700 hover:text-blue-600">Contact</a>
             </div>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-              Start Free Trial
-            </button>
+            <div className="flex space-x-4">
+              <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition duration-200 font-semibold">
+                Login
+              </button>
+              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
+                Sign Up
+              </button>
+            </div>
           </div>
         </div>
       </nav>
