@@ -1,14 +1,65 @@
 "use client";
 import Image from "next/image";
-
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
+interface VendorProfile {
+  id: number;
+  owner_name: string;
+  email: string;
+  logo_url?: string;
+  // Add other fields based on your API response structure
+}
+
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Fetch vendor profile data
+  useEffect(() => {
+    const fetchVendorProfile = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Get JWT token from localStorage or wherever you store it
+        const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+        
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
+
+        const response = await fetch("https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Assuming the API returns the profile data directly or in a data property
+        setVendorProfile(data.data || data);
+      } catch (err) {
+        console.error("Error fetching vendor profile:", err);
+        setError(err instanceof Error ? err.message : "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVendorProfile();
+  }, []);
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.stopPropagation();
@@ -31,6 +82,30 @@ export default function UserDropdown() {
     router.push("/");
   }
 
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="flex items-center text-gray-700 dark:text-gray-400">
+        <div className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-gray-200 animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+      </div>
+    );
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="flex items-center text-gray-700 dark:text-gray-400">
+        <div className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-red-100 flex items-center justify-center">
+          <span className="text-red-500 text-xs">Error</span>
+        </div>
+        <span className="block mr-1 font-medium text-theme-sm text-red-500">
+          Error
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       <button
@@ -41,12 +116,18 @@ export default function UserDropdown() {
           <Image
             width={44}
             height={44}
-            src="/tailadmin-nextjs/images/user/owner.jpg"
-            alt="User"
+            src={vendorProfile?.logo_url || "/tailadmin-nextjs/images/user/owner.jpg"}
+            alt={vendorProfile?.owner_name || "User"}
+            onError={(e) => {
+              // Fallback image if the avatar fails to load
+              (e.target as HTMLImageElement).src = "/tailadmin-nextjs/images/user/owner.jpg";
+            }}
           />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">Musharof</span>
+        <span className="block mr-1 font-medium text-theme-sm">
+          {vendorProfile?.owner_name|| "User"}
+        </span>
 
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
@@ -75,10 +156,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            Musharof Chowdhury
+            {vendorProfile?.owner_name || "Vendor User"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            randomuser@pimjo.com
+            {vendorProfile?.email || "vendor@example.com"}
           </span>
         </div>
 
