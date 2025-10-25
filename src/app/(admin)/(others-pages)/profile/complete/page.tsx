@@ -64,6 +64,12 @@ interface VendorFormData {
   logo_url?: string;
 }
 
+interface VendorApiResponse {
+  success: boolean;
+  message: string;
+  data: Vendor;
+}
+
 interface CashfreeGSTResponse {
   status: string;
   data?: {
@@ -118,7 +124,6 @@ export default function EditVendorPage() {
     setIsClient(true);
   }, []);
 
-
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -152,6 +157,7 @@ export default function EditVendorPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError("");
 
         // Get auth token
         const storedAuth = localStorage.getItem("authToken");
@@ -170,7 +176,7 @@ export default function EditVendorPage() {
         }
 
         // Fetch vendor data
-        const vendorResponse = await axios.get(
+        const vendorResponse = await axios.get<VendorApiResponse>(
           `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
           {
             headers: {
@@ -180,29 +186,53 @@ export default function EditVendorPage() {
           }
         );
 
-        if (vendorResponse.data) {
-          setVendor(vendorResponse.data);
+        console.log("Vendor API Response:", vendorResponse.data);
+
+        if (vendorResponse.data.success && vendorResponse.data.data) {
+          const vendorData = vendorResponse.data.data;
+          setVendor(vendorData);
+          
+          // Set form data with proper fallbacks
           setFormData({
-            business_name: vendorResponse.data.business_name || "",
-            shop_name: vendorResponse.data.shop_name || "",
-            shop_type: vendorResponse.data.shop_type || "",
-            shop_category: vendorResponse.data.shop_category || "",
-            owner_name: vendorResponse.data.owner_name || "",
-            gst_number: vendorResponse.data.gst_number || "",
-            pan_number: vendorResponse.data.pan_number || "",
-            fssai_license: vendorResponse.data.fssai_license || "",
-            contact_number: vendorResponse.data.contact_number || "",
-            alternate_number: vendorResponse.data.alternate_number || "",
-            mobile_number: vendorResponse.data.mobile_number || "",
-            address_line1: vendorResponse.data.address_line1 || "",
-            address_line2: vendorResponse.data.address_line2 || "",
-            city: vendorResponse.data.city || "",
-            state: vendorResponse.data.state || "",
-            pincode: vendorResponse.data.pincode || "",
-            country: vendorResponse.data.country || "India",
-            status: vendorResponse.data.status || "active",
-            payment_status: vendorResponse.data.payment_status || "pending",
+            business_name: vendorData.business_name || "",
+            shop_name: vendorData.shop_name || "",
+            shop_type: vendorData.shop_type || "",
+            shop_category: vendorData.shop_category || "",
+            owner_name: vendorData.owner_name || "",
+            gst_number: vendorData.gst_number || "",
+            pan_number: vendorData.pan_number || "",
+            fssai_license: vendorData.fssai_license || "",
+            contact_number: vendorData.contact_number || "",
+            alternate_number: vendorData.alternate_number || "",
+            mobile_number: vendorData.mobile_number || "",
+            address_line1: vendorData.address_line1 || "",
+            address_line2: vendorData.address_line2 || "",
+            city: vendorData.city || "",
+            state: vendorData.state || "",
+            pincode: vendorData.pincode || "",
+            country: vendorData.country || "India",
+            status: vendorData.status || "active",
+            payment_status: vendorData.payment_status || "pending",
+            logo_url: vendorData.logo_url || "",
           });
+
+          // Set logo preview if logo_url exists
+          if (vendorData.logo_url) {
+            setLogoPreview(vendorData.logo_url);
+          }
+
+          console.log("Form data set:", {
+            business_name: vendorData.business_name,
+            shop_name: vendorData.shop_name,
+            shop_type: vendorData.shop_type,
+            shop_category: vendorData.shop_category,
+            owner_name: vendorData.owner_name,
+            gst_number: vendorData.gst_number,
+            pan_number: vendorData.pan_number,
+            fssai_license: vendorData.fssai_license,
+          });
+        } else {
+          setError("Failed to load vendor data: " + (vendorResponse.data.message || "Unknown error"));
         }
 
         // Fetch helper data
@@ -213,6 +243,7 @@ export default function EditVendorPage() {
 
         setCategories(catRes.data?.data ?? []);
         setStates(stateRes.data?.data ?? []);
+        
       } catch (err) {
         console.error("❌ Error fetching data:", err);
         setFetchError(true);
@@ -309,12 +340,14 @@ export default function EditVendorPage() {
 
     // Append all fields to FormData
     Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, value);
+      if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
     });
 
     if (logoFile) {
       formData.append("logo_url", logoFile);
-}
+    }
 
     return formData;
   };
@@ -407,7 +440,7 @@ export default function EditVendorPage() {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">
-              Edit Vendor
+              {vendor ? "Complete Profile" : "Create Vendor"}
             </h2>
             <button
               onClick={() => window.history.back()}
@@ -435,6 +468,9 @@ export default function EditVendorPage() {
                 ⚠️ Unable to load categories or states. Please try again later.
               </p>
             )}
+
+            {/* Debug info - remove in production */}
+            
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="border-b pb-6">
@@ -469,6 +505,7 @@ export default function EditVendorPage() {
                   </div>
                 </div>
               </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
@@ -606,7 +643,7 @@ export default function EditVendorPage() {
                     value={formData.mobile_number}
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
-
+                    readOnly
                   />
                 </div>
 
