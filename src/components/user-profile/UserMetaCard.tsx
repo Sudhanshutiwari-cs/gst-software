@@ -27,16 +27,7 @@ interface VendorProfile {
   logo_url?: string;
 }
 
-interface Category {
-  id: number;
-  name: string;
-  category_name: string;
-}
 
-interface State {
-  id: number;
-  name: string;
-}
 
 export default function UserMetaCard() {
   const [profile, setProfile] = useState<VendorProfile | null>(null);
