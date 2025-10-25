@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState,useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,17 @@ import {
   TableIcon,
   UserCircleIcon,
 } from "../icons/index";
+
+// Types for vendor profile
+type VendorProfile = {
+  id: number;
+  owner_name: string;
+  email: string;
+  business_name?: string;
+  logo_url?: string;
+  status?: string;
+  // Add other fields based on your API response
+};
 
 type NavItem = {
   name: string;
@@ -41,7 +52,6 @@ const navItems: NavItem[] = [
     name: "User Profile",
     path: "/profile",
   },
-
   {
     name: "Forms",
     icon: <ListIcon />,
@@ -96,6 +106,52 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  
+  // State for vendor profile
+  const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch vendor profile
+  const fetchVendorProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get JWT token from localStorage or your auth context
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vendor profile: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Assuming the API returns the profile data directly or in a data property
+      setVendorProfile(data.data || data);
+    } catch (err) {
+      console.error('Error fetching vendor profile:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch vendor profile');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVendorProfile();
+  }, [fetchVendorProfile]);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -232,8 +288,7 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item
@@ -259,7 +314,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname,isActive]);
+  }, [pathname, isActive]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
@@ -287,6 +342,59 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  // Vendor profile display component
+  const VendorProfileSection = () => {
+    if (!isExpanded && !isHovered && !isMobileOpen) return null;
+
+    return (
+      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        {loading ? (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
+            <div className="flex-1">
+              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse mb-2"></div>
+              <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded animate-pulse w-2/3"></div>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-red-500 text-sm">
+            <p>Failed to load profile</p>
+            <button 
+              onClick={fetchVendorProfile}
+              className="text-xs underline mt-1"
+            >
+              Retry
+            </button>
+          </div>
+        ) : vendorProfile ? (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-semibold">
+              {vendorProfile.logo_url ? (
+                <Image
+                  src={vendorProfile.logo_url}
+                  alt={vendorProfile.owner_name}
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                vendorProfile.owner_name?.charAt(0).toUpperCase() || 'V'
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 dark:text-white truncate">
+                {vendorProfile.business_name || vendorProfile. owner_name}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                {vendorProfile.email}
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
@@ -303,38 +411,15 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${
+        className={`py-4 flex  ${
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <Image
-                className="dark:hidden"
-                src="/tailadmin-nextjs/images/logo/logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-              <Image
-                className="hidden dark:block"
-                src="/tailadmin-nextjs/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-            </>
-          ) : (
-            <Image
-              src="/tailadmin-nextjs/images/logo/logo-icon.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
-          )}
-        </Link>
       </div>
+      
+      {/* Vendor Profile Section */}
+      <VendorProfileSection />
+
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
