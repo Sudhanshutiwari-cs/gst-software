@@ -39,6 +39,7 @@ interface Vendor {
   payment_status: string;
   unique_id?: string;
   logo_url?: string;
+  banner_url?: string;
 }
 
 interface VendorFormData {
@@ -62,6 +63,7 @@ interface VendorFormData {
   status: string;
   payment_status: string;
   logo_url?: string;
+  banner_url?: string;
 }
 
 interface VendorApiResponse {
@@ -88,6 +90,8 @@ export default function EditVendorPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null); // Added banner file state
+  const [bannerPreview, setBannerPreview] = useState<string>("");
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<VendorFormData>({
     business_name: "",
@@ -149,6 +153,33 @@ export default function EditVendorPage() {
       reader.readAsDataURL(file);
     }
   };
+
+ const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // File type validation
+      if (!file.type.startsWith('image/')) {
+        setError("Please select a valid image file");
+        return;
+      }
+
+      // File size validation (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+
+      setBannerFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBannerPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
 
   // Fetch vendor data and helper data
   useEffect(() => {
@@ -214,11 +245,16 @@ export default function EditVendorPage() {
             status: vendorData.status || "active",
             payment_status: vendorData.payment_status || "pending",
             logo_url: vendorData.logo_url || "",
+            banner_url: vendorData.banner_url || "",
           });
 
           // Set logo preview if logo_url exists
           if (vendorData.logo_url) {
             setLogoPreview(vendorData.logo_url);
+          }
+
+          if (vendorData.banner_url) {
+            setBannerPreview(vendorData.banner_url);
           }
 
           console.log("Form data set:", {
@@ -349,6 +385,10 @@ export default function EditVendorPage() {
       formData.append("logo_url", logoFile);
     }
 
+    if (bannerFile) {
+      formData.append("banner_url", bannerFile); // Added banner file
+    }
+
     return formData;
   };
 
@@ -473,6 +513,41 @@ export default function EditVendorPage() {
             
 
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              <div className="border-b pb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Banner</h3>
+                <div className="space-y-4">
+                  <div className="flex-shrink-0">
+                    {bannerPreview ? (
+                      <img
+                        src={bannerPreview}
+                        alt="Shop banner preview"
+                        className="h-40 w-full object-cover rounded-lg border-2 border-gray-300"
+                      />
+                    ) : (
+                      <div className="h-40 w-full bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">No banner</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Banner
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, JPEG up to 5MB. Recommended: 1200x400px
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+
               <div className="border-b pb-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Logo</h3>
                 <div className="flex items-center space-x-6">
