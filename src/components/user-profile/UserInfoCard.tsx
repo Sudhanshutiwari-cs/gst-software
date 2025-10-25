@@ -30,7 +30,7 @@ export default function UserInfoCard() {
 
   const getToken = () => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("authToken");
+      return localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
     }
     return null;
   };

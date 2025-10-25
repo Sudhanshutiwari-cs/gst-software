@@ -42,7 +42,7 @@ export default function UserMetaCard() {
   // Get JWT token from localStorage (adjust based on your auth setup)
   const getToken = () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken') || localStorage.getItem('jwtToken');
+      return localStorage.getItem('authToken') || localStorage.getItem('jwtToken') || sessionStorage.getItem('authToken') || sessionStorage.getItem('jwtToken');
     }
     return null;
   };

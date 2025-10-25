@@ -179,7 +179,9 @@ export default function SignInForm() {
     const { jwt_token, user, unique_id } = responseData;
 
     // Store token based on user preference
+
     TokenManager.setToken(jwt_token, isChecked);
+  
 
     // Store user data and unique ID
     TokenManager.setUserData(user, unique_id);

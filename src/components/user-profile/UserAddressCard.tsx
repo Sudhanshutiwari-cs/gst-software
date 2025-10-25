@@ -20,7 +20,7 @@ export default function UserAddressCard() {
   useEffect(() => {
     const fetchVendorProfile = async () => {
       try {
-        const token = localStorage.getItem("authToken");
+        const token = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
         if (!token) {
           console.error("Token not found in localStorage");
           return;

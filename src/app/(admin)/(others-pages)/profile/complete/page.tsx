@@ -160,7 +160,7 @@ export default function EditVendorPage() {
         setError("");
 
         // Get auth token
-        const storedAuth = localStorage.getItem("authToken");
+        const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
         if (!storedAuth) {
           setError("JWT token not found. Please log in first.");
           setLoading(false);
@@ -371,7 +371,7 @@ export default function EditVendorPage() {
         }
       }
 
-      const storedAuth = localStorage.getItem("authToken");
+      const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
       if (!storedAuth) {
         setError("❌ JWT token not found. Please log in first.");
         setLoading(false);
