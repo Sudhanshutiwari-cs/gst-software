@@ -42,8 +42,11 @@ export default function SignUpForm() {
       console.log(`OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
       setMobileError(""); // Clear any previous errors
-      alert(`Mock OTP: 123456 (This would be sent via SMS in production)`);
+       toast.success("Mock OTP: 123456", {
+        autoClose: 2000,
+      });
     } else {
+      
       setMobileError("Please enter a valid 10-digit mobile number");
     }
   };
