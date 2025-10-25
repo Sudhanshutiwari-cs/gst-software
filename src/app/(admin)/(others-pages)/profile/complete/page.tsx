@@ -41,7 +41,7 @@ interface Vendor {
   logo_url?: string;
 }
 
-interface FormData {
+interface VendorFormData {
   business_name: string;
   shop_name: string;
   shop_type: string;
@@ -83,7 +83,7 @@ export default function EditVendorPage() {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
   const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<VendorFormData>({
     business_name: "",
     shop_name: "",
     shop_type: "",
@@ -304,7 +304,7 @@ export default function EditVendorPage() {
   };
 
   // Helper function to convert FormData object to multipart/form-data
-  const createFormData = (data: FormData): FormData => {
+  const createFormData = (data: VendorFormData): FormData => {
     const formData = new FormData();
 
     // Append all fields to FormData
