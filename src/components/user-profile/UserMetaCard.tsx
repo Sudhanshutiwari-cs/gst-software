@@ -6,7 +6,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Image from "next/image";
-
+import { useRouter } from "next/navigation";
 interface VendorProfile {
   business_name: string;
   shop_name: string;
@@ -28,6 +28,7 @@ interface VendorProfile {
   drug_license_number?: string;
   country?: string;
   msme_number?: string;
+  logo_url
 }
 
 interface Category {
@@ -50,6 +51,13 @@ export default function UserMetaCard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [states, setStates] = useState<State[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+
+  const router = useRouter();
+
+  const handleEditClick = () => {
+    router.push("/profile/edit");
+  };
+
 
   // Get JWT token from localStorage (adjust based on your auth setup)
   const getToken = () => {
@@ -262,7 +270,7 @@ export default function UserMetaCard() {
               <Image
                 width={80}
                 height={80}
-                src="https://res.cloudinary.com/doficc2yl/image/upload/v1760900581/Gemini_Generated_Image_y5sovhy5sovhy5so_pssgla.png"
+                src={profile?.logo_url || "/default-user.png"}
                 alt="user"
               />
             </div>
@@ -284,7 +292,7 @@ export default function UserMetaCard() {
             </div>
           </div>
           <button
-            onClick={openModal}
+            onClick={handleEditClick}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
           >
             <svg

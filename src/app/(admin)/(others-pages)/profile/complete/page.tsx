@@ -38,6 +38,7 @@ interface Vendor {
   status: string;
   payment_status: string;
   unique_id?: string;
+  logo_url?: string;
 }
 
 interface FormData {
@@ -60,6 +61,7 @@ interface FormData {
   country: string;
   status: string;
   payment_status: string;
+  logo_url?: string;
 }
 
 interface CashfreeGSTResponse {
@@ -77,6 +79,8 @@ interface AxiosError {
 }
 
 export default function EditVendorPage() {
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -114,6 +118,33 @@ export default function EditVendorPage() {
     setIsClient(true);
   }, []);
 
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // File type validation
+      if (!file.type.startsWith('image/')) {
+        setError("Please select a valid image file");
+        return;
+      }
+
+      // File size validation (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+
+      setLogoFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Fetch vendor data and helper data
   useEffect(() => {
     if (!isClient) return;
@@ -121,7 +152,7 @@ export default function EditVendorPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Get auth token
         const storedAuth = localStorage.getItem("authToken");
         if (!storedAuth) {
@@ -179,7 +210,7 @@ export default function EditVendorPage() {
           axios.get<{ data?: Category[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
           axios.get<{ data?: State[] }>("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
         ]);
-        
+
         setCategories(catRes.data?.data ?? []);
         setStates(stateRes.data?.data ?? []);
       } catch (err) {
@@ -190,7 +221,7 @@ export default function EditVendorPage() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [isClient]);
 
@@ -219,7 +250,7 @@ export default function EditVendorPage() {
 
       if (response.data.status === "VALID") {
         setGstValidationMessage("✅ GST number is valid");
-        
+
         // Auto-fill business name if available from GST data
         if (response.data.data?.businessName && !formData.business_name) {
           setFormData(prev => ({
@@ -227,7 +258,7 @@ export default function EditVendorPage() {
             business_name: response.data.data?.businessName || prev.business_name
           }));
         }
-        
+
         return true;
       } else {
         setGstValidationMessage("❌ Invalid GST number");
@@ -236,7 +267,7 @@ export default function EditVendorPage() {
     } catch (error: unknown) {
       console.error("GST validation error:", error);
       const axiosError = error as AxiosError;
-      
+
       if (axiosError.response?.status === 400) {
         setGstValidationMessage("❌ Invalid GST format");
       } else if (axiosError.response?.status === 404) {
@@ -270,6 +301,22 @@ export default function EditVendorPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Helper function to convert FormData object to multipart/form-data
+  const createFormData = (data: FormData): FormData => {
+    const formData = new FormData();
+
+    // Append all fields to FormData
+    Object.entries(data).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+
+    if (logoFile) {
+      formData.append("logo_url", logoFile);
+}
+
+    return formData;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -306,31 +353,34 @@ export default function EditVendorPage() {
         token = storedAuth;
       }
 
-      // Remove the unused response variable assignment
-      await axios.put(
-        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/update-profile`,
-        formData,
+      // Create multipart form data
+      const multipartData = createFormData(formData);
+
+      // Send as multipart/form-data
+      await axios.post(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/complete-profile`,
+        multipartData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
-      
+
       toast.success("Profile Completed successfully !", {
         position: "bottom-right",
       });
- 
+
     } catch (error: unknown) {
       console.error("Error:", error);
       const axiosError = error as AxiosError;
       const errorMsg =
-        (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'message' in axiosError.response.data) 
+        (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'message' in axiosError.response.data)
           ? (axiosError.response.data as { message?: string }).message
           : (typeof axiosError.response?.data === 'object' && axiosError.response.data !== null && 'error' in axiosError.response.data)
-          ? (axiosError.response.data as { error?: string }).error
-          : "❌ Failed to update vendor.";
+            ? (axiosError.response.data as { error?: string }).error
+            : "❌ Failed to update vendor.";
       setError(errorMsg || "❌ Failed to update vendor.");
     } finally {
       setLoading(false);
@@ -357,7 +407,7 @@ export default function EditVendorPage() {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">
-              Edit Vendor 
+              Edit Vendor
             </h2>
             <button
               onClick={() => window.history.back()}
@@ -387,6 +437,38 @@ export default function EditVendorPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="border-b pb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Logo</h3>
+                <div className="flex items-center space-x-6">
+                  <div className="flex-shrink-0">
+                    {logoPreview ? (
+                      <img
+                        src={logoPreview}
+                        alt="Shop logo preview"
+                        className="h-20 w-20 object-cover rounded-full border-2 border-gray-300"
+                      />
+                    ) : (
+                      <div className="h-20 w-20 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">No logo</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Logo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, JPEG up to 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
@@ -462,11 +544,10 @@ export default function EditVendorPage() {
                   />
                   {gstValidationMessage && (
                     <p
-                      className={`text-sm mt-1 ${
-                        gstValidationMessage.startsWith("✅")
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
+                      className={`text-sm mt-1 ${gstValidationMessage.startsWith("✅")
+                        ? "text-green-600"
+                        : "text-red-600"
+                        }`}
                     >
                       {gstValidating ? "🔄 Validating..." : gstValidationMessage}
                     </p>
@@ -525,7 +606,7 @@ export default function EditVendorPage() {
                     value={formData.mobile_number}
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
-                  
+
                   />
                 </div>
 
