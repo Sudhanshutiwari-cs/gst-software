@@ -41,9 +41,6 @@ interface State {
 export default function UserMetaCard() {
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [states, setStates] = useState<State[]>([]);
-  const [loadingOptions, setLoadingOptions] = useState(false);
 
   const router = useRouter();
 
@@ -60,70 +57,7 @@ export default function UserMetaCard() {
   };
 
   // Fetch categories and states
-  const fetchOptions = async () => {
-    try {
-      setLoadingOptions(true);
-      console.log('Fetching categories and states...');
-
-      // Fetch categories
-      const categoriesResponse = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/helper/categories');
-      console.log('Categories response status:', categoriesResponse.status);
-
-      if (categoriesResponse.ok) {
-        const categoriesData = await categoriesResponse.json();
-        console.log('Categories API response:', categoriesData);
-
-        // Handle different response structures
-        let categoriesArray: Category[] = [];
-
-        if (categoriesData.data && Array.isArray(categoriesData.data)) {
-          categoriesArray = categoriesData.data;
-        } else if (Array.isArray(categoriesData)) {
-          categoriesArray = categoriesData;
-        } else if (categoriesData.categories && Array.isArray(categoriesData.categories)) {
-          categoriesArray = categoriesData.categories;
-        } else {
-          console.error('Unexpected categories response structure:', categoriesData);
-        }
-
-        console.log('Processed categories:', categoriesArray);
-        setCategories(categoriesArray);
-      } else {
-        console.error('Categories API failed:', categoriesResponse.status);
-      }
-
-      // Fetch states
-      const statesResponse = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/helper/states');
-      console.log('States response status:', statesResponse.status);
-
-      if (statesResponse.ok) {
-        const statesData = await statesResponse.json();
-        console.log('States API response:', statesData);
-
-        // Handle different response structures
-        let statesArray: State[] = [];
-
-        if (statesData.data && Array.isArray(statesData.data)) {
-          statesArray = statesData.data;
-        } else if (Array.isArray(statesData)) {
-          statesArray = statesData;
-        } else if (statesData.states && Array.isArray(statesData.states)) {
-          statesArray = statesData.states;
-        } else {
-          console.error('Unexpected states response structure:', statesData);
-        }
-
-        console.log('Processed states:', statesArray);
-        setStates(statesArray);
-      } else {
-        console.error('States API failed:', statesResponse.status);
-      }
-    } catch (error) {
-      console.error('Error fetching options:', error);
-    } finally {
-      setLoadingOptions(false);
-    }
-  };
+ 
 
   // Fetch vendor profile - wrapped in useCallback to avoid infinite re-renders
   const fetchProfile = useCallback(async () => {
@@ -161,7 +95,6 @@ export default function UserMetaCard() {
 
   useEffect(() => {
     fetchProfile();
-    fetchOptions();
   }, [fetchProfile]);
 
   if (loading) {
