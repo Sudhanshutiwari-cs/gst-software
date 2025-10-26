@@ -352,14 +352,14 @@ export default function AddProductsPage() {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-900 p-6">
         <div className="w-full max-w-7xl mx-auto">
-          <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-            <div className="bg-white px-6 py-4 border-b">
-              <h2 className="text-xl font-bold text-gray-800">Session Expired</h2>
+          <div className="bg-gray-800 shadow-sm rounded-xl overflow-hidden">
+            <div className="bg-gray-800 px-6 py-4 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-white">Session Expired</h2>
             </div>
             <div className="p-6 text-center">
-              <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-md">
+              <div className="mb-4 p-3 bg-yellow-900/30 text-yellow-200 rounded-md border border-yellow-800/50">
                 ⚠️ Your session has expired. Please log in again to continue.
               </div>
               <button
@@ -376,25 +376,25 @@ export default function AddProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-900 p-6">
       <div className="w-full max-w-7xl mx-auto">
-        <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+        <div className="bg-gray-800 shadow-sm rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-white px-8 py-6 border-b flex justify-between items-center">
+          <div className="bg-gray-800 px-8 py-6 border-b border-gray-700 flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Add New Product</h2>
-              <p className="text-gray-600 mt-1">Add a new product to your inventory</p>
+              <h2 className="text-2xl font-bold text-white">Add New Product</h2>
+              <p className="text-gray-400 mt-1">Add a new product to your inventory</p>
             </div>
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => window.history.back()}
-                className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium"
+                className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium"
               >
                 ← Back to Products
               </button>
               <button
                 onClick={handleLogout}
-                className="px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm transition-colors font-medium"
+                className="px-5 py-2.5 bg-red-900/30 hover:bg-red-800/40 text-red-200 rounded-lg text-sm transition-colors font-medium border border-red-800/50"
               >
                 Logout
               </button>
@@ -404,7 +404,7 @@ export default function AddProductsPage() {
           <div className="p-8">
             {/* Messages */}
             {error && (
-              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center justify-between">
+              <div className="mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -414,7 +414,7 @@ export default function AddProductsPage() {
                 {error.includes('expired') && (
                   <button
                     onClick={handleLogout}
-                    className="text-red-700 underline text-sm font-medium"
+                    className="text-red-300 underline text-sm font-medium hover:text-red-200"
                   >
                     Login Again
                   </button>
@@ -423,7 +423,7 @@ export default function AddProductsPage() {
             )}
 
             {message && (
-              <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-lg flex items-center">
+              <div className="mb-6 p-4 bg-green-900/20 text-green-200 rounded-lg flex items-center border border-green-800/30">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -433,13 +433,13 @@ export default function AddProductsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information Section */}
-              <div className="border-b pb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h3>
+              <div className="border-b border-gray-700 pb-8">
+                <h3 className="text-xl font-semibold text-white mb-6">Basic Information</h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Product Name */}
                   <div className="lg:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Product Name *
                     </label>
                     <input
@@ -448,14 +448,14 @@ export default function AddProductsPage() {
                       value={formData.product_name}
                       onChange={handleInputChange}
                       required
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="Enter product name"
                     />
                   </div>
 
                   {/* SKU */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       SKU *
                     </label>
                     <div className="flex space-x-2">
@@ -465,13 +465,13 @@ export default function AddProductsPage() {
                         value={formData.sku}
                         onChange={handleInputChange}
                         required
-                        className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="Product SKU"
                       />
                       <button
                         type="button"
                         onClick={generateSKU}
-                        className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium"
+                        className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
                       >
                         Generate
                       </button>
@@ -480,7 +480,7 @@ export default function AddProductsPage() {
 
                   {/* Brand */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Brand
                     </label>
                     <input
@@ -488,34 +488,34 @@ export default function AddProductsPage() {
                       name="brand"
                       value={formData.brand}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="Brand name"
                     />
                   </div>
 
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Category
                     </label>
                     <select
                       name="category_id"
                       value={formData.category_id}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       disabled={categoriesLoading}
                     >
-                      <option value={0}>
+                      <option value={0} className="bg-gray-700">
                         {categoriesLoading ? 'Loading categories...' : 'Select category'}
                       </option>
                       {categories.map(category => (
-                        <option key={category.id} value={category.id}>
+                        <option key={category.id} value={category.id} className="bg-gray-700">
                           {category.category_name}
                         </option>
                       ))}
                     </select>
                     {categories.length === 0 && !categoriesLoading && (
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-400 mt-1">
                         No categories available. Product will be uncategorized.
                       </p>
                     )}
@@ -523,7 +523,7 @@ export default function AddProductsPage() {
 
                   {/* Barcode */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Barcode
                     </label>
                     <input
@@ -531,14 +531,14 @@ export default function AddProductsPage() {
                       name="barcode"
                       value={formData.barcode}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="Barcode number"
                     />
                   </div>
 
                   {/* HSN/SAC */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       HSN/SAC Code
                     </label>
                     <input
@@ -546,14 +546,14 @@ export default function AddProductsPage() {
                       name="hsn_sac"
                       value={formData.hsn_sac}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="HSN or SAC code"
                     />
                   </div>
 
                   {/* Unit */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Unit *
                     </label>
                     <select
@@ -561,24 +561,24 @@ export default function AddProductsPage() {
                       value={formData.unit}
                       onChange={handleInputChange}
                       required
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                     >
-                      <option value="pcs">Pieces</option>
-                      <option value="kg">Kilogram</option>
-                      <option value="g">Gram</option>
-                      <option value="l">Litre</option>
-                      <option value="ml">Millilitre</option>
-                      <option value="m">Meter</option>
-                      <option value="cm">Centimeter</option>
-                      <option value="box">Box</option>
-                      <option value="pack">Pack</option>
-                      <option value="set">Set</option>
+                      <option value="pcs" className="bg-gray-700">Pieces</option>
+                      <option value="kg" className="bg-gray-700">Kilogram</option>
+                      <option value="g" className="bg-gray-700">Gram</option>
+                      <option value="l" className="bg-gray-700">Litre</option>
+                      <option value="ml" className="bg-gray-700">Millilitre</option>
+                      <option value="m" className="bg-gray-700">Meter</option>
+                      <option value="cm" className="bg-gray-700">Centimeter</option>
+                      <option value="box" className="bg-gray-700">Box</option>
+                      <option value="pack" className="bg-gray-700">Pack</option>
+                      <option value="set" className="bg-gray-700">Set</option>
                     </select>
                   </div>
 
                   {/* Product Description */}
                   <div className="lg:col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Product Description
                     </label>
                     <textarea
@@ -586,7 +586,7 @@ export default function AddProductsPage() {
                       value={formData.product_description}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="Enter product description"
                     />
                   </div>
@@ -594,13 +594,13 @@ export default function AddProductsPage() {
               </div>
 
               {/* Inventory Information Section */}
-              <div className="border-b pb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Inventory Information</h3>
+              <div className="border-b border-gray-700 pb-8">
+                <h3 className="text-xl font-semibold text-white mb-6">Inventory Information</h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Quantity */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Quantity in Stock *
                     </label>
                     <input
@@ -610,14 +610,14 @@ export default function AddProductsPage() {
                       onChange={handleInputChange}
                       required
                       min="0"
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="0"
                     />
                   </div>
 
                   {/* Reorder Level */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Reorder Level
                     </label>
                     <input
@@ -626,42 +626,42 @@ export default function AddProductsPage() {
                       value={formData.reorder_level}
                       onChange={handleInputChange}
                       min="0"
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="0"
                     />
                   </div>
 
                   {/* Status */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Product Status
                     </label>
                     <select
                       name="is_active"
                       value={formData.is_active ? 'true' : 'false'}
                       onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                     >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
+                      <option value="true" className="bg-gray-700">Active</option>
+                      <option value="false" className="bg-gray-700">Inactive</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* Pricing Information Section */}
-              <div className="border-b pb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Information</h3>
+              <div className="border-b border-gray-700 pb-8">
+                <h3 className="text-xl font-semibold text-white mb-6">Pricing Information</h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Purchase Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Purchase Price *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500">₹</span>
+                        <span className="text-gray-400">₹</span>
                       </div>
                       <input
                         type="number"
@@ -671,7 +671,7 @@ export default function AddProductsPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="0.00"
                       />
                     </div>
@@ -679,12 +679,12 @@ export default function AddProductsPage() {
 
                   {/* Base Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Base Price
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500">₹</span>
+                        <span className="text-gray-400">₹</span>
                       </div>
                       <input
                         type="number"
@@ -693,7 +693,7 @@ export default function AddProductsPage() {
                         onChange={handleInputChange}
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="0.00"
                       />
                     </div>
@@ -701,7 +701,7 @@ export default function AddProductsPage() {
 
                   {/* Discount Percentage */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Discount Percentage
                     </label>
                     <div className="relative">
@@ -713,18 +713,18 @@ export default function AddProductsPage() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="0.00"
                       />
                       <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500">%</span>
+                        <span className="text-gray-400">%</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Tax Percentage */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Tax Percentage
                     </label>
                     <div className="relative">
@@ -736,11 +736,11 @@ export default function AddProductsPage() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="0.00"
                       />
                       <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500">%</span>
+                        <span className="text-gray-400">%</span>
                       </div>
                     </div>
                   </div>
@@ -752,21 +752,21 @@ export default function AddProductsPage() {
                       name="tax_inclusive"
                       checked={formData.tax_inclusive}
                       onChange={(e) => setFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
-                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700 rounded"
                     />
-                    <label className="ml-3 text-sm font-medium text-gray-700">
+                    <label className="ml-3 text-sm font-medium text-gray-300">
                       Price includes tax
                     </label>
                   </div>
 
                   {/* Sales Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Sales Price *
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500">₹</span>
+                        <span className="text-gray-400">₹</span>
                       </div>
                       <input
                         type="number"
@@ -776,7 +776,7 @@ export default function AddProductsPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                         placeholder="0.00"
                       />
                     </div>
@@ -796,29 +796,29 @@ export default function AddProductsPage() {
 
                 {/* Profit Analysis */}
                 {formData.purchase_price > 0 && formData.sales_price > 0 && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Profit Analysis</h4>
+                  <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                    <h4 className="text-lg font-semibold text-white mb-4">Profit Analysis</h4>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center">
-                        <p className="text-sm text-gray-600">Profit Amount</p>
+                        <p className="text-sm text-gray-400">Profit Amount</p>
                         <p className={`text-lg font-semibold ${
                           formData.sales_price > formData.purchase_price 
-                            ? 'text-green-600' 
+                            ? 'text-green-400' 
                             : formData.sales_price < formData.purchase_price 
-                            ? 'text-red-600' 
-                            : 'text-gray-600'
+                            ? 'text-red-400' 
+                            : 'text-gray-300'
                         }`}>
                           ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600">Profit Margin</p>
+                        <p className="text-sm text-gray-400">Profit Margin</p>
                         <p className={`text-lg font-semibold ${
                           formData.sales_price > formData.purchase_price 
-                            ? 'text-green-600' 
+                            ? 'text-green-400' 
                             : formData.sales_price < formData.purchase_price 
-                            ? 'text-red-600' 
-                            : 'text-gray-600'
+                            ? 'text-red-400' 
+                            : 'text-gray-300'
                         }`}>
                           {formData.purchase_price > 0 
                             ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
@@ -827,14 +827,14 @@ export default function AddProductsPage() {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600">Stock Value</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                        <p className="text-sm text-gray-400">Stock Value</p>
+                        <p className="text-lg font-semibold text-white">
                           ₹{(formData.qty * formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600">Potential Revenue</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                        <p className="text-sm text-gray-400">Potential Revenue</p>
+                        <p className="text-lg font-semibold text-white">
                           ₹{(formData.qty * formData.sales_price).toFixed(2)}
                         </p>
                       </div>
@@ -867,7 +867,7 @@ export default function AddProductsPage() {
 
             {/* Help Text */}
             <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-400">
                 All fields marked with * are required. Ensure all information is accurate before submitting.
               </p>
             </div>

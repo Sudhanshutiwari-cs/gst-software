@@ -5,17 +5,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
+  /*BoxCubeIcon,
+  CalenderIcon,*/
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
+  /*ListIcon,
   PageIcon,
   PieChartIcon,
-  PlugInIcon,
+  PlugInIcon,*/
   TableIcon,
-  UserCircleIcon,
+  /*UserCircleIcon,*/
 } from "../icons/index";
 
 // Types for vendor profile
