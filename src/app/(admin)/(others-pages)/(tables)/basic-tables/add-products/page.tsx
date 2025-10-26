@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect, useCallback } from 'react';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 
 interface ProductFormData {
@@ -27,6 +27,11 @@ interface ProductFormData {
 interface Category {
   id: number;
   category_name: string;
+}
+
+interface ApiError {
+  message?: string;
+  success?: boolean;
 }
 
 export default function AddProductsPage() {
@@ -58,11 +63,6 @@ export default function AddProductsPage() {
   const [tokenValid, setTokenValid] = useState<boolean>(true);
   const router = useRouter();
 
-  // Check token validity on component mount
-  useEffect(() => {
-    checkTokenValidity();
-  }, []);
-
   const getJwtToken = (): string | null => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || null;
@@ -74,7 +74,7 @@ export default function AddProductsPage() {
     sessionStorage.removeItem('authToken');
   };
 
-  const checkTokenValidity = async (): Promise<boolean> => {
+  const checkTokenValidity = useCallback(async (): Promise<boolean> => {
     const token = getJwtToken();
     if (!token) {
       setTokenValid(false);
@@ -112,7 +112,7 @@ export default function AddProductsPage() {
       setTokenValid(false);
       return false;
     }
-  };
+  }, []);
 
   const fetchCategories = async () => {
     const token = getJwtToken();
@@ -151,8 +151,9 @@ export default function AddProductsPage() {
             categoriesData = response.data.categories || response.data.data || response.data;
             break;
           }
-        } catch (endpointError: any) {
-          console.log(`Endpoint ${endpoint} failed:`, endpointError.response?.status, endpointError.message);
+        } catch (endpointError: unknown) {
+          const axiosError = endpointError as AxiosError;
+          console.log(`Endpoint ${endpoint} failed:`, axiosError.response?.status, axiosError.message);
           continue;
         }
       }
@@ -165,13 +166,14 @@ export default function AddProductsPage() {
         setCategories([]);
       }
 
-    } catch (error: any) {
-      console.error('Error fetching categories:', error);
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      console.error('Error fetching categories:', axiosError);
       console.error('Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data,
+        message: axiosError.message
       });
       
       // Set empty categories array but don't show error to user
@@ -180,6 +182,11 @@ export default function AddProductsPage() {
       setCategoriesLoading(false);
     }
   };
+
+  // Check token validity on component mount
+  useEffect(() => {
+    checkTokenValidity();
+  }, [checkTokenValidity]);
 
   const handleLogout = (): void => {
     removeToken();
@@ -320,10 +327,11 @@ export default function AddProductsPage() {
       } else {
         setError(response.data.message || 'Failed to add product');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding product:', error);
+      const axiosError = error as AxiosError<ApiError>;
       
-      if (error.response?.status === 401) {
+      if (axiosError.response?.status === 401) {
         setTokenValid(false);
         const newToken = await refreshToken();
         if (newToken) {
@@ -332,10 +340,10 @@ export default function AddProductsPage() {
           setError('Your session has expired. Please log in again.');
           removeToken();
         }
-      } else if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED') {
+      } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
         setError('Network error. Please check your connection and try again.');
       } else {
-        setError(error.response?.data?.message || 'An error occurred while adding the product');
+        setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
       }
     } finally {
       setLoading(false);
@@ -487,7 +495,7 @@ export default function AddProductsPage() {
 
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Category
                     </label>
                     <select
@@ -585,7 +593,6 @@ export default function AddProductsPage() {
                 </div>
               </div>
 
-              {/* Rest of the form remains the same */}
               {/* Inventory Information Section */}
               <div className="border-b pb-8">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Inventory Information</h3>
