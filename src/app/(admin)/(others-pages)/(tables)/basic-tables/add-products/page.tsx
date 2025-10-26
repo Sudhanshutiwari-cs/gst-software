@@ -5,23 +5,54 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 
 interface ProductFormData {
+  sku: string;
   product_name: string;
+  price: number;
+  barcode: string;
+  category_id: number;
+  brand: string;
+  hsn_sac: string;
   unit: string;
   qty: number;
+  reorder_level: number;
   purchase_price: number;
   sales_price: number;
+  discount_percent: number;
+  tax_percent: number;
+  tax_inclusive: boolean;
+  product_description: string;
+  is_active: boolean;
+}
+
+interface Category {
+  id: number;
+  category_name: string;
 }
 
 export default function AddProductsPage() {
   const [formData, setFormData] = useState<ProductFormData>({
+    sku: '',
     product_name: '',
-    unit: '',
+    price: 0,
+    barcode: '',
+    category_id: 0,
+    brand: '',
+    hsn_sac: '',
+    unit: 'pcs',
     qty: 0,
+    reorder_level: 0,
     purchase_price: 0,
     sales_price: 0,
+    discount_percent: 0,
+    tax_percent: 0,
+    tax_inclusive: false,
+    product_description: '',
+    is_active: true,
   });
   
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenValid, setTokenValid] = useState<boolean>(true);
@@ -73,11 +104,80 @@ export default function AddProductsPage() {
       }
 
       setTokenValid(true);
+      // Fetch categories after token validation
+      await fetchCategories();
       return true;
     } catch (error) {
       console.error('Token validation error:', error);
       setTokenValid(false);
       return false;
+    }
+  };
+
+  const fetchCategories = async () => {
+    const token = getJwtToken();
+    if (!token) {
+      setCategoriesLoading(false);
+      return;
+    }
+
+    setCategoriesLoading(true);
+    try {
+      console.log('Fetching categories...');
+      
+      // Try multiple possible endpoints
+      const endpoints = [
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories',
+        'https://manhemdigitalsolutions.com/pos-admin/api/categories',
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-categories'
+      ];
+
+      let categoriesData = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          const response = await axios.get(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            timeout: 10000,
+          });
+
+          console.log('Categories API response:', response.data);
+
+          if (response.data.success) {
+            // Handle different possible response structures
+            categoriesData = response.data.categories || response.data.data || response.data;
+            break;
+          }
+        } catch (endpointError: any) {
+          console.log(`Endpoint ${endpoint} failed:`, endpointError.response?.status, endpointError.message);
+          continue;
+        }
+      }
+
+      if (categoriesData) {
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        console.log('Categories loaded:', categoriesData);
+      } else {
+        console.warn('No categories found from any endpoint');
+        setCategories([]);
+      }
+
+    } catch (error: any) {
+      console.error('Error fetching categories:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Set empty categories array but don't show error to user
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
@@ -113,14 +213,44 @@ export default function AddProductsPage() {
     return null;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'product_name' || name === 'unit' 
-        ? value 
-        : parseFloat(value) || 0
+      [name]: type === 'checkbox' 
+        ? (e.target as HTMLInputElement).checked
+        : type === 'number' 
+          ? parseFloat(value) || 0
+          : value
     }));
+  };
+
+  const generateSKU = () => {
+    const prefix = formData.brand ? formData.brand.substring(0, 3).toUpperCase() : 'PRO';
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const sku = `${prefix}-${random}`;
+    setFormData(prev => ({ ...prev, sku }));
+  };
+
+  const calculateSalesPrice = () => {
+    const { purchase_price, discount_percent, tax_percent, tax_inclusive } = formData;
+    
+    if (purchase_price > 0) {
+      let calculatedPrice = purchase_price;
+      
+      // Apply discount if any
+      if (discount_percent > 0) {
+        calculatedPrice = purchase_price * (1 - discount_percent / 100);
+      }
+      
+      // Apply tax if not inclusive
+      if (!tax_inclusive && tax_percent > 0) {
+        calculatedPrice = calculatedPrice * (1 + tax_percent / 100);
+      }
+      
+      setFormData(prev => ({ ...prev, sales_price: parseFloat(calculatedPrice.toFixed(2)) }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +264,17 @@ export default function AddProductsPage() {
     const token = getJwtToken();
     if (!token) {
       setError('Authentication required. Please log in.');
+      return;
+    }
+
+    // Validation
+    if (!formData.product_name.trim()) {
+      setError('Product name is required');
+      return;
+    }
+
+    if (!formData.sku.trim()) {
+      setError('SKU is required');
       return;
     }
 
@@ -156,12 +297,25 @@ export default function AddProductsPage() {
 
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Product added successfully!' });
+        // Reset form
         setFormData({
+          sku: '',
           product_name: '',
-          unit: '',
+          price: 0,
+          barcode: '',
+          category_id: 0,
+          brand: '',
+          hsn_sac: '',
+          unit: 'pcs',
           qty: 0,
+          reorder_level: 0,
           purchase_price: 0,
           sales_price: 0,
+          discount_percent: 0,
+          tax_percent: 0,
+          tax_inclusive: false,
+          product_description: '',
+          is_active: true,
         });
       } else {
         setError(response.data.message || 'Failed to add product');
@@ -191,7 +345,7 @@ export default function AddProductsPage() {
   if (!tokenValid) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="w-full max-w-4xl mx-auto">
+        <div className="w-full max-w-7xl mx-auto">
           <div className="bg-white shadow-sm rounded-xl overflow-hidden">
             <div className="bg-white px-6 py-4 border-b">
               <h2 className="text-xl font-bold text-gray-800">Session Expired</h2>
@@ -215,10 +369,9 @@ export default function AddProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Full Width Container */}
-      <div className="w-full">
+      <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-          {/* Header - Full Width */}
+          {/* Header */}
           <div className="bg-white px-8 py-6 border-b flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-gray-800">Add New Product</h2>
@@ -271,13 +424,13 @@ export default function AddProductsPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Product Information Section - Full Width Grid */}
+              {/* Basic Information Section */}
               <div className="border-b pb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Product Information</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h3>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                  {/* Product Name - Full Width */}
-                  <div className="lg:col-span-2 xl:col-span-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {/* Product Name */}
+                  <div className="lg:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Product Name *
                     </label>
@@ -287,8 +440,106 @@ export default function AddProductsPage() {
                       value={formData.product_name}
                       onChange={handleInputChange}
                       required
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors text-lg"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                       placeholder="Enter product name"
+                    />
+                  </div>
+
+                  {/* SKU */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU *
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        name="sku"
+                        value={formData.sku}
+                        onChange={handleInputChange}
+                        required
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        placeholder="Product SKU"
+                      />
+                      <button
+                        type="button"
+                        onClick={generateSKU}
+                        className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Brand */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Brand
+                    </label>
+                    <input
+                      type="text"
+                      name="brand"
+                      value={formData.brand}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      placeholder="Brand name"
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Category
+                    </label>
+                    <select
+                      name="category_id"
+                      value={formData.category_id}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      disabled={categoriesLoading}
+                    >
+                      <option value={0}>
+                        {categoriesLoading ? 'Loading categories...' : 'Select category'}
+                      </option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>
+                          {category.category_name}
+                        </option>
+                      ))}
+                    </select>
+                    {categories.length === 0 && !categoriesLoading && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        No categories available. Product will be uncategorized.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Barcode */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Barcode
+                    </label>
+                    <input
+                      type="text"
+                      name="barcode"
+                      value={formData.barcode}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      placeholder="Barcode number"
+                    />
+                  </div>
+
+                  {/* HSN/SAC */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      HSN/SAC Code
+                    </label>
+                    <input
+                      type="text"
+                      name="hsn_sac"
+                      value={formData.hsn_sac}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      placeholder="HSN or SAC code"
                     />
                   </div>
 
@@ -304,23 +555,46 @@ export default function AddProductsPage() {
                       required
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                     >
-                      <option value="">Select unit</option>
-                      <option value="Box">Box</option>
-                      <option value="Piece">Piece</option>
-                      <option value="Pack">Pack</option>
-                      <option value="Bottle">Bottle</option>
-                      <option value="Unit">Unit</option>
-                      <option value="Kg">Kilogram</option>
-                      <option value="Gram">Gram</option>
-                      <option value="Liter">Liter</option>
-                      <option value="ML">Milliliter</option>
+                      <option value="pcs">Pieces</option>
+                      <option value="kg">Kilogram</option>
+                      <option value="g">Gram</option>
+                      <option value="l">Litre</option>
+                      <option value="ml">Millilitre</option>
+                      <option value="m">Meter</option>
+                      <option value="cm">Centimeter</option>
+                      <option value="box">Box</option>
+                      <option value="pack">Pack</option>
+                      <option value="set">Set</option>
                     </select>
                   </div>
 
+                  {/* Product Description */}
+                  <div className="lg:col-span-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Description
+                    </label>
+                    <textarea
+                      name="product_description"
+                      value={formData.product_description}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      placeholder="Enter product description"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Rest of the form remains the same */}
+              {/* Inventory Information Section */}
+              <div className="border-b pb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-6">Inventory Information</h3>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Quantity */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quantity *
+                      Quantity in Stock *
                     </label>
                     <input
                       type="number"
@@ -334,17 +608,45 @@ export default function AddProductsPage() {
                     />
                   </div>
 
-                  {/* Empty columns for spacing */}
-                  <div className="hidden xl:block"></div>
-                  <div className="hidden xl:block"></div>
+                  {/* Reorder Level */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reorder Level
+                    </label>
+                    <input
+                      type="number"
+                      name="reorder_level"
+                      value={formData.reorder_level}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Status
+                    </label>
+                    <select
+                      name="is_active"
+                      value={formData.is_active ? 'true' : 'false'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Pricing Section - Full Width Grid */}
+              {/* Pricing Information Section */}
               <div className="border-b pb-8">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Information</h3>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Purchase Price */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -352,7 +654,7 @@ export default function AddProductsPage() {
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500 text-lg">₹</span>
+                        <span className="text-gray-500">₹</span>
                       </div>
                       <input
                         type="number"
@@ -368,6 +670,88 @@ export default function AddProductsPage() {
                     </div>
                   </div>
 
+                  {/* Base Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Base Price
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-gray-500">₹</span>
+                      </div>
+                      <input
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="0.01"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Discount Percentage */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount Percentage
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        name="discount_percent"
+                        value={formData.discount_percent}
+                        onChange={handleInputChange}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        placeholder="0.00"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                        <span className="text-gray-500">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tax Percentage */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tax Percentage
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        name="tax_percent"
+                        value={formData.tax_percent}
+                        onChange={handleInputChange}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        placeholder="0.00"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                        <span className="text-gray-500">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tax Inclusive */}
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="tax_inclusive"
+                      checked={formData.tax_inclusive}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
+                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-3 text-sm font-medium text-gray-700">
+                      Price includes tax
+                    </label>
+                  </div>
+
                   {/* Sales Price */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -375,7 +759,7 @@ export default function AddProductsPage() {
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-500 text-lg">₹</span>
+                        <span className="text-gray-500">₹</span>
                       </div>
                       <input
                         type="number"
@@ -391,80 +775,68 @@ export default function AddProductsPage() {
                     </div>
                   </div>
 
-                  {/* Profit Margin Display */}
-                  <div className="lg:col-span-2">
-                    <div className="bg-gray-50 rounded-lg p-4 h-full">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Profit Analysis</h4>
-                      {formData.purchase_price > 0 && formData.sales_price > 0 ? (
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Profit:</span>
-                            <span className={`ml-2 font-semibold text-lg ${
-                              formData.sales_price > formData.purchase_price 
-                                ? 'text-green-600' 
-                                : formData.sales_price < formData.purchase_price 
-                                ? 'text-red-600' 
-                                : 'text-gray-600'
-                            }`}>
-                              ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Margin:</span>
-                            <span className={`ml-2 font-semibold text-lg ${
-                              formData.sales_price > formData.purchase_price 
-                                ? 'text-green-600' 
-                                : formData.sales_price < formData.purchase_price 
-                                ? 'text-red-600' 
-                                : 'text-gray-600'
-                            }`}>
-                              {formData.purchase_price > 0 
-                                ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
-                                : '0%'
-                              }
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 text-sm">Enter prices to see profit analysis</p>
-                      )}
+                  {/* Calculate Price Button */}
+                  <div className="lg:col-span-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={calculateSalesPrice}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors font-medium"
+                    >
+                      Calculate Sales Price
+                    </button>
+                  </div>
+                </div>
+
+                {/* Profit Analysis */}
+                {formData.purchase_price > 0 && formData.sales_price > 0 && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Profit Analysis</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Profit Amount</p>
+                        <p className={`text-lg font-semibold ${
+                          formData.sales_price > formData.purchase_price 
+                            ? 'text-green-600' 
+                            : formData.sales_price < formData.purchase_price 
+                            ? 'text-red-600' 
+                            : 'text-gray-600'
+                        }`}>
+                          ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Profit Margin</p>
+                        <p className={`text-lg font-semibold ${
+                          formData.sales_price > formData.purchase_price 
+                            ? 'text-green-600' 
+                            : formData.sales_price < formData.purchase_price 
+                            ? 'text-red-600' 
+                            : 'text-gray-600'
+                        }`}>
+                          {formData.purchase_price > 0 
+                            ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
+                            : '0%'
+                          }
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Stock Value</p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          ₹{(formData.qty * formData.purchase_price).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600">Potential Revenue</p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          ₹{(formData.qty * formData.sales_price).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Product Summary - Full Width */}
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Product Summary</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Product Name</p>
-                    <p className="font-semibold text-gray-900 text-lg mt-1">
-                      {formData.product_name || 'Not specified'}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Unit & Quantity</p>
-                    <p className="font-semibold text-gray-900 text-lg mt-1">
-                      {formData.qty} {formData.unit || 'units'}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Stock Value</p>
-                    <p className="font-semibold text-gray-900 text-lg mt-1">
-                      ₹{(formData.qty * formData.purchase_price).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Potential Revenue</p>
-                    <p className="font-semibold text-gray-900 text-lg mt-1">
-                      ₹{(formData.qty * formData.sales_price).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button - Centered */}
+              {/* Submit Button */}
               <div className="flex justify-center pt-4">
                 <button
                   type="submit"
