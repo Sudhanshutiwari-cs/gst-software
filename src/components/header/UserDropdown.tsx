@@ -159,7 +159,7 @@ export default function UserDropdown() {
             {vendorProfile?.owner_name || "Vendor User"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            {vendorProfile?.email || "vendor@example.com"}
+            {vendorProfile?.email }
           </span>
         </div>
 

@@ -19,6 +19,7 @@ interface State {
 interface Vendor {
   id: number;
   business_name: string;
+  email: string;
   shop_name: string;
   shop_type: string;
   shop_category: string;
@@ -43,6 +44,7 @@ interface Vendor {
 
 interface VendorFormData {
   business_name: string;
+  email: string;
   shop_name: string;
   shop_type: string;
   shop_category: string;
@@ -91,6 +93,7 @@ export default function EditVendorPage() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<VendorFormData>({
     business_name: "",
+    email: "",
     shop_name: "",
     shop_type: "",
     shop_category: "",
@@ -195,6 +198,7 @@ export default function EditVendorPage() {
           // Set form data with proper fallbacks
           setFormData({
             business_name: vendorData.business_name || "",
+            email: vendorData.email || "",
             shop_name: vendorData.shop_name || "",
             shop_type: vendorData.shop_type || "",
             shop_category: vendorData.shop_category || "",
@@ -545,6 +549,17 @@ export default function EditVendorPage() {
                     type="text"
                     name="shop_type"
                     value={formData.shop_type}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
