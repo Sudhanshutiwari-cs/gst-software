@@ -40,9 +40,9 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/dashboard",  
   },
-  {
+ /*{
     icon: <CalenderIcon />,
     name: "Calendar",
     path: "/calendar",
@@ -56,24 +56,26 @@ const navItems: NavItem[] = [
     name: "Forms",
     icon: <ListIcon />,
     subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
+  },*/
   {
-    name: "Tables",
+    name: "Products",
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    subItems: [{ name: "All Products", path: "/products", pro: false },
+      { name: "Add Product", path: "/products/add-product", pro: false }
+    ],
   },
-  {
+  /*{
     name: "Pages",
     icon: <PageIcon />,
     subItems: [
       { name: "Blank Page", path: "/blank", pro: false },
       { name: "404 Error", path: "/error-404", pro: false },
     ],
-  },
+  },*/
 ];
 
 const othersItems: NavItem[] = [
-  {
+  /*{
     icon: <PieChartIcon />,
     name: "Charts",
     subItems: [
@@ -100,7 +102,7 @@ const othersItems: NavItem[] = [
       { name: "Sign In", path: "/login", pro: false },
       { name: "Sign Up", path: "/signup", pro: false },
     ],
-  },
+  },*/
 ];
 
 const AppSidebar: React.FC = () => {
@@ -449,7 +451,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
+                  ""  //OTHERS
                 ) : (
                   <HorizontaLDots />
                 )}

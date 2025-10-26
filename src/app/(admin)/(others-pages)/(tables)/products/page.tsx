@@ -14,8 +14,8 @@ interface VendorProduct {
   product_name: string;
   category: string;
   sku: string;
+  sales_price: number;
   is_active: boolean;
-  price: number;
   quantity: number;
   status: 'active' | 'inactive' | 'out_of_stock';
   image_url?: string;
@@ -29,7 +29,12 @@ interface VendorProductsResponse {
   message?: string;
 }
 
-// API service function
+interface DeleteProductResponse {
+  success: boolean;
+  message: string;
+}
+
+// API service functions
 async function getVendorProducts(token: string): Promise<VendorProductsResponse> {
   try {
     const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/products', {
@@ -51,10 +56,33 @@ async function getVendorProducts(token: string): Promise<VendorProductsResponse>
   }
 }
 
+// Delete product API function
+async function deleteVendorProduct(token: string, productId: number): Promise<DeleteProductResponse> {
+  try {
+    const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/delete-products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting vendor product:', error);
+    throw error;
+  }
+}
+
 export default function VendorProductsPage() {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -90,6 +118,11 @@ export default function VendorProductsPage() {
     }
   };
 
+  const handleAddProduct = () => {
+    // Redirect to add product page
+    router.push('/products/add-products');
+  };
+
   const handleEdit = (productId: number) => {
     // Implement edit functionality
     console.log('Edit product:', productId);
@@ -98,32 +131,44 @@ export default function VendorProductsPage() {
   };
 
   const handleDelete = async (productId: number) => {
-    if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      try {
-        // Implement actual delete API call here
-        console.log('Delete product:', productId);
-        
-        // Example delete implementation:
-        // const token = localStorage.getItem('jwtToken') || '';
-        // const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}`, {
-        //   method: 'DELETE',
-        //   headers: {
-        //     'Authorization': `Bearer ${token}`,
-        //   },
-        // });
-        
-        // if (response.ok) {
-        //   // Remove product from state
-        //   setProducts(products.filter(product => product.id !== productId));
-        // }
-        
-        // For now, just remove from local state
+    // Show confirmation dialog
+    const isConfirmed = window.confirm(
+      'Are you sure you want to delete this product? This action cannot be undone.'
+    );
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(productId);
+      
+      // Get JWT token
+      const token = localStorage.getItem('authToken') || 
+                    sessionStorage.getItem('authToken') || 
+                    '';
+      
+      if (!token) {
+        throw new Error('No JWT token found. Please log in again.');
+      }
+
+      // Call the delete API
+      const response = await deleteVendorProduct(token, productId);
+      
+      if (response.success) {
+        // Remove product from state on successful deletion
         setProducts(products.filter(product => product.id !== productId));
         
-      } catch (err) {
-        console.error('Error deleting product:', err);
-        alert('Error deleting product. Please try again.');
+        // Optional: Show success message
+        alert('Product deleted successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to delete product');
       }
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert(`Error deleting product: ${err instanceof Error ? err.message : 'Please try again.'}`);
+    } finally {
+      setDeleteLoading(null);
     }
   };
 
@@ -163,7 +208,7 @@ export default function VendorProductsPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     }).format(price);
   };
 
@@ -213,12 +258,28 @@ export default function VendorProductsPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Vendor Products</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your product inventory</p>
           </div>
-          <button
-            onClick={fetchVendorProducts}
-            className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="flex space-x-3">
+            {/* Add Product Button */}
+            <button
+              onClick={handleAddProduct}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Product
+            </button>
+            {/* Refresh Button */}
+            <button
+              onClick={fetchVendorProducts}
+              className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Products Table */}
@@ -303,7 +364,7 @@ export default function VendorProductsPage() {
                       {/* Price */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {formatPrice(product.price)}
+                          {formatPrice(product.sales_price)}
                         </div>
                       </td>
 
@@ -336,9 +397,21 @@ export default function VendorProductsPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(product.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 px-3 py-2 rounded-md text-sm font-medium transition-colors border border-red-200 dark:border-red-800"
+                            disabled={deleteLoading === product.id}
+                            className={`flex items-center justify-center min-w-[80px] ${
+                              deleteLoading === product.id
+                                ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50'
+                            } px-3 py-2 rounded-md text-sm font-medium transition-colors border border-red-200 dark:border-red-800`}
                           >
-                            Delete
+                            {deleteLoading === product.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                                Deleting...
+                              </>
+                            ) : (
+                              'Delete'
+                            )}
                           </button>
                         </div>
                       </td>
