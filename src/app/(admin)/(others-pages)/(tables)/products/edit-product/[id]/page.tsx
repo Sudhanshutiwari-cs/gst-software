@@ -189,24 +189,25 @@ export default function EditProductPage() {
   };
 
   const fetchProduct = async () => {
-    if (!productId) {
-      setError('Product ID is missing');
-      setProductLoading(false);
-      return;
-    }
+  if (!productId) {
+    setError('Product ID is missing');
+    setProductLoading(false);
+    return;
+  }
 
-    const token = getJwtToken();
-    if (!token) {
-      setError('Authentication required');
-      setProductLoading(false);
-      return;
-    }
+  const token = getJwtToken();
+  if (!token) {
+    setError('Authentication required');
+    setProductLoading(false);
+    return;
+  }
 
-    setProductLoading(true);
+  setProductLoading(true);
+  try {
+    // First try the specific product endpoint
     try {
-      // First try to get the specific product
       const productResponse = await axios.get(
-        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}`,
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/edit/${productId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -215,8 +216,10 @@ export default function EditProductPage() {
         }
       );
 
-      if (productResponse.data.success && productResponse.data.product) {
-        const product = productResponse.data.product;
+      console.log('Product API response:', productResponse.data);
+
+      if (productResponse.data.success && productResponse.data.data) {
+        const product = productResponse.data.data;
         setFormData({
           sku: product.sku || '',
           product_name: product.product_name || '',
@@ -234,24 +237,35 @@ export default function EditProductPage() {
           tax_percent: product.tax_percent || 0,
           tax_inclusive: product.tax_inclusive || false,
           product_description: product.product_description || '',
-          is_active: product.is_active !== undefined ? product.is_active : true,
+          is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
         });
-      } else {
-        // If specific product endpoint fails, try to get from products list
-        const productsResponse = await axios.get(
-          'https://manhemdigitalsolutions.com/pos-admin/api/vendor/products',
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            timeout: 10000,
-          }
-        );
+        return; // Success, exit function
+      }
+    } catch (firstAttemptError) {
+      console.log('First attempt failed, trying alternative endpoint...', firstAttemptError);
+    }
 
-        if (productsResponse.data.success && productsResponse.data.products) {
-          const products = productsResponse.data.products;
-          const product = products.find((p: Product) => p.id === parseInt(productId));
-          
+    // If first attempt fails, try alternative endpoints
+    const alternativeEndpoints = [
+      `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}`,
+      `https://manhemdigitalsolutions.com/pos-admin/api/products/${productId}`,
+      `https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-product/${productId}`
+    ];
+
+    for (const endpoint of alternativeEndpoints) {
+      try {
+        console.log(`Trying alternative endpoint: ${endpoint}`);
+        const response = await axios.get(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          timeout: 10000,
+        });
+
+        console.log('Alternative endpoint response:', response.data);
+
+        if (response.data.success) {
+          const product = response.data.data || response.data.product;
           if (product) {
             setFormData({
               sku: product.sku || '',
@@ -270,30 +284,90 @@ export default function EditProductPage() {
               tax_percent: product.tax_percent || 0,
               tax_inclusive: product.tax_inclusive || false,
               product_description: product.product_description || '',
-              is_active: product.is_active !== undefined ? product.is_active : true,
+              is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
             });
-          } else {
-            setError('Product not found');
+            return; // Success, exit function
           }
-        } else {
-          setError('Failed to fetch product data');
+        }
+      } catch (endpointError) {
+        console.log(`Endpoint ${endpoint} failed:`, endpointError);
+        continue;
+      }
+    }
+
+    // If all endpoints fail, try to get from products list
+    try {
+      const productsResponse = await axios.get(
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/products',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          timeout: 10000,
+        }
+      );
+
+      console.log('Products list response:', productsResponse.data);
+
+      if (productsResponse.data.success && productsResponse.data.data) {
+        const products = productsResponse.data.data;
+        const product = products.find((p: Product) => p.id === parseInt(productId));
+        
+        if (product) {
+          setFormData({
+            sku: product.sku || '',
+            product_name: product.product_name || '',
+            price: product.price || 0,
+            barcode: product.barcode || '',
+            category_id: product.category_id || 0,
+            brand: product.brand || '',
+            hsn_sac: product.hsn_sac || '',
+            unit: product.unit || 'pcs',
+            qty: product.qty || 0,
+            reorder_level: product.reorder_level || 0,
+            purchase_price: product.purchase_price || 0,
+            sales_price: product.sales_price || 0,
+            discount_percent: product.discount_percent || 0,
+            tax_percent: product.tax_percent || 0,
+            tax_inclusive: product.tax_inclusive || false,
+            product_description: product.product_description || '',
+            is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
+          });
+          return; // Success, exit function
         }
       }
-    } catch (error: unknown) {
-      const axiosError = error as AxiosError<ApiError>;
-      console.error('Error fetching product:', axiosError);
-      
-      if (axiosError.response?.status === 404) {
-        setError('Product not found');
-      } else if (axiosError.response?.status === 401) {
-        setError('Authentication failed. Please log in again.');
-      } else {
-        setError('Failed to load product data');
-      }
-    } finally {
-      setProductLoading(false);
+    } catch (listError) {
+      console.log('Products list fetch failed:', listError);
     }
-  };
+
+    // If we reach here, all attempts failed
+    setError('Product not found or access denied');
+
+  } catch (error: unknown) {
+    const axiosError = error as AxiosError<ApiError>;
+    console.error('Error fetching product:', axiosError);
+    
+    if (axiosError.response?.status === 404) {
+      setError('Product not found');
+    } else if (axiosError.response?.status === 401) {
+      setError('Authentication failed. Please log in again.');
+      setTokenValid(false);
+    } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+      setError('Network error. Please check your connection and try again.');
+    } else {
+      setError('Failed to load product data. Please try again.');
+    }
+  } finally {
+    setProductLoading(false);
+  }
+};
+
+  // Debug useEffect
+  useEffect(() => {
+    console.log('Current formData:', formData);
+    console.log('Product ID:', productId);
+    console.log('Categories:', categories);
+  }, [formData, productId, categories]);
 
   // Check token validity and load data on component mount
   useEffect(() => {
@@ -425,7 +499,7 @@ export default function EditProductPage() {
         setMessage({ type: 'success', text: 'Product updated successfully!' });
         // Redirect to products list after 2 seconds
         setTimeout(() => {
-          router.push('/products'); // Adjust the route as needed
+          router.push('/products');
         }, 2000);
       } else {
         setError(response.data.message || 'Failed to update product');
@@ -494,7 +568,12 @@ export default function EditProductPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span className="ml-3 text-lg text-gray-300">Loading product data...</span>
+                <span className="ml-3 text-lg text-gray-300">
+                  Loading product data... (ID: {productId})
+                </span>
+              </div>
+              <div className="mt-4 text-sm text-gray-400">
+                Fetching product details from server...
               </div>
             </div>
           </div>
