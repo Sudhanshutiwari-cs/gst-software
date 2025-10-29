@@ -116,7 +116,7 @@ export default function UserDropdown() {
           <Image
             width={44}
             height={44}
-            src={vendorProfile?.logo_url || "/tailadmin-nextjs/images/user/owner.jpg"}
+            src={vendorProfile?.logo_url || "/images/user/owner.jpg"}
             alt={vendorProfile?.owner_name || "User"}
             onError={(e) => {
               // Fallback image if the avatar fails to load
