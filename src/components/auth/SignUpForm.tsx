@@ -31,7 +31,7 @@ interface SignUpResponse {
   jwt?: string;
   jwt_token?: string;
   message?: string;
-  user?: any;
+
 }
 
 export default function SignUpForm() {
