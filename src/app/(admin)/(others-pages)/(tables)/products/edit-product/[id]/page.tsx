@@ -879,7 +879,7 @@ export default function EditProductPage() {
                         min="0"
                         step="0.01"
                         className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                        placeholder="0.00"
+                        placeholder=""
                       />
                     </div>
                   </div>

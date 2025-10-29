@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { ToastContainer, toast } from 'react-toastify';
+import { useRouter } from "next/navigation";
 
 // Define types for our data
 interface Category {
@@ -19,7 +20,6 @@ interface State {
 interface Vendor {
   id: number;
   business_name: string;
-
   shop_name: string;
   shop_type: string;
   shop_category: string;
@@ -91,9 +91,10 @@ export default function EditVendorPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
-  const [bannerFile, setBannerFile] = useState<File | null>(null); // Added banner file state
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>("");
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const router = useRouter();
   const [formData, setFormData] = useState<VendorFormData>({
     business_name: "",
     shop_name: "",
@@ -124,6 +125,7 @@ export default function EditVendorPage() {
   const [error, setError] = useState("");
   const [gstValidating, setGstValidating] = useState(false);
   const [gstValidationMessage, setGstValidationMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -155,7 +157,7 @@ export default function EditVendorPage() {
     }
   };
 
- const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // File type validation
@@ -179,8 +181,7 @@ export default function EditVendorPage() {
       };
       reader.readAsDataURL(file);
     }
-  }
-
+  };
 
   // Fetch vendor data and helper data
   useEffect(() => {
@@ -309,8 +310,8 @@ export default function EditVendorPage() {
         `https://api.cashfree.com/verification/gstin/${gstNumber}`,
         {
           headers: {
-            "x-client-id": "YOUR_CASHFREE_CLIENT_ID", // Replace with your actual client ID
-            "x-client-secret": "YOUR_CASHFREE_CLIENT_SECRET", // Replace with your actual client secret
+            "x-client-id": "YOUR_CASHFREE_CLIENT_ID",
+            "x-client-secret": "YOUR_CASHFREE_CLIENT_SECRET",
             "Content-Type": "application/json",
           },
         }
@@ -387,7 +388,7 @@ export default function EditVendorPage() {
     }
 
     if (bannerFile) {
-      formData.append("banner_url", bannerFile); // Added banner file
+      formData.append("banner_url", bannerFile);
     }
 
     return formData;
@@ -395,7 +396,11 @@ export default function EditVendorPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) return;
+    
     setLoading(true);
+    setIsSubmitting(true);
     setMessage("");
     setError("");
 
@@ -408,6 +413,7 @@ export default function EditVendorPage() {
         if (!isGstValid) {
           setError("❌ Please enter a valid GST number before submitting.");
           setLoading(false);
+          setIsSubmitting(false);
           return;
         }
       }
@@ -416,6 +422,7 @@ export default function EditVendorPage() {
       if (!storedAuth) {
         setError("❌ JWT token not found. Please log in first.");
         setLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -431,7 +438,7 @@ export default function EditVendorPage() {
       const multipartData = createFormData(formData);
 
       // Send as multipart/form-data
-      await axios.post(
+      const response = await axios.post(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/complete-profile`,
         multipartData,
         {
@@ -442,9 +449,19 @@ export default function EditVendorPage() {
         }
       );
 
-      toast.success("Profile Completed successfully !", {
-        position: "bottom-right",
-      });
+      // Check if the API call was successful
+      if (response.data.success) {
+        toast.success("Profile completed successfully!", {
+          position: "bottom-right",
+        });
+        
+        // Redirect to profile page after successful update
+        setTimeout(() => {
+          router.push('/profile');
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || "Failed to update profile");
+      }
 
     } catch (error: unknown) {
       console.error("Error:", error);
@@ -456,8 +473,13 @@ export default function EditVendorPage() {
             ? (axiosError.response.data as { error?: string }).error
             : "❌ Failed to update vendor.";
       setError(errorMsg || "❌ Failed to update vendor.");
+      
+      toast.error("Failed to update profile!", {
+        position: "bottom-right",
+      });
     } finally {
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -510,9 +532,6 @@ export default function EditVendorPage() {
               </p>
             )}
 
-            {/* Debug info - remove in production */}
-            
-
             <form onSubmit={handleSubmit} className="space-y-6">
 
               <div className="border-b pb-6">
@@ -547,7 +566,6 @@ export default function EditVendorPage() {
                   </div>
                 </div>
               </div>
-
 
               <div className="border-b pb-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Logo</h3>
@@ -616,9 +634,6 @@ export default function EditVendorPage() {
                   />
                 </div>
                 
-                
-
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Shop Category</label>
                   <select
@@ -828,8 +843,8 @@ export default function EditVendorPage() {
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
-                  disabled={loading || gstValidating}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50"
+                  disabled={loading || gstValidating || isSubmitting}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Updating..." : "Update Vendor"}
                 </button>

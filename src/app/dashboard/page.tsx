@@ -242,7 +242,7 @@ export default function Ecommerce() {
           </div>
           <button 
             onClick={() => router.push('/profile/complete')}
-            className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors duration-200 whitespace-nowrap"
+            className="px-4 py-2 z-50 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors duration-200 whitespace-nowrap"
           >
             Complete Profile
           </button>

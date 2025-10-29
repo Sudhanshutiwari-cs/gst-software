@@ -304,6 +304,8 @@ export default function AddProductsPage() {
 
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Product added successfully!' });
+
+
         // Reset form
         setFormData({
           sku: '',
@@ -324,6 +326,8 @@ export default function AddProductsPage() {
           product_description: '',
           is_active: true,
         });
+
+        router.push('/products');
       } else {
         setError(response.data.message || 'Failed to add product');
       }

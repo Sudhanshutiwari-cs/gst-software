@@ -24,6 +24,16 @@ interface ApiError extends Error {
   request?: XMLHttpRequest;
 }
 
+// Interface for successful signup response
+interface SignUpResponse {
+  token?: string;
+  access_token?: string;
+  jwt?: string;
+  jwt_token?: string;
+  message?: string;
+  user?: any;
+}
+
 export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
   const [mobileNumber, setMobileNumber] = useState("");
@@ -33,20 +43,34 @@ export default function SignUpForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [mobileError, setMobileError] = useState(""); // New state for mobile number error
+  const [mobileError, setMobileError] = useState("");
   const router = useRouter();
+
+  // Function to store JWT token
+  const storeToken = (token: string) => {
+    // Store in localStorage
+    localStorage.setItem('authToken', token);
+    
+    // Also store in sessionStorage as backup
+    sessionStorage.setItem('authToken', token);
+    
+    // You can also set it as a cookie if needed
+    document.cookie = `jwt_token=${token}; path=/; max-age=86400`; // 24 hours
+    
+    // Set default authorization header for future API calls
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  };
 
   // Mock OTP sending function
   const handleSendOtp = () => {
     if (mobileNumber.length === 10) {
       console.log(`OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
-      setMobileError(""); // Clear any previous errors
-       toast.success("Mock OTP: 123456", {
+      setMobileError("");
+      toast.success("Mock OTP: 123456", {
         autoClose: 2000,
       });
     } else {
-      
       setMobileError("Please enter a valid 10-digit mobile number");
     }
   };
@@ -55,7 +79,7 @@ export default function SignUpForm() {
   const handleVerifyOtp = () => {
     if (otp === "123456") {
       setIsOtpVerified(true);
-      setMobileError(""); // Clear any previous errors
+      setMobileError("");
       toast.success("Mobile number verified successfully!", {
         autoClose: 2000,
       });
@@ -76,7 +100,7 @@ export default function SignUpForm() {
     }
 
     setIsLoading(true);
-    setMobileError(""); // Clear any previous errors before making the request
+    setMobileError("");
 
     try {
       const signupData = {
@@ -85,13 +109,38 @@ export default function SignUpForm() {
         owner_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
       };
 
-      const response = await api.post('/vendor/signup', signupData);
+      const response = await api.post<SignUpResponse>('/vendor/signup', signupData);
 
       if (response.status === 200 || response.status === 201) {
-        toast.success("Account Created successful!", {
-          autoClose: 2000,
-          onClose: () => router.push("/dashboard"),
-        });
+        // Extract token from response - check multiple possible field names
+        const token = response.data.token || 
+                     response.data.access_token || 
+                     response.data.jwt_token;
+
+        if (token) {
+          // Store the token
+          storeToken(token);
+          
+          toast.success("Account created successfully! Logging you in...", {
+            autoClose: 1500,
+            onClose: () => router.push("/dashboard"),
+          });
+          
+          // Redirect to dashboard after a short delay
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1600);
+        } else {
+          // If no token found in response, still redirect but show warning
+          console.warn("No token received in signup response");
+          toast.success("Account created successfully! Redirecting...", {
+            autoClose: 1500,
+            onClose: () => router.push("/dashboard"),
+          });
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1600);
+        }
       } else {
         throw new Error(`Signup failed with status: ${response.status}`);
       }
@@ -102,14 +151,12 @@ export default function SignUpForm() {
       };
 
       if (isAxiosError(error)) {
-        // Server responded with error status
         if (error.response) {
           const errorMessage = error.response.data?.message || 
                              error.response.data?.error || 
                              error.response.statusText || 
                              "Signup failed";
           
-          // Check if the error indicates the number is already registered
           if (errorMessage.toLowerCase().includes("already") || 
               errorMessage.toLowerCase().includes("registered") ||
               errorMessage.toLowerCase().includes("exists")) {
@@ -120,23 +167,19 @@ export default function SignUpForm() {
             });
           }
         } else if (error.request) {
-          // Request was made but no response received
           toast.error("Please check your internet connection", {
             autoClose: 2000
           });
         } else {
-          // Something else happened
           toast.error("An unexpected error occurred", {
             autoClose: 2000
           });
         }
       } else if (error instanceof Error) {
-        // Native JavaScript error
         toast.error(`Error: ${error.message}`, {
           autoClose: 2000
         });
       } else {
-        // Unknown error type
         toast.error("An unexpected error occurred", {
           autoClose: 2000
         });
