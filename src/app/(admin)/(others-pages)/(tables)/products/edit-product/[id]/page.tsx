@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useRouter, useParams } from 'next/navigation';
+import { useTheme } from '@/context/ThemeContext';
+
 
 interface ProductFormData {
   sku: string;
@@ -69,6 +71,7 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
+  const { theme } = useTheme();
 
   const getJwtToken = (): string | null => {
     if (typeof window === 'undefined') return null;
@@ -189,83 +192,130 @@ export default function EditProductPage() {
   };
 
   const fetchProduct = async () => {
-  if (!productId) {
-    setError('Product ID is missing');
-    setProductLoading(false);
-    return;
-  }
-
-  const token = getJwtToken();
-  if (!token) {
-    setError('Authentication required');
-    setProductLoading(false);
-    return;
-  }
-
-  setProductLoading(true);
-  try {
-    // First try the specific product endpoint
-    try {
-      const productResponse = await axios.get(
-        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/edit/${productId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          timeout: 10000,
-        }
-      );
-
-      console.log('Product API response:', productResponse.data);
-
-      if (productResponse.data.success && productResponse.data.data) {
-        const product = productResponse.data.data;
-        setFormData({
-          sku: product.sku || '',
-          product_name: product.product_name || '',
-          price: product.price || 0,
-          barcode: product.barcode || '',
-          category_id: product.category_id || 0,
-          brand: product.brand || '',
-          hsn_sac: product.hsn_sac || '',
-          unit: product.unit || 'pcs',
-          qty: product.qty || 0,
-          reorder_level: product.reorder_level || 0,
-          purchase_price: product.purchase_price || 0,
-          sales_price: product.sales_price || 0,
-          discount_percent: product.discount_percent || 0,
-          tax_percent: product.tax_percent || 0,
-          tax_inclusive: product.tax_inclusive || false,
-          product_description: product.product_description || '',
-          is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
-        });
-        return; // Success, exit function
-      }
-    } catch (firstAttemptError) {
-      console.log('First attempt failed, trying alternative endpoint...', firstAttemptError);
+    if (!productId) {
+      setError('Product ID is missing');
+      setProductLoading(false);
+      return;
     }
 
-    // If first attempt fails, try alternative endpoints
-    const alternativeEndpoints = [
-      `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}`,
-      `https://manhemdigitalsolutions.com/pos-admin/api/products/${productId}`,
-      `https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-product/${productId}`
-    ];
+    const token = getJwtToken();
+    if (!token) {
+      setError('Authentication required');
+      setProductLoading(false);
+      return;
+    }
 
-    for (const endpoint of alternativeEndpoints) {
+    setProductLoading(true);
+    try {
+      // First try the specific product endpoint
       try {
-        console.log(`Trying alternative endpoint: ${endpoint}`);
-        const response = await axios.get(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          timeout: 10000,
-        });
+        const productResponse = await axios.get(
+          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/edit/${productId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            timeout: 10000,
+          }
+        );
 
-        console.log('Alternative endpoint response:', response.data);
+        console.log('Product API response:', productResponse.data);
 
-        if (response.data.success) {
-          const product = response.data.data || response.data.product;
+        if (productResponse.data.success && productResponse.data.data) {
+          const product = productResponse.data.data;
+          setFormData({
+            sku: product.sku || '',
+            product_name: product.product_name || '',
+            price: product.price || 0,
+            barcode: product.barcode || '',
+            category_id: product.category_id || 0,
+            brand: product.brand || '',
+            hsn_sac: product.hsn_sac || '',
+            unit: product.unit || 'pcs',
+            qty: product.qty || 0,
+            reorder_level: product.reorder_level || 0,
+            purchase_price: product.purchase_price || 0,
+            sales_price: product.sales_price || 0,
+            discount_percent: product.discount_percent || 0,
+            tax_percent: product.tax_percent || 0,
+            tax_inclusive: product.tax_inclusive || false,
+            product_description: product.product_description || '',
+            is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
+          });
+          return; // Success, exit function
+        }
+      } catch (firstAttemptError) {
+        console.log('First attempt failed, trying alternative endpoint...', firstAttemptError);
+      }
+
+      // If first attempt fails, try alternative endpoints
+      const alternativeEndpoints = [
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}`,
+        `https://manhemdigitalsolutions.com/pos-admin/api/products/${productId}`,
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-product/${productId}`
+      ];
+
+      for (const endpoint of alternativeEndpoints) {
+        try {
+          console.log(`Trying alternative endpoint: ${endpoint}`);
+          const response = await axios.get(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            timeout: 10000,
+          });
+
+          console.log('Alternative endpoint response:', response.data);
+
+          if (response.data.success) {
+            const product = response.data.data || response.data.product;
+            if (product) {
+              setFormData({
+                sku: product.sku || '',
+                product_name: product.product_name || '',
+                price: product.price || 0,
+                barcode: product.barcode || '',
+                category_id: product.category_id || 0,
+                brand: product.brand || '',
+                hsn_sac: product.hsn_sac || '',
+                unit: product.unit || 'pcs',
+                qty: product.qty || 0,
+                reorder_level: product.reorder_level || 0,
+                purchase_price: product.purchase_price || 0,
+                sales_price: product.sales_price || 0,
+                discount_percent: product.discount_percent || 0,
+                tax_percent: product.tax_percent || 0,
+                tax_inclusive: product.tax_inclusive || false,
+                product_description: product.product_description || '',
+                is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
+              });
+              return; // Success, exit function
+            }
+          }
+        } catch (endpointError) {
+          console.log(`Endpoint ${endpoint} failed:`, endpointError);
+          continue;
+        }
+      }
+
+      // If all endpoints fail, try to get from products list
+      try {
+        const productsResponse = await axios.get(
+          'https://manhemdigitalsolutions.com/pos-admin/api/vendor/products',
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            timeout: 10000,
+          }
+        );
+
+        console.log('Products list response:', productsResponse.data);
+
+        if (productsResponse.data.success && productsResponse.data.data) {
+          const products = productsResponse.data.data;
+          const product = products.find((p: Product) => p.id === parseInt(productId));
+          
           if (product) {
             setFormData({
               sku: product.sku || '',
@@ -289,78 +339,31 @@ export default function EditProductPage() {
             return; // Success, exit function
           }
         }
-      } catch (endpointError) {
-        console.log(`Endpoint ${endpoint} failed:`, endpointError);
-        continue;
+      } catch (listError) {
+        console.log('Products list fetch failed:', listError);
       }
-    }
 
-    // If all endpoints fail, try to get from products list
-    try {
-      const productsResponse = await axios.get(
-        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/products',
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          timeout: 10000,
-        }
-      );
+      // If we reach here, all attempts failed
+      setError('Product not found or access denied');
 
-      console.log('Products list response:', productsResponse.data);
-
-      if (productsResponse.data.success && productsResponse.data.data) {
-        const products = productsResponse.data.data;
-        const product = products.find((p: Product) => p.id === parseInt(productId));
-        
-        if (product) {
-          setFormData({
-            sku: product.sku || '',
-            product_name: product.product_name || '',
-            price: product.price || 0,
-            barcode: product.barcode || '',
-            category_id: product.category_id || 0,
-            brand: product.brand || '',
-            hsn_sac: product.hsn_sac || '',
-            unit: product.unit || 'pcs',
-            qty: product.qty || 0,
-            reorder_level: product.reorder_level || 0,
-            purchase_price: product.purchase_price || 0,
-            sales_price: product.sales_price || 0,
-            discount_percent: product.discount_percent || 0,
-            tax_percent: product.tax_percent || 0,
-            tax_inclusive: product.tax_inclusive || false,
-            product_description: product.product_description || '',
-            is_active: product.is_active !== undefined ? Boolean(product.is_active) : true,
-          });
-          return; // Success, exit function
-        }
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<ApiError>;
+      console.error('Error fetching product:', axiosError);
+      
+      if (axiosError.response?.status === 404) {
+        setError('Product not found');
+      } else if (axiosError.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+        setTokenValid(false);
+      } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to load product data. Please try again.');
       }
-    } catch (listError) {
-      console.log('Products list fetch failed:', listError);
+    } finally {
+      setProductLoading(false);
     }
-
-    // If we reach here, all attempts failed
-    setError('Product not found or access denied');
-
-  } catch (error: unknown) {
-    const axiosError = error as AxiosError<ApiError>;
-    console.error('Error fetching product:', axiosError);
-    
-    if (axiosError.response?.status === 404) {
-      setError('Product not found');
-    } else if (axiosError.response?.status === 401) {
-      setError('Authentication failed. Please log in again.');
-      setTokenValid(false);
-    } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
-      setError('Network error. Please check your connection and try again.');
-    } else {
-      setError('Failed to load product data. Please try again.');
-    }
-  } finally {
-    setProductLoading(false);
-  }
-};
+  };
 
   // Debug useEffect
   useEffect(() => {
@@ -529,16 +532,93 @@ export default function EditProductPage() {
     }
   };
 
+  // Theme-based styling classes
+  const containerClass = theme === 'dark' 
+    ? "min-h-screen bg-gray-900 p-6"
+    : "min-h-screen bg-gray-50 p-6";
+
+  const cardClass = theme === 'dark'
+    ? "bg-gray-800 shadow-sm rounded-xl overflow-hidden border border-gray-700"
+    : "bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200";
+
+  const headerClass = theme === 'dark'
+    ? "bg-gray-800 px-8 py-6 border-b border-gray-700"
+    : "bg-white px-8 py-6 border-b border-gray-200";
+
+  const titleClass = theme === 'dark'
+    ? "text-2xl font-bold text-white"
+    : "text-2xl font-bold text-gray-900";
+
+  const subtitleClass = theme === 'dark'
+    ? "text-gray-400 mt-1"
+    : "text-gray-600 mt-1";
+
+  const inputClass = theme === 'dark'
+    ? "w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+    : "w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors";
+
+  const selectClass = theme === 'dark'
+    ? "w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+    : "w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors";
+
+  const labelClass = theme === 'dark'
+    ? "block text-sm font-medium text-gray-300 mb-2"
+    : "block text-sm font-medium text-gray-700 mb-2";
+
+  const sectionBorderClass = theme === 'dark'
+    ? "border-b border-gray-700 pb-8"
+    : "border-b border-gray-200 pb-8";
+
+  const buttonSecondaryClass = theme === 'dark'
+    ? "px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
+    : "px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium border border-gray-300";
+
+  const logoutButtonClass = theme === 'dark'
+    ? "px-5 py-2.5 bg-red-900/30 hover:bg-red-800/40 text-red-200 rounded-lg text-sm transition-colors font-medium border border-red-800/50"
+    : "px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm transition-colors font-medium border border-red-300";
+
+  const errorClass = theme === 'dark'
+    ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
+    : "mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center justify-between border border-red-200";
+
+  const successClass = theme === 'dark'
+    ? "mb-6 p-4 bg-green-900/20 text-green-200 rounded-lg flex items-center border border-green-800/30"
+    : "mb-6 p-4 bg-green-50 text-green-700 rounded-lg flex items-center border border-green-200";
+
+  const profitCardClass = theme === 'dark'
+    ? "mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600"
+    : "mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200";
+
+  const helpTextClass = theme === 'dark'
+    ? "text-sm text-gray-400"
+    : "text-sm text-gray-600";
+
+  const loadingTextClass = theme === 'dark'
+    ? "text-lg text-gray-300"
+    : "text-lg text-gray-600";
+
+  const loadingSubtextClass = theme === 'dark'
+    ? "text-sm text-gray-400"
+    : "text-sm text-gray-500";
+
+  const cancelButtonClass = theme === 'dark'
+    ? "px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-all font-semibold text-lg min-w-32"
+    : "px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all font-semibold text-lg min-w-32";
+
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className={containerClass}>
         <div className="w-full max-w-7xl mx-auto">
-          <div className="bg-gray-800 shadow-sm rounded-xl overflow-hidden">
-            <div className="bg-gray-800 px-6 py-4 border-b border-gray-700">
-              <h2 className="text-xl font-bold text-white">Session Expired</h2>
+          <div className={cardClass}>
+            <div className={headerClass}>
+              <h2 className={titleClass}>Session Expired</h2>
             </div>
             <div className="p-6 text-center">
-              <div className="mb-4 p-3 bg-yellow-900/30 text-yellow-200 rounded-md">
+              <div className={`mb-4 p-3 rounded-md border ${
+                theme === 'dark' 
+                  ? 'bg-yellow-900/30 text-yellow-200 border-yellow-800/50'
+                  : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+              }`}>
                 ⚠️ Your session has expired. Please log in again to continue.
               </div>
               <button
@@ -556,11 +636,11 @@ export default function EditProductPage() {
 
   if (productLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className={containerClass}>
         <div className="w-full max-w-7xl mx-auto">
-          <div className="bg-gray-800 shadow-sm rounded-xl overflow-hidden">
-            <div className="bg-gray-800 px-8 py-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-white">Edit Product</h2>
+          <div className={cardClass}>
+            <div className={headerClass}>
+              <h2 className={titleClass}>Edit Product</h2>
             </div>
             <div className="p-8 text-center">
               <div className="flex items-center justify-center">
@@ -568,11 +648,11 @@ export default function EditProductPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span className="ml-3 text-lg text-gray-300">
+                <span className={`ml-3 ${loadingTextClass}`}>
                   Loading product data... (ID: {productId})
                 </span>
               </div>
-              <div className="mt-4 text-sm text-gray-400">
+              <div className={`mt-4 ${loadingSubtextClass}`}>
                 Fetching product details from server...
               </div>
             </div>
@@ -583,25 +663,26 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className={containerClass}>
       <div className="w-full max-w-7xl mx-auto">
-        <div className="bg-gray-800 shadow-sm rounded-xl overflow-hidden">
+        <div className={cardClass}>
           {/* Header */}
-          <div className="bg-gray-800 px-8 py-6 border-b border-gray-700 flex justify-between items-center">
+          <div className={`${headerClass} flex justify-between items-center`}>
             <div>
-              <h2 className="text-2xl font-bold text-white">Edit Product</h2>
-              <p className="text-gray-400 mt-1">Update product information</p>
+              <h2 className={titleClass}>Edit Product</h2>
+              <p className={subtitleClass}>Update product information</p>
             </div>
             <div className="flex items-center space-x-3">
+              
               <button
                 onClick={() => window.history.back()}
-                className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium"
+                className={buttonSecondaryClass}
               >
                 ← Back to Products
               </button>
               <button
                 onClick={handleLogout}
-                className="px-5 py-2.5 bg-red-900/30 hover:bg-red-900/50 text-red-300 rounded-lg text-sm transition-colors font-medium"
+                className={logoutButtonClass}
               >
                 Logout
               </button>
@@ -611,7 +692,7 @@ export default function EditProductPage() {
           <div className="p-8">
             {/* Messages */}
             {error && (
-              <div className="mb-6 p-4 bg-red-900/20 border border-red-800 text-red-200 rounded-lg flex items-center justify-between">
+              <div className={errorClass}>
                 <div className="flex items-center">
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -621,7 +702,9 @@ export default function EditProductPage() {
                 {error.includes('expired') && (
                   <button
                     onClick={handleLogout}
-                    className="text-red-300 underline text-sm font-medium"
+                    className={`text-sm font-medium underline hover:opacity-80 ${
+                      theme === 'dark' ? 'text-red-300' : 'text-red-600'
+                    }`}
                   >
                     Login Again
                   </button>
@@ -630,7 +713,7 @@ export default function EditProductPage() {
             )}
 
             {message && (
-              <div className="mb-6 p-4 bg-green-900/20 border border-green-800 text-green-200 rounded-lg flex items-center">
+              <div className={successClass}>
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -640,13 +723,17 @@ export default function EditProductPage() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information Section */}
-              <div className="border-b border-gray-700 pb-8">
-                <h3 className="text-xl font-semibold text-white mb-6">Basic Information</h3>
+              <div className={sectionBorderClass}>
+                <h3 className={`text-xl font-semibold mb-6 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Basic Information
+                </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Product Name */}
                   <div className="lg:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Product Name *
                     </label>
                     <input
@@ -655,14 +742,14 @@ export default function EditProductPage() {
                       value={formData.product_name}
                       onChange={handleInputChange}
                       required
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="Enter product name"
                     />
                   </div>
 
                   {/* SKU */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       SKU *
                     </label>
                     <div className="flex space-x-2">
@@ -672,13 +759,13 @@ export default function EditProductPage() {
                         value={formData.sku}
                         onChange={handleInputChange}
                         required
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={inputClass}
                         placeholder="Product SKU"
                       />
                       <button
                         type="button"
                         onClick={generateSKU}
-                        className="px-4 py-3 bg-gray-600 hover:bg-gray-500 text-gray-200 rounded-lg text-sm transition-colors font-medium"
+                        className={buttonSecondaryClass}
                       >
                         Generate
                       </button>
@@ -687,7 +774,7 @@ export default function EditProductPage() {
 
                   {/* Brand */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Brand
                     </label>
                     <input
@@ -695,34 +782,36 @@ export default function EditProductPage() {
                       name="brand"
                       value={formData.brand}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="Brand name"
                     />
                   </div>
 
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Category
                     </label>
                     <select
                       name="category_id"
                       value={formData.category_id}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={selectClass}
                       disabled={categoriesLoading}
                     >
-                      <option value={0} className="bg-gray-700">
+                      <option value={0} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
                         {categoriesLoading ? 'Loading categories...' : 'Select category'}
                       </option>
                       {categories.map(category => (
-                        <option key={category.id} value={category.id} className="bg-gray-700">
+                        <option key={category.id} value={category.id} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
                           {category.category_name}
                         </option>
                       ))}
                     </select>
                     {categories.length === 0 && !categoriesLoading && (
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className={`text-sm mt-1 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
                         No categories available. Product will be uncategorized.
                       </p>
                     )}
@@ -730,7 +819,7 @@ export default function EditProductPage() {
 
                   {/* Barcode */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Barcode
                     </label>
                     <input
@@ -738,14 +827,14 @@ export default function EditProductPage() {
                       name="barcode"
                       value={formData.barcode}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="Barcode number"
                     />
                   </div>
 
                   {/* HSN/SAC */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       HSN/SAC Code
                     </label>
                     <input
@@ -753,14 +842,14 @@ export default function EditProductPage() {
                       name="hsn_sac"
                       value={formData.hsn_sac}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="HSN or SAC code"
                     />
                   </div>
 
                   {/* Unit */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Unit *
                     </label>
                     <select
@@ -768,24 +857,24 @@ export default function EditProductPage() {
                       value={formData.unit}
                       onChange={handleInputChange}
                       required
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={selectClass}
                     >
-                      <option value="pcs" className="bg-gray-700">Pieces</option>
-                      <option value="kg" className="bg-gray-700">Kilogram</option>
-                      <option value="g" className="bg-gray-700">Gram</option>
-                      <option value="l" className="bg-gray-700">Litre</option>
-                      <option value="ml" className="bg-gray-700">Millilitre</option>
-                      <option value="m" className="bg-gray-700">Meter</option>
-                      <option value="cm" className="bg-gray-700">Centimeter</option>
-                      <option value="box" className="bg-gray-700">Box</option>
-                      <option value="pack" className="bg-gray-700">Pack</option>
-                      <option value="set" className="bg-gray-700">Set</option>
+                      <option value="pcs" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Pieces</option>
+                      <option value="kg" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Kilogram</option>
+                      <option value="g" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Gram</option>
+                      <option value="l" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Litre</option>
+                      <option value="ml" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Millilitre</option>
+                      <option value="m" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Meter</option>
+                      <option value="cm" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Centimeter</option>
+                      <option value="box" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Box</option>
+                      <option value="pack" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Pack</option>
+                      <option value="set" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Set</option>
                     </select>
                   </div>
 
                   {/* Product Description */}
                   <div className="lg:col-span-3">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Product Description
                     </label>
                     <textarea
@@ -793,7 +882,7 @@ export default function EditProductPage() {
                       value={formData.product_description}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="Enter product description"
                     />
                   </div>
@@ -801,13 +890,17 @@ export default function EditProductPage() {
               </div>
 
               {/* Inventory Information Section */}
-              <div className="border-b border-gray-700 pb-8">
-                <h3 className="text-xl font-semibold text-white mb-6">Inventory Information</h3>
+              <div className={sectionBorderClass}>
+                <h3 className={`text-xl font-semibold mb-6 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Inventory Information
+                </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Quantity */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Quantity in Stock *
                     </label>
                     <input
@@ -817,14 +910,14 @@ export default function EditProductPage() {
                       onChange={handleInputChange}
                       required
                       min="0"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="0"
                     />
                   </div>
 
                   {/* Reorder Level */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Reorder Level
                     </label>
                     <input
@@ -833,42 +926,48 @@ export default function EditProductPage() {
                       value={formData.reorder_level}
                       onChange={handleInputChange}
                       min="0"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={inputClass}
                       placeholder="0"
                     />
                   </div>
 
                   {/* Status */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Product Status
                     </label>
                     <select
                       name="is_active"
                       value={formData.is_active ? 'true' : 'false'}
                       onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                      className={selectClass}
                     >
-                      <option value="true" className="bg-gray-700">Active</option>
-                      <option value="false" className="bg-gray-700">Inactive</option>
+                      <option value="true" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Active</option>
+                      <option value="false" className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>Inactive</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* Pricing Information Section */}
-              <div className="border-b border-gray-700 pb-8">
-                <h3 className="text-xl font-semibold text-white mb-6">Pricing Information</h3>
+              <div className={sectionBorderClass}>
+                <h3 className={`text-xl font-semibold mb-6 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Pricing Information
+                </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Purchase Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Purchase Price *
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-400">₹</span>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <span>₹</span>
                       </div>
                       <input
                         type="number"
@@ -878,7 +977,7 @@ export default function EditProductPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={`${inputClass} pl-12`}
                         placeholder=""
                       />
                     </div>
@@ -886,12 +985,14 @@ export default function EditProductPage() {
 
                   {/* Base Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Base Price
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-400">₹</span>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <span>₹</span>
                       </div>
                       <input
                         type="number"
@@ -900,7 +1001,7 @@ export default function EditProductPage() {
                         onChange={handleInputChange}
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={`${inputClass} pl-12`}
                         placeholder="0.00"
                       />
                     </div>
@@ -908,7 +1009,7 @@ export default function EditProductPage() {
 
                   {/* Discount Percentage */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Discount Percentage
                     </label>
                     <div className="relative">
@@ -920,18 +1021,20 @@ export default function EditProductPage() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={`${inputClass} pr-12`}
                         placeholder="0.00"
                       />
-                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                        <span className="text-gray-400">%</span>
+                      <div className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <span>%</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Tax Percentage */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Tax Percentage
                     </label>
                     <div className="relative">
@@ -943,11 +1046,13 @@ export default function EditProductPage() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={`${inputClass} pr-12`}
                         placeholder="0.00"
                       />
-                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                        <span className="text-gray-400">%</span>
+                      <div className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <span>%</span>
                       </div>
                     </div>
                   </div>
@@ -959,21 +1064,27 @@ export default function EditProductPage() {
                       name="tax_inclusive"
                       checked={formData.tax_inclusive}
                       onChange={(e) => setFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
-                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700 rounded"
+                      className={`h-5 w-5 text-indigo-600 focus:ring-indigo-500 rounded ${
+                        theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'
+                      }`}
                     />
-                    <label className="ml-3 text-sm font-medium text-gray-300">
+                    <label className={`ml-3 text-sm font-medium ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Price includes tax
                     </label>
                   </div>
 
                   {/* Sales Price */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className={labelClass}>
                       Sales Price *
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-gray-400">₹</span>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <span>₹</span>
                       </div>
                       <input
                         type="number"
@@ -983,7 +1094,7 @@ export default function EditProductPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full pl-12 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        className={`${inputClass} pl-12`}
                         placeholder="0.00"
                       />
                     </div>
@@ -1003,29 +1114,41 @@ export default function EditProductPage() {
 
                 {/* Profit Analysis */}
                 {formData.purchase_price > 0 && formData.sales_price > 0 && (
-                  <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                    <h4 className="text-lg font-semibold text-white mb-4">Profit Analysis</h4>
+                  <div className={profitCardClass}>
+                    <h4 className={`text-lg font-semibold mb-4 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Profit Analysis
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center">
-                        <p className="text-sm text-gray-400">Profit Amount</p>
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Profit Amount
+                        </p>
                         <p className={`text-lg font-semibold ${
                           formData.sales_price > formData.purchase_price 
                             ? 'text-green-400' 
                             : formData.sales_price < formData.purchase_price 
                             ? 'text-red-400' 
-                            : 'text-gray-300'
+                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                         }`}>
                           ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-400">Profit Margin</p>
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Profit Margin
+                        </p>
                         <p className={`text-lg font-semibold ${
                           formData.sales_price > formData.purchase_price 
                             ? 'text-green-400' 
                             : formData.sales_price < formData.purchase_price 
                             ? 'text-red-400' 
-                            : 'text-gray-300'
+                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                         }`}>
                           {formData.purchase_price > 0 
                             ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
@@ -1034,14 +1157,26 @@ export default function EditProductPage() {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-400">Stock Value</p>
-                        <p className="text-lg font-semibold text-white">
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Stock Value
+                        </p>
+                        <p className={`text-lg font-semibold ${
+                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>
                           ₹{(formData.qty * formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-400">Potential Revenue</p>
-                        <p className="text-lg font-semibold text-white">
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Potential Revenue
+                        </p>
+                        <p className={`text-lg font-semibold ${
+                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>
                           ₹{(formData.qty * formData.sales_price).toFixed(2)}
                         </p>
                       </div>
@@ -1055,7 +1190,7 @@ export default function EditProductPage() {
                 <button
                   type="button"
                   onClick={() => window.history.back()}
-                  className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-all font-semibold text-lg min-w-32"
+                  className={cancelButtonClass}
                 >
                   Cancel
                 </button>
@@ -1081,7 +1216,7 @@ export default function EditProductPage() {
 
             {/* Help Text */}
             <div className="mt-8 text-center">
-              <p className="text-sm text-gray-400">
+              <p className={helpTextClass}>
                 All fields marked with * are required. Ensure all information is accurate before submitting.
               </p>
             </div>
