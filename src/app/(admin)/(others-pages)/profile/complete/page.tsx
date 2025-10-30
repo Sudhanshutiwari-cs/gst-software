@@ -185,14 +185,7 @@ export default function EditVendorPage() {
   };
 
   // Function to change theme (can be used if you want to add a theme toggle in this component)
-  const changeTheme = (newTheme: 'light' | 'dark') => {
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    applyTheme(newTheme);
-    
-    // Dispatch custom event for other components
-    window.dispatchEvent(new CustomEvent('themeChange', { detail: newTheme }));
-  };
+
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
