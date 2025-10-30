@@ -1015,46 +1015,7 @@ export default function EditVendorPage() {
               </div>
 
               {/* Status Information Section */}
-              <div className={sectionBorderClass}>
-                <h3 className={`text-xl font-semibold mb-6 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
-                  Status Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div>
-                    <label className={labelClass}>
-                      Status *
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      required
-                      className={selectClass}
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>
-                      Payment Status *
-                    </label>
-                    <select
-                      name="payment_status"
-                      value={formData.payment_status}
-                      onChange={handleChange}
-                      required
-                      className={selectClass}
-                    >
-                      <option value="paid">Paid</option>
-                      <option value="pending">Pending</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+              
 
               {/* Submit Button */}
               <div className="flex justify-center pt-4">
