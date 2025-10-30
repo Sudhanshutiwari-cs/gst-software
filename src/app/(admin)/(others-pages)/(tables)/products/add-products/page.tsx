@@ -396,9 +396,7 @@ export default function AddProductsPage() {
     ? "px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
     : "px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium border border-gray-300";
 
-  const logoutButtonClass = theme === 'dark'
-    ? "px-5 py-2.5 bg-red-900/30 hover:bg-red-800/40 text-red-200 rounded-lg text-sm transition-colors font-medium border border-red-800/50"
-    : "px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm transition-colors font-medium border border-red-300";
+ 
 
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
