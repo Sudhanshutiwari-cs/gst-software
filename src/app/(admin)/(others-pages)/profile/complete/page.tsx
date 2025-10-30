@@ -808,6 +808,7 @@ export default function EditVendorPage() {
                       name="gst_number"
                       value={formData.gst_number}
                       onChange={handleChange}
+                      required
                       placeholder="Enter GST Number (15 characters)"
                       className={inputClass}
                       maxLength={15}
@@ -834,6 +835,7 @@ export default function EditVendorPage() {
                       name="pan_number"
                       value={formData.pan_number}
                       onChange={handleChange}
+                      required
                       className={inputClass}
                       placeholder="Enter PAN number"
                     />
