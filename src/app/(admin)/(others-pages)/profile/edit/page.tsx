@@ -181,9 +181,7 @@ export default function EditVendorPage() {
     ? "text-lg text-gray-300"
     : "text-lg text-gray-600";
 
-  const loadingSubtextClass = theme === 'dark'
-    ? "text-sm text-gray-400"
-    : "text-sm text-gray-500";
+
 
   const logoPreviewClass = theme === 'dark'
     ? "bg-gray-700 border-gray-600 text-gray-400"
