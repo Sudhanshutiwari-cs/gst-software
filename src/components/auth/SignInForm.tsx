@@ -197,8 +197,8 @@ export default function SignInForm() {
     });
 
     toast.success("Login successful!", {
-      autoClose: 2000,
-      onClose: () => router.push("/profile"),
+      autoClose: 1000,
+      onClose: () => router.push("/dashboard"),
     });
 
 

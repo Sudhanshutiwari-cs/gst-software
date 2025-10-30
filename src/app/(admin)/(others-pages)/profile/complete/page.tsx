@@ -570,16 +570,7 @@ export default function EditVendorPage() {
             </h2>
             <div className="flex items-center space-x-4">
               {/* Theme Toggle Button (Optional) */}
-              <button
-                onClick={() => changeTheme(theme === 'dark' ? 'light' : 'dark')}
-                className={`px-3 py-2 rounded-md text-sm ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                }`}
-              >
-                {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-              </button>
+              
               <button
                 onClick={() => window.history.back()}
                 className={`px-4 py-2 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} rounded-md text-sm transition-colors duration-300`}
