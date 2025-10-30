@@ -463,12 +463,7 @@ export default function AddProductsPage() {
               >
                 ← Back to Products
               </button>
-              <button
-                onClick={handleLogout}
-                className={logoutButtonClass}
-              >
-                Logout
-              </button>
+              
             </div>
           </div>
 
