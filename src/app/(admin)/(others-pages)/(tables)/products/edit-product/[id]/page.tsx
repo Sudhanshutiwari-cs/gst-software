@@ -680,12 +680,7 @@ export default function EditProductPage() {
               >
                 ← Back to Products
               </button>
-              <button
-                onClick={handleLogout}
-                className={logoutButtonClass}
-              >
-                Logout
-              </button>
+              
             </div>
           </div>
 
