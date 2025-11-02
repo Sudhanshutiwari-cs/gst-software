@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -37,7 +37,7 @@ interface Vendor {
   country: string;
   status: string;
   payment_status: string;
-  email: string; // Add email field
+  email: string;
   unique_id?: string;
 }
 
@@ -61,13 +61,25 @@ interface FormData {
   country: string;
   status: string;
   payment_status: string;
-  email: string; // Add email field
+  email: string;
 }
 
 interface ApiResponse {
   success: boolean;
   message: string;
   data: Vendor;
+}
+
+interface ApiError {
+  response?: {
+    status: number;
+    data?: {
+      message?: string;
+      error?: string;
+    };
+  };
+  request?: unknown;
+  message: string;
 }
 
 export default function EditVendorPage() {
@@ -93,7 +105,7 @@ export default function EditVendorPage() {
     country: "India",
     status: "active",
     payment_status: "pending",
-    email: "", // Add email field
+    email: "",
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -159,9 +171,12 @@ export default function EditVendorPage() {
 
         if (vendorResponse.data.success && vendorResponse.data.data) {
           const vendorData = vendorResponse.data.data;
+          
+          // Set vendor state FIRST
+          console.log("🎯 Setting vendor state:", vendorData);
           setVendor(vendorData);
           
-          // Create the form data object with proper mapping from the nested data
+          // Then set form data
           const newFormData: FormData = {
             business_name: vendorData.business_name || "",
             shop_name: vendorData.shop_name || "",
@@ -182,11 +197,10 @@ export default function EditVendorPage() {
             country: vendorData.country || "India",
             status: vendorData.status || "active",
             payment_status: vendorData.payment_status || "pending",
-            email: vendorData.email || "", // Map email field
+            email: vendorData.email || "",
           };
 
-          console.log("🎯 Setting form data with email:", newFormData.email);
-          console.log("🎯 Full form data being set:", newFormData);
+          console.log("🎯 Setting form data:", newFormData);
           setFormData(newFormData);
         } else {
           console.warn("⚠️ No vendor data in response");
@@ -206,16 +220,17 @@ export default function EditVendorPage() {
         setCategories(catRes.data?.data ?? catRes.data ?? []);
         setStates(stateRes.data?.data ?? stateRes.data ?? []);
         
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("❌ Error fetching data:", err);
-        console.error("❌ Error response:", err.response);
+        const apiError = err as ApiError;
+        console.error("❌ Error response:", apiError.response);
         
-        if (err.response) {
-          setError(`Server error: ${err.response.status} - ${err.response.data?.message || 'Unknown error'}`);
-        } else if (err.request) {
+        if (apiError.response) {
+          setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
+        } else if (apiError.request) {
           setError("Network error: Could not connect to server");
         } else {
-          setError("Error: " + err.message);
+          setError("Error: " + apiError.message);
         }
         setFetchError(true);
       } finally {
@@ -278,9 +293,10 @@ export default function EditVendorPage() {
       });
       setMessage("Vendor profile updated successfully!");
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || "❌ Failed to update vendor.";
+      const apiError = error as ApiError;
+      const errorMsg = apiError.response?.data?.message || apiError.response?.data?.error || "❌ Failed to update vendor.";
       setError(errorMsg);
       toast.error("Failed to update profile", {
         position: "bottom-right",
@@ -325,7 +341,7 @@ export default function EditVendorPage() {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">
-              Edit Vendor 
+              Edit Vendor {vendor?.id && `- ID: ${vendor.id}`}
             </h2>
             <div className="flex gap-2">
               <button
@@ -344,7 +360,17 @@ export default function EditVendorPage() {
           </div>
 
           <div className="p-6">
-  
+            {/* Debug Info */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <h3 className="font-semibold text-blue-800">Debug Information:</h3>
+              <p className="text-sm text-blue-700">Email in formData: "{formData.email || '(empty)'}"</p>
+              <p className="text-sm text-blue-700">Email in vendor: "{vendor?.email || '(not loaded)'}"</p>
+              <p className="text-sm text-blue-700">Vendor Loaded: {vendor ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-blue-700">Vendor ID: {vendor?.id || 'Not loaded'}</p>
+              <p className="text-sm text-blue-700">Is Client: {isClient ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-blue-700">Loading: {loading ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-blue-700">Business Name: "{formData.business_name}"</p>
+            </div>
 
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
@@ -366,7 +392,7 @@ export default function EditVendorPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Add Email Field */}
+                {/* Email Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
