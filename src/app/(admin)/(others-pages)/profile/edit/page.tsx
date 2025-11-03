@@ -363,13 +363,13 @@ export default function EditVendorPage() {
             {/* Debug Info */}
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <h3 className="font-semibold text-blue-800">Debug Information:</h3>
-              <p className="text-sm text-blue-700">Email in formData: "{formData.email || '(empty)'}"</p>
-              <p className="text-sm text-blue-700">Email in vendor: "{vendor?.email || '(not loaded)'}"</p>
-              <p className="text-sm text-blue-700">Vendor Loaded: {vendor ? 'Yes' : 'No'}</p>
-              <p className="text-sm text-blue-700">Vendor ID: {vendor?.id || 'Not loaded'}</p>
-              <p className="text-sm text-blue-700">Is Client: {isClient ? 'Yes' : 'No'}</p>
-              <p className="text-sm text-blue-700">Loading: {loading ? 'Yes' : 'No'}</p>
-              <p className="text-sm text-blue-700">Business Name: "{formData.business_name}"</p>
+              <p className="text-sm text-blue-700">Email in formData: &quot;{formData.email || &apos;(empty)&apos;}&quot;</p>
+              <p className="text-sm text-blue-700">Email in vendor: &quot;{vendor?.email || &apos;(not loaded)&apos;}&quot;</p>
+              <p className="text-sm text-blue-700">Vendor Loaded: {vendor ? &apos;Yes&apos; : &apos;No&apos;}</p>
+              <p className="text-sm text-blue-700">Vendor ID: {vendor?.id || &apos;Not loaded&apos;}</p>
+              <p className="text-sm text-blue-700">Is Client: {isClient ? &apos;Yes&apos; : &apos;No&apos;}</p>
+              <p className="text-sm text-blue-700">Loading: {loading ? &apos;Yes&apos; : &apos;No&apos;}</p>
+              <p className="text-sm text-blue-700">Business Name: &quot;{formData.business_name}&quot;</p>
             </div>
 
             {error && (
