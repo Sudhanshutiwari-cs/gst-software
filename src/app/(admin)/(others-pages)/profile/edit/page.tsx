@@ -361,16 +361,7 @@ export default function EditVendorPage() {
 
           <div className="p-6">
             {/* Debug Info */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <h3 className="font-semibold text-blue-800">Debug Information:</h3>
-              <p className="text-sm text-blue-700">Email in formData: &quot;{formData.email || &apos;(empty)&apos;}&quot;</p>
-              <p className="text-sm text-blue-700">Email in vendor: &quot;{vendor?.email || &apos;(not loaded)&apos;}&quot;</p>
-              <p className="text-sm text-blue-700">Vendor Loaded: {vendor ? &apos;Yes&apos; : &apos;No&apos;}</p>
-              <p className="text-sm text-blue-700">Vendor ID: {vendor?.id || &apos;Not loaded&apos;}</p>
-              <p className="text-sm text-blue-700">Is Client: {isClient ? &apos;Yes&apos; : &apos;No&apos;}</p>
-              <p className="text-sm text-blue-700">Loading: {loading ? &apos;Yes&apos; : &apos;No&apos;}</p>
-              <p className="text-sm text-blue-700">Business Name: &quot;{formData.business_name}&quot;</p>
-            </div>
+            
 
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
