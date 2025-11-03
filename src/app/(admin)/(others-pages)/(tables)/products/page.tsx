@@ -21,6 +21,7 @@ interface VendorProduct {
   image_url?: string;
   created_at: string;
   updated_at: string;
+  product_image: string;
 }
 
 interface VendorProductsResponse {
@@ -521,10 +522,10 @@ export default function VendorProductsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-12 w-12">
-                            {product.image_url ? (
+                            {product.product_image ? (
                               <img
                                 className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
-                                src={product.image_url}
+                                src={product.product_image}
                                 alt={product.name}
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjRGNUY3IiBjbGFzcz0iZGFyazpmbGwtZ3JheS03MDAiLz4KPHBhdGggZD0iTTI0IDE2QzIwLjY4NjMgMTYgMTggMTguNjg2MyAxOCAyMkMxOCAyNS4zMTM3IDIwLjY4NjMgMjggMjQgMjhDMjcuMzEzNyAyOCAzMCAyNS4zMTM3IDMwIDIyQzMwIDE4LjY4NjMgMjcuMzEzNyAxNiAyNCAxNloiIGZpbGw9IiM4RTkwQTAiIGNsYXNzPSJkYXJrOmZpbGwtZ3JheS01MDAiLz4KPHBhdGggZD0iTTMzIDI2QzM0IDI2Ljg5NTQgMzQgMjguMTA0NiAzMyAyOUMzMS44OTU0IDMwIDMwLjEwNDYgMzAgMjkgMzBDMjcuODk1NCAzMCAyNi4xMDQ2IDMwIDI1IDI5QzI0IDI4LjEwNDYgMjQgMjYuODk1NCAyNSAyNkMyNS44OTU0IDI1IDI3LjcwNDYgMjUgMjkgMjVDMzAuMjk1NCAyNSAzMi4xMDQ2IDI1IDMzIDI2WiIgZmlsbD0iIzhFOTBBMCIgY2xhc3M9ImRhcms6ZmlsbC1ncmF5LTUwMCIvPgo8L3N2Zz4=';

@@ -56,6 +56,8 @@ export default function AddProductsPage() {
     is_active: true,
   });
   
+  const [productImage, setProductImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -235,6 +237,39 @@ export default function AddProductsPage() {
     }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPEG, PNG, GIF, WebP)');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      setProductImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
+  };
+
+  const removeImage = () => {
+    setProductImage(null);
+    setImagePreview(null);
+  };
+
   const generateSKU = () => {
     const prefix = formData.brand ? formData.brand.substring(0, 3).toUpperCase() : 'PRO';
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -262,98 +297,139 @@ export default function AddProductsPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!(await checkTokenValidity())) {
+    setError('Your session has expired. Please log in again.');
+    return;
+  }
+
+  const token = getJwtToken();
+  if (!token) {
+    setError('Authentication required. Please log in.');
+    return;
+  }
+
+  // Validation
+  if (!formData.product_name.trim()) {
+    setError('Product name is required');
+    return;
+  }
+
+  if (!formData.sku.trim()) {
+    setError('SKU is required');
+    return;
+  }
+
+  setLoading(true);
+  setMessage(null);
+  setError(null);
+
+  try {
+    // Create FormData object for multipart request
+    const formDataToSend = new FormData();
     
-    if (!(await checkTokenValidity())) {
-      setError('Your session has expired. Please log in again.');
-      return;
-    }
-
-    const token = getJwtToken();
-    if (!token) {
-      setError('Authentication required. Please log in.');
-      return;
-    }
-
-    // Validation
-    if (!formData.product_name.trim()) {
-      setError('Product name is required');
-      return;
-    }
-
-    if (!formData.sku.trim()) {
-      setError('SKU is required');
-      return;
-    }
-
-    setLoading(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      const response = await axios.post(
-        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-products',
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 10000,
-        }
-      );
-
-      if (response.data.success) {
-        setMessage({ type: 'success', text: 'Product added successfully!' });
-
-        // Reset form
-        setFormData({
-          sku: '',
-          product_name: '',
-          price: 0,
-          barcode: '',
-          category_id: 0,
-          brand: '',
-          hsn_sac: '',
-          unit: 'pcs',
-          qty: 0,
-          reorder_level: 0,
-          purchase_price: 0,
-          sales_price: 0,
-          discount_percent: 0,
-          tax_percent: 0,
-          tax_inclusive: false,
-          product_description: '',
-          is_active: true,
-        });
-
-        router.push('/products');
-      } else {
-        setError(response.data.message || 'Failed to add product');
-      }
-    } catch (error: unknown) {
-      console.error('Error adding product:', error);
-      const axiosError = error as AxiosError<ApiError>;
-      
-      if (axiosError.response?.status === 401) {
-        setTokenValid(false);
-        const newToken = await refreshToken();
-        if (newToken) {
-          setError('Session refreshed. Please try again.');
+    // Append all form fields with proper type conversion
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        // Handle boolean fields - convert to proper string representation
+        if (key === 'is_active' || key === 'tax_inclusive') {
+          formDataToSend.append(key, value ? '1' : '0');
+          // Alternatively, you can try sending as string 'true'/'false'
+          // formDataToSend.append(key, value.toString());
+        } else if (typeof value === 'number') {
+          formDataToSend.append(key, value.toString());
         } else {
-          setError('Your session has expired. Please log in again.');
-          removeToken();
+          formDataToSend.append(key, value);
         }
-      } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
-        setError('Network error. Please check your connection and try again.');
-      } else {
-        setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
       }
-    } finally {
-      setLoading(false);
+    });
+    
+    // Append product image if selected
+    if (productImage) {
+      formDataToSend.append('product_image', productImage);
     }
-  };
+
+    // Log FormData for debugging (remove in production)
+    console.log('Sending FormData:');
+    for (let [key, value] of formDataToSend.entries()) {
+      console.log(key, value);
+    }
+
+    const response = await axios.post(
+      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-products',
+      formDataToSend,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 15000, // Increased timeout for file upload
+      }
+    );
+
+    if (response.data.success) {
+      setMessage({ type: 'success', text: 'Product added successfully!' });
+
+      // Reset form
+      setFormData({
+        sku: '',
+        product_name: '',
+        price: 0,
+        barcode: '',
+        category_id: 0,
+        brand: '',
+        hsn_sac: '',
+        unit: 'pcs',
+        qty: 0,
+        reorder_level: 0,
+        purchase_price: 0,
+        sales_price: 0,
+        discount_percent: 0,
+        tax_percent: 0,
+        tax_inclusive: false,
+        product_description: '',
+        is_active: true,
+      });
+      setProductImage(null);
+      setImagePreview(null);
+
+      router.push('/products');
+    } else {
+      setError(response.data.message || 'Failed to add product');
+    }
+  } catch (error: unknown) {
+    console.error('Error adding product:', error);
+    const axiosError = error as AxiosError<ApiError>;
+    
+    if (axiosError.response?.status === 422) {
+      // Handle validation errors
+      const validationErrors = axiosError.response.data?.errors;
+      if (validationErrors) {
+        const errorMessages = Object.values(validationErrors).flat().join(', ');
+        setError(`Validation failed: ${errorMessages}`);
+      } else {
+        setError('Validation failed. Please check your input.');
+      }
+    } else if (axiosError.response?.status === 401) {
+      setTokenValid(false);
+      const newToken = await refreshToken();
+      if (newToken) {
+        setError('Session refreshed. Please try again.');
+      } else {
+        setError('Your session has expired. Please log in again.');
+        removeToken();
+      }
+    } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+      setError('Network error. Please check your connection and try again.');
+    } else {
+      setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Theme-based styling classes
   const containerClass = theme === 'dark' 
@@ -396,8 +472,6 @@ export default function AddProductsPage() {
     ? "px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
     : "px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium border border-gray-300";
 
- 
-
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
     : "mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center justify-between border border-red-200";
@@ -413,6 +487,10 @@ export default function AddProductsPage() {
   const helpTextClass = theme === 'dark'
     ? "text-sm text-gray-400"
     : "text-sm text-gray-600";
+
+  const imageUploadClass = theme === 'dark'
+    ? "border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors cursor-pointer bg-gray-700/50"
+    : "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer bg-gray-50";
 
   if (!tokenValid) {
     return (
@@ -454,14 +532,12 @@ export default function AddProductsPage() {
               <p className={subtitleClass}>Add a new product to your inventory</p>
             </div>
             <div className="flex items-center space-x-3">
-              
               <button
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
               >
                 ← Back to Products
               </button>
-              
             </div>
           </div>
 
@@ -498,6 +574,91 @@ export default function AddProductsPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Product Image Section */}
+              <div className={sectionBorderClass}>
+                <h3 className={`text-xl font-semibold mb-6 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Product Image
+                </h3>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Image Upload */}
+                  <div>
+                    <label className={labelClass}>
+                      Product Image
+                    </label>
+                    <div className={imageUploadClass}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="product-image-upload"
+                      />
+                      <label htmlFor="product-image-upload" className="cursor-pointer">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Product preview"
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={removeImage}
+                              className={`absolute top-2 right-2 p-1 rounded-full ${
+                                theme === 'dark' 
+                                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                  : 'bg-red-500 hover:bg-red-600 text-white'
+                              }`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="py-8">
+                            <svg className={`mx-auto h-12 w-12 ${
+                              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <div className={`mt-4 ${
+                              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                            }`}>
+                              <p className="font-medium">Click to upload product image</p>
+                              <p className="text-sm mt-1">PNG, JPG, GIF up to 5MB</p>
+                            </div>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Image Help Text */}
+                  <div className={`flex items-center ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    <div>
+                      <h4 className={`text-lg font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Image Guidelines
+                      </h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Recommended size: 500x500 pixels</li>
+                        <li>Supported formats: JPG, PNG, GIF, WebP</li>
+                        <li>Maximum file size: 5MB</li>
+                        <li>Use clear, well-lit product photos</li>
+                        <li>Image will be uploaded as "product_image"</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Basic Information Section */}
               <div className={sectionBorderClass}>
                 <h3 className={`text-xl font-semibold mb-6 ${
