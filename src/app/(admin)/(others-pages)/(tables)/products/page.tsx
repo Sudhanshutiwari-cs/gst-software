@@ -34,6 +34,14 @@ interface DeleteProductResponse {
   message: string;
 }
 
+interface ToggleStatusResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    is_active: boolean;
+  };
+}
+
 // API service functions
 async function getVendorProducts(token: string): Promise<VendorProductsResponse> {
   try {
@@ -78,12 +86,35 @@ async function deleteVendorProduct(token: string, productId: number): Promise<De
   }
 }
 
+// Toggle product status API function
+async function toggleProductStatus(token: string, productId: number): Promise<ToggleStatusResponse> {
+  try {
+    const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/products/${productId}/change-status`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error toggling product status:', error);
+    throw error;
+  }
+}
+
 export default function VendorProductsPage() {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [toggleLoading, setToggleLoading] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
@@ -212,6 +243,44 @@ export default function VendorProductsPage() {
       alert(`Error deleting product: ${err instanceof Error ? err.message : 'Please try again.'}`);
     } finally {
       setDeleteLoading(null);
+    }
+  };
+
+  const handleToggleStatus = async (productId: number) => {
+    try {
+      setToggleLoading(productId);
+      
+      // Get JWT token
+      const token = localStorage.getItem('authToken') || 
+                    sessionStorage.getItem('authToken') || 
+                    '';
+      
+      if (!token) {
+        throw new Error('No JWT token found. Please log in again.');
+      }
+
+      // Call the toggle status API
+      const response = await toggleProductStatus(token, productId);
+      
+      if (response.success) {
+        // Update product status in state
+        setProducts(products.map(product => 
+          product.id === productId 
+            ? { ...product, is_active: !product.is_active }
+            : product
+        ));
+        
+        // Show success message
+        const newStatus = !products.find(p => p.id === productId)?.is_active ? 'active' : 'inactive';
+        alert(`Product status updated to ${newStatus} successfully!`);
+      } else {
+        throw new Error(response.message || 'Failed to update product status');
+      }
+    } catch (err) {
+      console.error('Error toggling product status:', err);
+      alert(`Error updating product status: ${err instanceof Error ? err.message : 'Please try again.'}`);
+    } finally {
+      setToggleLoading(null);
     }
   };
 
@@ -505,9 +574,31 @@ export default function VendorProductsPage() {
                         </div>
                       </td>
 
-                      {/* Status */}
+                      {/* Status with Toggle */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(product.is_active ? 'active' : 'inactive')}
+                        <div className="flex items-center space-x-3">
+                          {getStatusBadge(product.is_active ? 'active' : 'inactive')}
+                          <button
+                            onClick={() => handleToggleStatus(product.id)}
+                            disabled={toggleLoading === product.id}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              product.is_active
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500'
+                            } ${toggleLoading === product.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                product.is_active ? 'translate-x-6' : 'translate-x-1'
+                              } ${toggleLoading === product.id ? 'animate-pulse' : ''}`}
+                            />
+                            {toggleLoading === product.id && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              </div>
+                            )}
+                          </button>
+                        </div>
                       </td>
 
                       {/* Actions */}
