@@ -383,10 +383,12 @@ export default function VendorProductsPage() {
           {isSearching && searchTerm && (
             <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
               {filteredProducts.length === 0 ? (
-                <span>No products found matching "<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>"</span>
+                <span>
+                  No products found matching &ldquo;<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>&rdquo;
+                </span>
               ) : (
                 <span>
-                  Found <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''} matching "<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>"
+                  Found <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''} matching &ldquo;<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>&rdquo;
                 </span>
               )}
             </div>
