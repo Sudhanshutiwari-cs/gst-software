@@ -80,14 +80,22 @@ async function deleteVendorProduct(token: string, productId: number): Promise<De
 
 export default function VendorProductsPage() {
   const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     fetchVendorProducts();
   }, []);
+
+  useEffect(() => {
+    // Initialize filtered products with all products when products change
+    setFilteredProducts(products);
+  }, [products]);
 
   const fetchVendorProducts = async () => {
     try {
@@ -107,6 +115,7 @@ export default function VendorProductsPage() {
       
       if (response.success) {
         setProducts(response.data);
+        setFilteredProducts(response.data);
       } else {
         throw new Error(response.message || 'Failed to fetch products');
       }
@@ -115,6 +124,40 @@ export default function VendorProductsPage() {
       console.error('Fetch error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    if (!searchTerm.trim()) {
+      // If search term is empty, show all products
+      setFilteredProducts(products);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    const searchTermLower = searchTerm.toLowerCase().trim();
+    
+    const filtered = products.filter(product => 
+      product.product_name?.toLowerCase().includes(searchTermLower) ||
+      product.sku?.toLowerCase().includes(searchTermLower) ||
+      product.category?.toLowerCase().includes(searchTermLower) ||
+      product.name?.toLowerCase().includes(searchTermLower)
+    );
+    
+    setFilteredProducts(filtered);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setFilteredProducts(products);
+    setIsSearching(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -282,6 +325,74 @@ export default function VendorProductsPage() {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products by name, SKU, or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSearching ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                  </>
+                )}
+              </button>
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors flex items-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Search Results Info */}
+          {isSearching && searchTerm && (
+            <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+              {filteredProducts.length === 0 ? (
+                <span>No products found matching "<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>"</span>
+              ) : (
+                <span>
+                  Found <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''} matching "<span className="font-semibold text-gray-900 dark:text-white">{searchTerm}</span>"
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Products Table */}
         <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors">
           <div className="overflow-x-auto">
@@ -309,20 +420,31 @@ export default function VendorProductsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 transition-colors">
-                {products.length === 0 ? (
+                {filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="text-gray-500 dark:text-gray-400 mb-2">No products found</div>
-                      <button
-                        onClick={fetchVendorProducts}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm transition-colors"
-                      >
-                        Refresh products
-                      </button>
+                      <div className="text-gray-500 dark:text-gray-400 mb-2">
+                        {searchTerm ? 'No products found matching your search' : 'No products found'}
+                      </div>
+                      {searchTerm ? (
+                        <button
+                          onClick={handleClearSearch}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm transition-colors"
+                        >
+                          Clear search and show all products
+                        </button>
+                      ) : (
+                        <button
+                          onClick={fetchVendorProducts}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm transition-colors"
+                        >
+                          Refresh products
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ) : (
-                  products.map((product) => (
+                  filteredProducts.map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       {/* Product Image and Name */}
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -424,10 +546,13 @@ export default function VendorProductsPage() {
         </div>
 
         {/* Summary */}
-        {products.length > 0 && (
+        {filteredProducts.length > 0 && (
           <div className="mt-4 flex justify-between items-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing <span className="font-semibold text-gray-900 dark:text-white">{products.length}</span> product{products.length !== 1 ? 's' : ''}
+              Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
+              {searchTerm && (
+                <span> (filtered from {products.length} total)</span>
+              )}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500">
               Last updated: {new Date().toLocaleTimeString()}
