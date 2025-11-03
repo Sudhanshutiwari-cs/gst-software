@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
+import Image from 'next/image';
 
 interface ProductFormData {
   sku: string;
@@ -353,7 +354,7 @@ export default function AddProductsPage() {
 
     // Log FormData for debugging (remove in production)
     console.log('Sending FormData:');
-    for (let [key, value] of formDataToSend.entries()) {
+    for (const [key, value] of formDataToSend.entries()) {
       console.log(key, value);
     }
 
@@ -599,9 +600,11 @@ export default function AddProductsPage() {
                       <label htmlFor="product-image-upload" className="cursor-pointer">
                         {imagePreview ? (
                           <div className="relative">
-                            <img
+                            <Image
                               src={imagePreview}
                               alt="Product preview"
+                              width={192}
+                              height={192}
                               className="w-full h-48 object-cover rounded-lg"
                             />
                             <button
@@ -652,7 +655,7 @@ export default function AddProductsPage() {
                         <li>Supported formats: JPG, PNG, GIF, WebP</li>
                         <li>Maximum file size: 5MB</li>
                         <li>Use clear, well-lit product photos</li>
-                        <li>Image will be uploaded as "product_image"</li>
+                        <li>Image will be uploaded as &quot;product_image&quot;</li>
                       </ul>
                     </div>
                   </div>
