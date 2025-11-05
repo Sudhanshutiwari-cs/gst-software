@@ -34,6 +34,7 @@ interface Category {
 interface ApiError {
   message?: string;
   success?: boolean;
+  errors?: Record<string, string[]>; // Added errors property
 }
 
 export default function AddProductsPage() {
@@ -298,139 +299,141 @@ export default function AddProductsPage() {
     }
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!(await checkTokenValidity())) {
-    setError('Your session has expired. Please log in again.');
-    return;
-  }
-
-  const token = getJwtToken();
-  if (!token) {
-    setError('Authentication required. Please log in.');
-    return;
-  }
-
-  // Validation
-  if (!formData.product_name.trim()) {
-    setError('Product name is required');
-    return;
-  }
-
-  if (!formData.sku.trim()) {
-    setError('SKU is required');
-    return;
-  }
-
-  setLoading(true);
-  setMessage(null);
-  setError(null);
-
-  try {
-    // Create FormData object for multipart request
-    const formDataToSend = new FormData();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Append all form fields with proper type conversion
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        // Handle boolean fields - convert to proper string representation
-        if (key === 'is_active' || key === 'tax_inclusive') {
-          formDataToSend.append(key, value ? '1' : '0');
-          // Alternatively, you can try sending as string 'true'/'false'
-          // formDataToSend.append(key, value.toString());
-        } else if (typeof value === 'number') {
-          formDataToSend.append(key, value.toString());
-        } else {
-          formDataToSend.append(key, value);
+    if (!(await checkTokenValidity())) {
+      setError('Your session has expired. Please log in again.');
+      return;
+    }
+
+    const token = getJwtToken();
+    if (!token) {
+      setError('Authentication required. Please log in.');
+      return;
+    }
+
+    // Validation
+    if (!formData.product_name.trim()) {
+      setError('Product name is required');
+      return;
+    }
+
+    if (!formData.sku.trim()) {
+      setError('SKU is required');
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      // Create FormData object for multipart request
+      const formDataToSend = new FormData();
+      
+      // Append all form fields with proper type conversion
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          // Handle boolean fields - convert to proper string representation
+          if (key === 'is_active' || key === 'tax_inclusive') {
+            formDataToSend.append(key, value ? '1' : '0');
+            // Alternatively, you can try sending as string 'true'/'false'
+            // formDataToSend.append(key, value.toString());
+          } else if (typeof value === 'number') {
+            formDataToSend.append(key, value.toString());
+          } else {
+            formDataToSend.append(key, value);
+          }
         }
-      }
-    });
-    
-    // Append product image if selected
-    if (productImage) {
-      formDataToSend.append('product_image', productImage);
-    }
-
-    // Log FormData for debugging (remove in production)
-    console.log('Sending FormData:');
-    for (const [key, value] of formDataToSend.entries()) {
-      console.log(key, value);
-    }
-
-    const response = await axios.post(
-      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-products',
-      formDataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 15000, // Increased timeout for file upload
-      }
-    );
-
-    if (response.data.success) {
-      setMessage({ type: 'success', text: 'Product added successfully!' });
-
-      // Reset form
-      setFormData({
-        sku: '',
-        product_name: '',
-        price: 0,
-        barcode: '',
-        category_id: 0,
-        brand: '',
-        hsn_sac: '',
-        unit: 'pcs',
-        qty: 0,
-        reorder_level: 0,
-        purchase_price: 0,
-        sales_price: 0,
-        discount_percent: 0,
-        tax_percent: 0,
-        tax_inclusive: false,
-        product_description: '',
-        is_active: true,
       });
-      setProductImage(null);
-      setImagePreview(null);
+      
+      // Append product image if selected
+      if (productImage) {
+        formDataToSend.append('product_image', productImage);
+      }
 
-      router.push('/products');
-    } else {
-      setError(response.data.message || 'Failed to add product');
-    }
-  } catch (error: unknown) {
-    console.error('Error adding product:', error);
-    const axiosError = error as AxiosError<ApiError>;
-    
-    if (axiosError.response?.status === 422) {
-      // Handle validation errors
-      const validationErrors = axiosError.response.data?.errors;
-      if (validationErrors) {
-        const errorMessages = Object.values(validationErrors).flat().join(', ');
-        setError(`Validation failed: ${errorMessages}`);
-      } else {
-        setError('Validation failed. Please check your input.');
+      // Log FormData for debugging (remove in production)
+      console.log('Sending FormData:');
+      for (const [key, value] of formDataToSend.entries()) {
+        console.log(key, value);
       }
-    } else if (axiosError.response?.status === 401) {
-      setTokenValid(false);
-      const newToken = await refreshToken();
-      if (newToken) {
-        setError('Session refreshed. Please try again.');
+
+      const response = await axios.post(
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-products',
+        formDataToSend,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 15000, // Increased timeout for file upload
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Product added successfully!' });
+
+        // Reset form
+        setFormData({
+          sku: '',
+          product_name: '',
+          price: 0,
+          barcode: '',
+          category_id: 0,
+          brand: '',
+          hsn_sac: '',
+          unit: 'pcs',
+          qty: 0,
+          reorder_level: 0,
+          purchase_price: 0,
+          sales_price: 0,
+          discount_percent: 0,
+          tax_percent: 0,
+          tax_inclusive: false,
+          product_description: '',
+          is_active: true,
+        });
+        setProductImage(null);
+        setImagePreview(null);
+
+        router.push('/products');
       } else {
-        setError('Your session has expired. Please log in again.');
-        removeToken();
+        setError(response.data.message || 'Failed to add product');
       }
-    } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
-      setError('Network error. Please check your connection and try again.');
-    } else {
-      setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
+    } catch (error: unknown) {
+      console.error('Error adding product:', error);
+      const axiosError = error as AxiosError<ApiError>;
+      
+      if (axiosError.response?.status === 422) {
+        // Handle validation errors with proper type checking
+        const responseData = axiosError.response.data as ApiError;
+        const validationErrors = responseData?.errors;
+        
+        if (validationErrors && typeof validationErrors === 'object') {
+          const errorMessages = Object.values(validationErrors).flat().join(', ');
+          setError(`Validation failed: ${errorMessages}`);
+        } else {
+          setError('Validation failed. Please check your input.');
+        }
+      } else if (axiosError.response?.status === 401) {
+        setTokenValid(false);
+        const newToken = await refreshToken();
+        if (newToken) {
+          setError('Session refreshed. Please try again.');
+        } else {
+          setError('Your session has expired. Please log in again.');
+          removeToken();
+        }
+      } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Theme-based styling classes
   const containerClass = theme === 'dark' 
