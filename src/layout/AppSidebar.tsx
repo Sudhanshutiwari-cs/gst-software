@@ -61,7 +61,7 @@ const navItems: NavItem[] = [
     name: "Products",
     icon: <TableIcon />,
     subItems: [{ name: "All Products", path: "/products", pro: false },
-      { name: "Add Product", path: "/products/add-product", pro: false }
+      { name: "Add Product", path: "/products/add-products", pro: false }
     ],
   },
   /*{
