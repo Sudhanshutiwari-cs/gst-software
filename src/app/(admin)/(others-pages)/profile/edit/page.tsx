@@ -129,7 +129,7 @@ export default function EditVendorPage() {
         setError("");
         
         // Get auth token
-        const storedAuth = localStorage.getItem("authToken");
+        const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
         console.log("🔐 Stored auth:", storedAuth);
         
         if (!storedAuth) {
@@ -258,7 +258,7 @@ export default function EditVendorPage() {
     try {
       if (!isClient) return;
 
-      const storedAuth = localStorage.getItem("authToken");
+      const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
       if (!storedAuth) {
         setError("❌ JWT token not found. Please log in first.");
         setLoading(false);
@@ -341,7 +341,7 @@ export default function EditVendorPage() {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden">
           <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">
-              Edit Vendor {vendor?.id && `- ID: ${vendor.id}`}
+              Edit Vendor 
             </h2>
             <div className="flex gap-2">
               <button
