@@ -3,7 +3,7 @@ import React from 'react';
 const Footer = () => {
     return (
         <div className='flex justify-center mt-5'>
-            <p>Designed and Developed by <a href="https://tailadmin.com/" target='_blank' className='text-green-400'>TailAdmin</a> ~ Distributed by <a href="https://www.themewagon.com" target='_blank' className='text-green-400'>ThemeWagon</a>.</p>
+            <p>Copyright © 2025 - All right reserved</p>
         </div>
     );
 };
