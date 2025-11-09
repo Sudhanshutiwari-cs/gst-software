@@ -10,17 +10,7 @@ interface State {
   name?: string;
 }
 
-interface Customer {
-  id: number;
-  name: string;
-  email: string;
-  mobile: string;
-  gstin: string;
-  address: string;
-  city: string;
-  pincode: string;
-  unique_id?: string;
-}
+
 
 interface FormData {
   name: string;
