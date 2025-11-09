@@ -32,11 +32,7 @@ interface FormData {
   pincode: string;
 }
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: Customer;
-}
+
 
 interface ApiError {
   response?: {
