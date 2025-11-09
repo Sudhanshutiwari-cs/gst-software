@@ -4,14 +4,6 @@ import axios from "axios";
 import { ToastContainer, toast } from 'react-toastify';
 
 // Define types for our data
-interface State {
-  id: number;
-  state_name?: string;
-  name?: string;
-}
-
-
-
 interface FormData {
   name: string;
   mobile: string;
@@ -21,8 +13,6 @@ interface FormData {
   city: string;
   pincode: string;
 }
-
-
 
 interface ApiError {
   response?: {
@@ -48,7 +38,6 @@ export default function AddCustomerPage() {
     pincode: "",
   });
 
-  const [states, setStates] = useState<State[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [message, setMessage] = useState("");
@@ -57,75 +46,6 @@ export default function AddCustomerPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Fetch helper data
-  useEffect(() => {
-    if (!isClient) return;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        
-        // Get auth token
-        const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
-        console.log("🔐 Stored auth:", storedAuth);
-        
-        if (!storedAuth) {
-          setError("JWT token not found. Please log in first.");
-          setLoading(false);
-          return;
-        }
-
-        let token = "";
-        try {
-          const parsed = JSON.parse(storedAuth);
-          token = parsed?.access_token || parsed?.token || storedAuth;
-          console.log("✅ Parsed token:", token ? "Token exists" : "No token");
-        } catch {
-          token = storedAuth;
-          console.log("✅ Using raw token");
-        }
-
-        if (!token) {
-          setError("Invalid token format");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch states
-        console.log("🔄 Fetching states...");
-        const stateRes = await axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        
-        console.log("📦 States:", stateRes.data);
-        
-        setStates(stateRes.data?.data ?? stateRes.data ?? []);
-        
-      } catch (err: unknown) {
-        console.error("❌ Error fetching data:", err);
-        const apiError = err as ApiError;
-        console.error("❌ Error response:", apiError.response);
-        
-        if (apiError.response) {
-          setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
-        } else if (apiError.request) {
-          setError("Network error: Could not connect to server");
-        } else {
-          setError("Error: " + apiError.message);
-        }
-        setFetchError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [isClient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

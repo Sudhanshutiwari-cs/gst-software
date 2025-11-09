@@ -452,11 +452,7 @@ useEffect(() => {
 
           <div className="p-6">
             {/* Debug theme info - you can remove this later */}
-            <div className={`mb-4 p-2 text-xs rounded ${
-              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-            }`}>
-              Current Theme: {theme} | LocalStorage: {localStorage.getItem('theme') || 'not set'}
-            </div>
+            
 
             {error && (
               <div className={`mb-4 p-3 rounded-md ${
