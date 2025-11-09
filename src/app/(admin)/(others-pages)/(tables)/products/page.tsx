@@ -1,8 +1,8 @@
-// app/vendor/products/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 // Define types
 interface VendorProduct {
@@ -101,6 +101,7 @@ async function toggleProductStatus(token: string, productId: number): Promise<To
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+    toast.success('Product status updated successfully!');
 
     return await response.json();
   } catch (error) {
@@ -118,6 +119,8 @@ export default function VendorProductsPage() {
   const [toggleLoading, setToggleLoading] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -157,6 +160,123 @@ export default function VendorProductsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportToExcel = async () => {
+    try {
+      setExportLoading(true);
+      
+      // Get JWT token
+      const token = localStorage.getItem('authToken') || 
+                    sessionStorage.getItem('authToken') || 
+                    '';
+      
+      if (!token) {
+        throw new Error('No JWT token found. Please log in again.');
+      }
+
+      // Prepare data for export
+      const exportData = filteredProducts.map(product => ({
+        'Product Name': product.product_name,
+        'SKU': product.sku,
+        'Category': product.category,
+        'Price': product.sales_price,
+        'Quantity': product.qty,
+        'Unit': product.unit,
+        'Status': product.is_active ? 'Active' : 'Inactive',
+        'Created At': new Date(product.created_at).toLocaleDateString(),
+        'Updated At': new Date(product.updated_at).toLocaleDateString()
+      }));
+
+      // Create CSV content
+      const headers = Object.keys(exportData[0] || {});
+      const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => 
+          headers.map(header => {
+            const value = row[header as keyof typeof row];
+            // Escape commas and quotes in values
+            return `"${String(value).replace(/"/g, '""')}"`;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `products_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Products exported successfully!');
+    } catch (err) {
+      console.error('Error exporting products:', err);
+      toast.error(`Error exporting products: ${err instanceof Error ? err.message : 'Please try again.'}`);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleImportFromExcel = () => {
+    // Create file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv,.xlsx,.xls';
+    
+    fileInput.onchange = async (e) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+      
+      if (!file) return;
+
+      try {
+        setImportLoading(true);
+        
+        // Here you would typically:
+        // 1. Parse the Excel/CSV file
+        // 2. Validate the data
+        // 3. Send to your API endpoint
+        
+        // For now, we'll just show a success message
+        toast.success(`File "${file.name}" selected for import. Import functionality would be implemented here.`);
+        
+        // Example implementation would include:
+        // const formData = new FormData();
+        // formData.append('file', file);
+        // 
+        // const token = localStorage.getItem('authToken') || '';
+        // const response = await fetch('/api/vendor/import-products', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Authorization': `Bearer ${token}`,
+        //   },
+        //   body: formData,
+        // });
+        // 
+        // if (response.ok) {
+        //   toast.success('Products imported successfully!');
+        //   fetchVendorProducts(); // Refresh the list
+        // } else {
+        //   throw new Error('Import failed');
+        // }
+        
+      } catch (err) {
+        console.error('Error importing products:', err);
+        toast.error(`Error importing products: ${err instanceof Error ? err.message : 'Please try again.'}`);
+      } finally {
+        setImportLoading(false);
+        // Reset file input
+        target.value = '';
+      }
+    };
+    
+    fileInput.click();
   };
 
   const handleSearch = () => {
@@ -273,6 +393,7 @@ export default function VendorProductsPage() {
         
         // Show success message
         const newStatus = !products.find(p => p.id === productId)?.is_active ? 'active' : 'inactive';
+        
         alert(`Product status updated to ${newStatus} successfully!`);
       } else {
         throw new Error(response.message || 'Failed to update product status');
@@ -372,6 +493,45 @@ export default function VendorProductsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your product inventory</p>
           </div>
           <div className="flex space-x-3">
+            {/* Import/Export Buttons */}
+            <button
+              onClick={handleImportFromExcel}
+              disabled={importLoading}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {importLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                  </svg>
+                  Import Excel
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleExportToExcel}
+              disabled={exportLoading || filteredProducts.length === 0}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Excel
+                </>
+              )}
+            </button>
             {/* Add Product Button */}
             <button
               onClick={handleAddProduct}

@@ -82,6 +82,9 @@ interface ApiError {
   message: string;
 }
 
+// Theme types
+type Theme = 'light' | 'dark';
+
 export default function EditVendorPage() {
   const [isClient, setIsClient] = useState(false);
   const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -115,9 +118,85 @@ export default function EditVendorPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // Theme state - initialize with a function to avoid hydration mismatch
+  const [theme, setTheme] = useState<Theme>('light');
+
+  // Initialize theme and set up listeners - FIXED VERSION
   useEffect(() => {
     setIsClient(true);
+    
+    // Function to get initial theme
+    const getInitialTheme = (): Theme => {
+      // Check localStorage first
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('theme') as Theme;
+        if (savedTheme) {
+          return savedTheme;
+        }
+        // Check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
+      }
+      return 'light';
+    };
+
+    // Function to apply theme to DOM
+    const applyTheme = (newTheme: Theme) => {
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    };
+
+    // Set initial theme
+    const initialTheme = getInitialTheme();
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
+
+    // Listen for storage changes (theme changes in other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = (e.newValue as Theme) || 'light';
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    // Listen for custom theme change events
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail.theme as Theme;
+      setTheme(newTheme);
+      applyTheme(newTheme);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
+
+    // Set up mutation observer to watch for theme class changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+      observer.disconnect();
+    };
   }, []);
+
+  // Effect to update theme when state changes
+  useEffect(() => {
+    if (isClient) {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+  }, [theme, isClient]);
 
   // Fetch vendor data and helper data
   useEffect(() => {
@@ -315,9 +394,9 @@ export default function EditVendorPage() {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-6 flex items-center justify-center`}>
         <div className="text-center">
-          <p className="text-gray-600">Initializing...</p>
+          <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>Initializing...</p>
         </div>
       </div>
     );
@@ -325,34 +404,49 @@ export default function EditVendorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-6 flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading vendor data...</p>
+          <p className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Loading vendor data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <ToastContainer />
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-          <div className="bg-white px-6 py-4 border-b flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} p-6 transition-colors duration-200`}>
+      <ToastContainer 
+        theme={theme}
+        toastClassName={() => 
+          `relative flex p-1 min-h-10 rounded-md justify-between overflow-hidden cursor-pointer ${
+            theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
+          }`
+        }
+      />
+      <div className="max-w-8xl mx-auto">
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} shadow-sm rounded-xl overflow-hidden transition-colors duration-200`}>
+          <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} px-6 py-4 border-b flex justify-between items-center transition-colors duration-200`}>
+            <h2 className="text-xl font-bold">
               Edit Vendor 
             </h2>
             <div className="flex gap-2">
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm"
+                className={`px-4 py-2 rounded-md text-sm transition-colors duration-200 ${
+                  theme === 'dark'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
               >
                 Retry
               </button>
               <button
                 onClick={() => window.history.back()}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm"
+                className={`px-4 py-2 rounded-md text-sm transition-colors duration-200 ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                }`}
               >
                 ← Back
               </button>
@@ -360,23 +454,33 @@ export default function EditVendorPage() {
           </div>
 
           <div className="p-6">
-            {/* Debug Info */}
-            
+            {/* Debug theme info - you can remove this later */}
+            <div className={`mb-4 p-2 text-xs rounded ${
+              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+            }`}>
+              Current Theme: {theme} | LocalStorage: {localStorage.getItem('theme') || 'not set'}
+            </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+              <div className={`mb-4 p-3 rounded-md ${
+                theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-700'
+              }`}>
                 {error}
               </div>
             )}
 
             {message && (
-              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
+              <div className={`mb-4 p-3 rounded-md ${
+                theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'
+              }`}>
                 {message}
               </div>
             )}
 
             {fetchError && (
-              <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-md">
+              <div className={`mb-4 p-3 rounded-md ${
+                theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
+              }`}>
                 ⚠️ Unable to load some data. Please check your connection and try again.
               </div>
             )}
@@ -385,57 +489,90 @@ export default function EditVendorPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Email Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Email</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
                     placeholder="Email address"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Business Name</label>
                   <input
                     type="text"
                     name="business_name"
                     value={formData.business_name}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Business name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Shop Name</label>
                   <input
                     type="text"
                     name="shop_name"
                     value={formData.shop_name}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Shop name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Type</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Shop Type</label>
                   <input
                     type="text"
                     name="shop_type"
                     value={formData.shop_type}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Shop type"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Category</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Shop Category</label>
                   <select
                     name="shop_category"
                     value={formData.shop_category}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   >
                     <option value="">Select Category</option>
                     {categories.map((cat: Category) => (
@@ -447,123 +584,198 @@ export default function EditVendorPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Owner Name</label>
                   <input
                     type="text"
                     name="owner_name"
                     value={formData.owner_name}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Owner name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>GST Number</label>
                   <input
                     type="text"
                     name="gst_number"
                     value={formData.gst_number || ""}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="GST number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>PAN Number</label>
                   <input
                     type="text"
                     name="pan_number"
                     value={formData.pan_number}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="PAN number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">FSSAI License</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>FSSAI License</label>
                   <input
                     type="text"
                     name="fssai_license"
                     value={formData.fssai_license}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="FSSAI license"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Contact Number</label>
                   <input
                     type="text"
                     name="contact_number"
                     value={formData.contact_number}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Contact number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Number</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Alternate Number</label>
                   <input
                     type="text"
                     name="alternate_number"
                     value={formData.alternate_number}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Alternate number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Mobile Number</label>
                   <input
                     type="text"
                     name="mobile_number"
                     value={formData.mobile_number}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                    className={`w-full border rounded-md px-3 py-2 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-600 border-gray-600 text-gray-400' 
+                        : 'bg-gray-100 border-gray-300 text-gray-500'
+                    }`}
                     readOnly
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Address Line 1</label>
                   <input
                     type="text"
                     name="address_line1"
                     value={formData.address_line1}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Address line 1"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Address Line 2</label>
                   <input
                     type="text"
                     name="address_line2"
                     value={formData.address_line2}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Address line 2"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>City</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="City"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>State</label>
                   <select
                     name="state"
                     value={formData.state}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   >
                     <option value="">Select State</option>
                     {states.map((st: State) => (
@@ -575,34 +787,54 @@ export default function EditVendorPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Pincode</label>
                   <input
                     type="text"
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Pincode"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Country</label>
                   <input
                     type="text"
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Country"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Status</label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -610,12 +842,18 @@ export default function EditVendorPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Payment Status</label>
                   <select
                     name="payment_status"
                     value={formData.payment_status}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   >
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
@@ -627,7 +865,11 @@ export default function EditVendorPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50"
+                  className={`px-6 py-2 rounded-md transition-all disabled:opacity-50 ${
+                    theme === 'dark'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
                 >
                   {loading ? "Updating..." : "Update Vendor"}
                 </button>

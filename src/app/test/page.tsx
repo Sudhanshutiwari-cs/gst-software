@@ -422,17 +422,19 @@ export default function ClientsPage() {
         )}
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-6 border border-gray-100 hover:border-gray-200"
-            >
-              <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+  {stats.map((stat, index) => (
+    <div
+      key={index}
+      className="bg-white rounded-lg shadow-[0_2px_8px_rgba(0,0,128,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,128,0.25)] transition-all duration-200 p-3 border border-gray-100 hover:border-gray-200"
+    >
+      <div className="text-xl font-medium text-gray-900">{stat.value}</div>
+      <div className="text-[11px] text-gray-500 mt-0.5">{stat.label}</div>
+    </div>
+  ))}
+</div>
+
+
 
         {/* Search and Actions Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
