@@ -87,7 +87,7 @@ type Theme = 'light' | 'dark';
 
 export default function EditVendorPage() {
   const [isClient, setIsClient] = useState(false);
-  const [vendor, setVendor] = useState<Vendor | null>(null);
+  
   const [formData, setFormData] = useState<FormData>({
     business_name: "",
     shop_name: "",
@@ -199,126 +199,123 @@ export default function EditVendorPage() {
   }, [theme, isClient]);
 
   // Fetch vendor data and helper data
-  useEffect(() => {
-    if (!isClient) return;
+  // Fetch vendor data and helper data
+useEffect(() => {
+  if (!isClient) return;
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        
-        // Get auth token
-        const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
-        console.log("🔐 Stored auth:", storedAuth);
-        
-        if (!storedAuth) {
-          setError("JWT token not found. Please log in first.");
-          setLoading(false);
-          return;
-        }
-
-        let token = "";
-        try {
-          const parsed = JSON.parse(storedAuth);
-          token = parsed?.access_token || parsed?.token || storedAuth;
-          console.log("✅ Parsed token:", token ? "Token exists" : "No token");
-        } catch {
-          token = storedAuth;
-          console.log("✅ Using raw token");
-        }
-
-        if (!token) {
-          setError("Invalid token format");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch vendor data
-        console.log("🔄 Fetching vendor profile...");
-        const vendorResponse = await axios.get<ApiResponse>(
-          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("📦 Full API Response:", vendorResponse.data);
-        console.log("📦 Vendor Data:", vendorResponse.data.data);
-
-        if (vendorResponse.data.success && vendorResponse.data.data) {
-          const vendorData = vendorResponse.data.data;
-          
-          // Set vendor state FIRST
-          console.log("🎯 Setting vendor state:", vendorData);
-          setVendor(vendorData);
-          
-          // Then set form data
-          const newFormData: FormData = {
-            business_name: vendorData.business_name || "",
-            shop_name: vendorData.shop_name || "",
-            shop_type: vendorData.shop_type || "",
-            shop_category: vendorData.shop_category || "",
-            owner_name: vendorData.owner_name || "",
-            gst_number: vendorData.gst_number || "",
-            pan_number: vendorData.pan_number || "",
-            fssai_license: vendorData.fssai_license || "",
-            contact_number: vendorData.contact_number || "",
-            alternate_number: vendorData.alternate_number || "",
-            mobile_number: vendorData.mobile_number || "",
-            address_line1: vendorData.address_line1 || "",
-            address_line2: vendorData.address_line2 || "",
-            city: vendorData.city || "",
-            state: vendorData.state || "",
-            pincode: vendorData.pincode || "",
-            country: vendorData.country || "India",
-            status: vendorData.status || "active",
-            payment_status: vendorData.payment_status || "pending",
-            email: vendorData.email || "",
-          };
-
-          console.log("🎯 Setting form data:", newFormData);
-          setFormData(newFormData);
-        } else {
-          console.warn("⚠️ No vendor data in response");
-          setError("No vendor data received from server");
-        }
-
-        // Fetch helper data
-        console.log("🔄 Fetching categories and states...");
-        const [catRes, stateRes] = await Promise.all([
-          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
-          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
-        ]);
-        
-        console.log("📦 Categories:", catRes.data);
-        console.log("📦 States:", stateRes.data);
-        
-        setCategories(catRes.data?.data ?? catRes.data ?? []);
-        setStates(stateRes.data?.data ?? stateRes.data ?? []);
-        
-      } catch (err: unknown) {
-        console.error("❌ Error fetching data:", err);
-        const apiError = err as ApiError;
-        console.error("❌ Error response:", apiError.response);
-        
-        if (apiError.response) {
-          setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
-        } else if (apiError.request) {
-          setError("Network error: Could not connect to server");
-        } else {
-          setError("Error: " + apiError.message);
-        }
-        setFetchError(true);
-      } finally {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      // Get auth token
+      const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
+      console.log("🔐 Stored auth:", storedAuth);
+      
+      if (!storedAuth) {
+        setError("JWT token not found. Please log in first.");
         setLoading(false);
+        return;
       }
-    };
-    
-    fetchData();
-  }, [isClient]);
+
+      let token = "";
+      try {
+        const parsed = JSON.parse(storedAuth);
+        token = parsed?.access_token || parsed?.token || storedAuth;
+        console.log("✅ Parsed token:", token ? "Token exists" : "No token");
+      } catch {
+        token = storedAuth;
+        console.log("✅ Using raw token");
+      }
+
+      if (!token) {
+        setError("Invalid token format");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch vendor data
+      console.log("🔄 Fetching vendor profile...");
+      const vendorResponse = await axios.get<ApiResponse>(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("📦 Full API Response:", vendorResponse.data);
+      console.log("📦 Vendor Data:", vendorResponse.data.data);
+
+      if (vendorResponse.data.success && vendorResponse.data.data) {
+        const vendorData = vendorResponse.data.data;
+        
+        // Set form data directly without using vendor state
+        const newFormData: FormData = {
+          business_name: vendorData.business_name || "",
+          shop_name: vendorData.shop_name || "",
+          shop_type: vendorData.shop_type || "",
+          shop_category: vendorData.shop_category || "",
+          owner_name: vendorData.owner_name || "",
+          gst_number: vendorData.gst_number || "",
+          pan_number: vendorData.pan_number || "",
+          fssai_license: vendorData.fssai_license || "",
+          contact_number: vendorData.contact_number || "",
+          alternate_number: vendorData.alternate_number || "",
+          mobile_number: vendorData.mobile_number || "",
+          address_line1: vendorData.address_line1 || "",
+          address_line2: vendorData.address_line2 || "",
+          city: vendorData.city || "",
+          state: vendorData.state || "",
+          pincode: vendorData.pincode || "",
+          country: vendorData.country || "India",
+          status: vendorData.status || "active",
+          payment_status: vendorData.payment_status || "pending",
+          email: vendorData.email || "",
+        };
+
+        console.log("🎯 Setting form data:", newFormData);
+        setFormData(newFormData);
+      } else {
+        console.warn("⚠️ No vendor data in response");
+        setError("No vendor data received from server");
+      }
+
+      // Fetch helper data
+      console.log("🔄 Fetching categories and states...");
+      const [catRes, stateRes] = await Promise.all([
+        axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
+        axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
+      ]);
+      
+      console.log("📦 Categories:", catRes.data);
+      console.log("📦 States:", stateRes.data);
+      
+      setCategories(catRes.data?.data ?? catRes.data ?? []);
+      setStates(stateRes.data?.data ?? stateRes.data ?? []);
+      
+    } catch (err: unknown) {
+      console.error("❌ Error fetching data:", err);
+      const apiError = err as ApiError;
+      console.error("❌ Error response:", apiError.response);
+      
+      if (apiError.response) {
+        setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
+      } else if (apiError.request) {
+        setError("Network error: Could not connect to server");
+      } else {
+        setError("Error: " + apiError.message);
+      }
+      setFetchError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchData();
+}, [isClient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
