@@ -410,7 +410,7 @@ export default function VendorProductsPage() {
             <button
               onClick={handleImportFromExcel}
               disabled={importLoading}
-              className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              className="group relative px-6 py-3  text-black rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
             >
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
               {importLoading ? (
@@ -425,7 +425,7 @@ export default function VendorProductsPage() {
             {/* Add Product Button */}
             <button
               onClick={handleAddProduct}
-              className="group relative px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden"
+              className="group relative px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden"
             >
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
               <Plus className="w-4 h-4" />
