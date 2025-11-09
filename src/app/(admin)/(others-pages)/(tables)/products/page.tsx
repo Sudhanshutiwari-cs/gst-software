@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 
 // Define types
 interface VendorProduct {
@@ -102,7 +102,7 @@ async function toggleProductStatus(token: string, productId: number): Promise<To
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    toast.success('Product status updated successfully!');
+   
 
     return await response.json();
   } catch (error) {
@@ -328,6 +328,7 @@ export default function VendorProductsPage() {
             ? { ...product, is_active: !product.is_active }
             : product
         ));
+        toast.success('Product status updated successfully!');
       } else {
         throw new Error(response.message || 'Failed to update product status');
       }
@@ -381,7 +382,7 @@ export default function VendorProductsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-
+        <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
