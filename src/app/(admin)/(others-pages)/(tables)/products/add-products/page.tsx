@@ -37,6 +37,14 @@ interface ApiError {
   errors?: Record<string, string[]>; // Added errors property
 }
 
+interface NormalizedCategory {
+  id: number;
+  name: string;
+  title: string;
+  category_id: number;
+  category_name: string;
+}
+
 export default function AddProductsPage() {
   const [formData, setFormData] = useState<ProductFormData>({
     sku: '',
@@ -80,6 +88,77 @@ export default function AddProductsPage() {
     sessionStorage.removeItem('authToken');
   };
 
+  const fetchCategories = useCallback(async (): Promise<void> => {
+    const token = getJwtToken();
+    if (!token) {
+      setCategoriesLoading(false);
+      return;
+    }
+
+    setCategoriesLoading(true);
+
+    try {
+      console.log('Fetching categories...');
+
+      const endpoints = [
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories',
+        'https://manhemdigitalsolutions.com/pos-admin/api/categories',
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-categories'
+      ];
+
+      let categoriesData: NormalizedCategory[] = [];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          const response = await axios.get(endpoint, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            timeout: 10000,
+          });
+
+          console.log('Categories API raw response:', response.data);
+
+          // Flexible structure detection
+          const data =
+            response.data.categories ||
+            response.data.data ||
+            response.data ||
+            [];
+
+          if (Array.isArray(data) && data.length > 0) {
+            categoriesData = data;
+            break;
+          }
+        } catch (endpointError) {
+          console.warn(`Endpoint failed: ${endpoint}`, endpointError);
+          continue;
+        }
+      }
+
+      if (categoriesData.length > 0) {
+        // Normalize category keys
+        const normalized = categoriesData.map((cat: NormalizedCategory) => ({
+          id: cat.id ?? cat.category_id ?? Math.random(),
+          category_name:
+            cat.category_name || cat.name || cat.title || 'Unnamed Category',
+        }));
+
+        setCategories(normalized);
+        console.log('✅ Categories loaded:', normalized);
+      } else {
+        console.warn('⚠️ No categories found from any endpoint.');
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, []);
+
   const checkTokenValidity = useCallback(async (): Promise<boolean> => {
     const token = getJwtToken();
     if (!token) {
@@ -113,84 +192,12 @@ export default function AddProductsPage() {
       // Fetch categories after token validation
       await fetchCategories();
       return true;
-    } catch (error) {
-      console.error('Token validation error:', error);
+    } catch (validationError) {
+      console.error('Token validation error:', validationError);
       setTokenValid(false);
       return false;
     }
-  }, []);
-
-  const fetchCategories = async () => {
-  const token = getJwtToken();
-  if (!token) {
-    setCategoriesLoading(false);
-    return;
-  }
-
-  setCategoriesLoading(true);
-
-  try {
-    console.log('Fetching categories...');
-
-    const endpoints = [
-      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories',
-      'https://manhemdigitalsolutions.com/pos-admin/api/categories',
-      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-categories'
-    ];
-
-    let categoriesData: any[] = [];
-
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`Trying endpoint: ${endpoint}`);
-        const response = await axios.get(endpoint, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000,
-        });
-
-        console.log('Categories API raw response:', response.data);
-
-        // Flexible structure detection
-        const data =
-          response.data.categories ||
-          response.data.data ||
-          response.data ||
-          [];
-
-        if (Array.isArray(data) && data.length > 0) {
-          categoriesData = data;
-          break;
-        }
-      } catch (err) {
-        console.warn(`Endpoint failed: ${endpoint}`);
-        continue;
-      }
-    }
-
-    if (categoriesData.length > 0) {
-      // Normalize category keys
-      const normalized = categoriesData.map((cat: any) => ({
-        id: cat.id ?? cat.category_id ?? cat.ID ?? Math.random(),
-        category_name:
-          cat.category_name || cat.name || cat.title || 'Unnamed Category',
-      }));
-
-      setCategories(normalized);
-      console.log('✅ Categories loaded:', normalized);
-    } else {
-      console.warn('⚠️ No categories found from any endpoint.');
-      setCategories([]);
-    }
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    setCategories([]);
-  } finally {
-    setCategoriesLoading(false);
-  }
-};
-
+  }, [fetchCategories]); // Added fetchCategories dependency
 
   // Check token validity on component mount
   useEffect(() => {
@@ -749,11 +756,10 @@ export default function AddProductsPage() {
                         {categoriesLoading ? 'Loading categories...' : 'Select category'}
                       </option>
                       {categories.map(category => (
-  <option key={category.id} value={category.id}>
-    {category.category_name}
-  </option>
-))}
-
+                        <option key={category.id} value={category.id}>
+                          {category.category_name}
+                        </option>
+                      ))}
                     </select>
                     {categories.length === 0 && !categoriesLoading && (
                       <p className={`text-sm mt-1 ${
