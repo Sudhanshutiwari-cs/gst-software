@@ -87,7 +87,7 @@ type Theme = 'light' | 'dark';
 
 export default function EditVendorPage() {
   const [isClient, setIsClient] = useState(false);
-  const [vendor, setVendor] = useState<Vendor | null>(null);
+  
   const [formData, setFormData] = useState<FormData>({
     business_name: "",
     shop_name: "",
