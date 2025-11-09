@@ -262,10 +262,7 @@ export default function VendorProductsPage() {
     setFilteredProducts(filtered);
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    setFilteredProducts(products);
-  };
+  
 
   const handleAddProduct = () => {
     router.push('/products/add-products');
