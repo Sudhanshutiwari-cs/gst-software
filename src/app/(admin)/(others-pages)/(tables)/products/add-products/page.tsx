@@ -121,73 +121,76 @@ export default function AddProductsPage() {
   }, []);
 
   const fetchCategories = async () => {
-    const token = getJwtToken();
-    if (!token) {
-      setCategoriesLoading(false);
-      return;
-    }
+  const token = getJwtToken();
+  if (!token) {
+    setCategoriesLoading(false);
+    return;
+  }
 
-    setCategoriesLoading(true);
-    try {
-      console.log('Fetching categories...');
-      
-      // Try multiple possible endpoints
-      const endpoints = [
-        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories',
-        'https://manhemdigitalsolutions.com/pos-admin/api/categories',
-        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-categories'
-      ];
+  setCategoriesLoading(true);
 
-      let categoriesData = null;
+  try {
+    console.log('Fetching categories...');
 
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`Trying endpoint: ${endpoint}`);
-          const response = await axios.get(endpoint, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            timeout: 10000,
-          });
+    const endpoints = [
+      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories',
+      'https://manhemdigitalsolutions.com/pos-admin/api/categories',
+      'https://manhemdigitalsolutions.com/pos-admin/api/vendor/get-categories'
+    ];
 
-          console.log('Categories API response:', response.data);
+    let categoriesData: any[] = [];
 
-          if (response.data.success) {
-            // Handle different possible response structures
-            categoriesData = response.data.categories || response.data.data || response.data;
-            break;
-          }
-        } catch (endpointError: unknown) {
-          const axiosError = endpointError as AxiosError;
-          console.log(`Endpoint ${endpoint} failed:`, axiosError.response?.status, axiosError.message);
-          continue;
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying endpoint: ${endpoint}`);
+        const response = await axios.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 10000,
+        });
+
+        console.log('Categories API raw response:', response.data);
+
+        // Flexible structure detection
+        const data =
+          response.data.categories ||
+          response.data.data ||
+          response.data ||
+          [];
+
+        if (Array.isArray(data) && data.length > 0) {
+          categoriesData = data;
+          break;
         }
+      } catch (err) {
+        console.warn(`Endpoint failed: ${endpoint}`);
+        continue;
       }
-
-      if (categoriesData) {
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        console.log('Categories loaded:', categoriesData);
-      } else {
-        console.warn('No categories found from any endpoint');
-        setCategories([]);
-      }
-
-    } catch (error: unknown) {
-      const axiosError = error as AxiosError;
-      console.error('Error fetching categories:', axiosError);
-      console.error('Error details:', {
-        status: axiosError.response?.status,
-        statusText: axiosError.response?.statusText,
-        data: axiosError.response?.data,
-        message: axiosError.message
-      });
-      
-      // Set empty categories array but don't show error to user
-      setCategories([]);
-    } finally {
-      setCategoriesLoading(false);
     }
-  };
+
+    if (categoriesData.length > 0) {
+      // Normalize category keys
+      const normalized = categoriesData.map((cat: any) => ({
+        id: cat.id ?? cat.category_id ?? cat.ID ?? Math.random(),
+        category_name:
+          cat.category_name || cat.name || cat.title || 'Unnamed Category',
+      }));
+
+      setCategories(normalized);
+      console.log('✅ Categories loaded:', normalized);
+    } else {
+      console.warn('⚠️ No categories found from any endpoint.');
+      setCategories([]);
+    }
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    setCategories([]);
+  } finally {
+    setCategoriesLoading(false);
+  }
+};
+
 
   // Check token validity on component mount
   useEffect(() => {
@@ -746,10 +749,11 @@ export default function AddProductsPage() {
                         {categoriesLoading ? 'Loading categories...' : 'Select category'}
                       </option>
                       {categories.map(category => (
-                        <option key={category.id} value={category.id} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
-                          {category.category_name}
-                        </option>
-                      ))}
+  <option key={category.id} value={category.id}>
+    {category.category_name}
+  </option>
+))}
+
                     </select>
                     {categories.length === 0 && !categoriesLoading && (
                       <p className={`text-sm mt-1 ${
