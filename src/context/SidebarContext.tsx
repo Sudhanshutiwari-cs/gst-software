@@ -8,6 +8,7 @@ type SidebarContextType = {
   activeItem: string | null;
   openSubmenu: string | null;
   toggleSidebar: () => void;
+  closeSidebar: () => void;
   toggleMobileSidebar: () => void;
   setIsHovered: (isHovered: boolean) => void;
   setActiveItem: (item: string | null) => void;
@@ -72,6 +73,7 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
         activeItem,
         openSubmenu,
         toggleSidebar,
+        closeSidebar: () => setIsMobileOpen(false),
         toggleMobileSidebar,
         setIsHovered,
         setActiveItem,

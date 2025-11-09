@@ -5,17 +5,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  /*BoxCubeIcon,
-  CalenderIcon,*/
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  /*ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,*/
   TableIcon,
-  /*UserCircleIcon,*/
 } from "../icons/index";
 
 // Types for vendor profile
@@ -26,13 +19,13 @@ type VendorProfile = {
   business_name?: string;
   logo_url?: string;
   status?: string;
-  // Add other fields based on your API response
 };
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
+  
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -42,71 +35,20 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     path: "/dashboard",  
   },
- /*{
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },*/
   {
     name: "Products",
     icon: <TableIcon />,
-    subItems: [{ name: "All Products", path: "/products", pro: false },
+    subItems: [
+      { name: "All Products", path: "/products", pro: false },
       { name: "Add Product", path: "/products/add-products", pro: false }
     ],
   },
-  /*{
-    name: "Pages",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
-    ],
-  },*/
 ];
 
-const othersItems: NavItem[] = [
-  /*{
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/login", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
-  },*/
-];
+const othersItems: NavItem[] = [];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, closeSidebar } = useSidebar();
   const pathname = usePathname();
   
   // State for vendor profile
@@ -120,7 +62,6 @@ const AppSidebar: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Get JWT token from localStorage or your auth context
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       
       if (!token) {
@@ -140,8 +81,6 @@ const AppSidebar: React.FC = () => {
       }
 
       const data = await response.json();
-      
-      // Assuming the API returns the profile data directly or in a data property
       setVendorProfile(data.data || data);
     } catch (err) {
       console.error('Error fetching vendor profile:', err);
@@ -154,6 +93,14 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     fetchVendorProfile();
   }, [fetchVendorProfile]);
+
+  // Function to handle navigation clicks
+  const handleNavigationClick = () => {
+    // Close sidebar on mobile when a link is clicked
+    if (isMobileOpen) {
+      closeSidebar();
+    }
+  };
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -202,6 +149,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
+                onClick={handleNavigationClick}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
@@ -239,6 +187,7 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       href={subItem.path}
+                      onClick={handleNavigationClick}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
@@ -460,7 +409,6 @@ const AppSidebar: React.FC = () => {
             </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );
