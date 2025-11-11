@@ -34,7 +34,7 @@ interface Category {
 interface ApiError {
   message?: string;
   success?: boolean;
-  errors?: Record<string, string[]>; // Added errors property
+  errors?: Record<string, string[]>;
 }
 
 interface NormalizedCategory {
@@ -43,6 +43,11 @@ interface NormalizedCategory {
   title: string;
   category_id: number;
   category_name: string;
+}
+
+interface AddCategoryFormData {
+  name: string;
+  description: string;
 }
 
 export default function AddProductsPage() {
@@ -66,6 +71,13 @@ export default function AddProductsPage() {
     is_active: true,
   });
   
+  const [addCategoryFormData, setAddCategoryFormData] = useState<AddCategoryFormData>({
+    name: '',
+    description: ''
+  });
+  
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -197,9 +209,8 @@ export default function AddProductsPage() {
       setTokenValid(false);
       return false;
     }
-  }, [fetchCategories]); // Added fetchCategories dependency
+  }, [fetchCategories]);
 
-  // Check token validity on component mount
   useEffect(() => {
     checkTokenValidity();
   }, [checkTokenValidity]);
@@ -236,6 +247,104 @@ export default function AddProductsPage() {
     return null;
   };
 
+  // Add Category Functions
+  const handleAddCategoryClick = () => {
+    setShowAddCategoryModal(true);
+    setAddCategoryFormData({ name: '', description: '' });
+  };
+
+  const handleAddCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setAddCategoryFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!addCategoryFormData.name.trim()) {
+      setError('Category name is required');
+      return;
+    }
+
+    const token = getJwtToken();
+    if (!token) {
+      setError('Authentication required. Please log in.');
+      return;
+    }
+
+    setAddingCategory(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(
+        'https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-category',
+        {
+          name: addCategoryFormData.name,
+          description: addCategoryFormData.description
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Category added successfully!' });
+        setShowAddCategoryModal(false);
+        
+        // Refresh categories list
+        await fetchCategories();
+        
+        // Set the newly created category as selected
+        if (response.data.category && response.data.category.id) {
+          setFormData(prev => ({ ...prev, category_id: response.data.category.id }));
+        }
+      } else {
+        setError(response.data.message || 'Failed to add category');
+      }
+    } catch (error: unknown) {
+      console.error('Error adding category:', error);
+      const axiosError = error as AxiosError<ApiError>;
+      
+      if (axiosError.response?.status === 422) {
+        const responseData = axiosError.response.data as ApiError;
+        const validationErrors = responseData?.errors;
+        
+        if (validationErrors && typeof validationErrors === 'object') {
+          const errorMessages = Object.values(validationErrors).flat().join(', ');
+          setError(`Validation failed: ${errorMessages}`);
+        } else {
+          setError('Validation failed. Please check your input.');
+        }
+      } else if (axiosError.response?.status === 401) {
+        setTokenValid(false);
+        const newToken = await refreshToken();
+        if (newToken) {
+          setError('Session refreshed. Please try again.');
+        } else {
+          setError('Your session has expired. Please log in again.');
+          removeToken();
+        }
+      } else {
+        setError(axiosError.response?.data?.message || 'An error occurred while adding the category');
+      }
+    } finally {
+      setAddingCategory(false);
+    }
+  };
+
+  const closeAddCategoryModal = () => {
+    setShowAddCategoryModal(false);
+    setAddCategoryFormData({ name: '', description: '' });
+  };
+
+  // Rest of your existing functions (handleInputChange, handleImageChange, etc.)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
@@ -252,14 +361,12 @@ export default function AddProductsPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         setError('Please select a valid image file (JPEG, PNG, GIF, WebP)');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError('Image size should be less than 5MB');
         return;
@@ -267,7 +374,6 @@ export default function AddProductsPage() {
 
       setProductImage(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -295,12 +401,10 @@ export default function AddProductsPage() {
     if (purchase_price > 0) {
       let calculatedPrice = purchase_price;
       
-      // Apply discount if any
       if (discount_percent > 0) {
         calculatedPrice = purchase_price * (1 - discount_percent / 100);
       }
       
-      // Apply tax if not inclusive
       if (!tax_inclusive && tax_percent > 0) {
         calculatedPrice = calculatedPrice * (1 + tax_percent / 100);
       }
@@ -323,7 +427,6 @@ export default function AddProductsPage() {
       return;
     }
 
-    // Validation
     if (!formData.product_name.trim()) {
       setError('Product name is required');
       return;
@@ -339,17 +442,12 @@ export default function AddProductsPage() {
     setError(null);
 
     try {
-      // Create FormData object for multipart request
       const formDataToSend = new FormData();
       
-      // Append all form fields with proper type conversion
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
-          // Handle boolean fields - convert to proper string representation
           if (key === 'is_active' || key === 'tax_inclusive') {
             formDataToSend.append(key, value ? '1' : '0');
-            // Alternatively, you can try sending as string 'true'/'false'
-            // formDataToSend.append(key, value.toString());
           } else if (typeof value === 'number') {
             formDataToSend.append(key, value.toString());
           } else {
@@ -358,12 +456,10 @@ export default function AddProductsPage() {
         }
       });
       
-      // Append product image if selected
       if (productImage) {
         formDataToSend.append('product_image', productImage);
       }
 
-      // Log FormData for debugging (remove in production)
       console.log('Sending FormData:');
       for (const [key, value] of formDataToSend.entries()) {
         console.log(key, value);
@@ -377,14 +473,13 @@ export default function AddProductsPage() {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
-          timeout: 15000, // Increased timeout for file upload
+          timeout: 15000,
         }
       );
 
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Product added successfully!' });
 
-        // Reset form
         setFormData({
           sku: '',
           product_name: '',
@@ -416,7 +511,6 @@ export default function AddProductsPage() {
       const axiosError = error as AxiosError<ApiError>;
       
       if (axiosError.response?.status === 422) {
-        // Handle validation errors with proper type checking
         const responseData = axiosError.response.data as ApiError;
         const validationErrors = responseData?.errors;
         
@@ -505,6 +599,23 @@ export default function AddProductsPage() {
   const imageUploadClass = theme === 'dark'
     ? "border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors cursor-pointer bg-gray-700/50"
     : "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer bg-gray-50";
+
+  // Modal styling classes
+  const modalOverlayClass = theme === 'dark'
+    ? "fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+
+  const modalContentClass = theme === 'dark'
+    ? "bg-gray-800 rounded-xl w-full max-w-md border border-gray-700"
+    : "bg-white rounded-xl w-full max-w-md border border-gray-200";
+
+  const modalHeaderClass = theme === 'dark'
+    ? "px-6 py-4 border-b border-gray-700"
+    : "px-6 py-4 border-b border-gray-200";
+
+  const modalTitleClass = theme === 'dark'
+    ? "text-xl font-semibold text-white"
+    : "text-xl font-semibold text-gray-900";
 
   if (!tokenValid) {
     return (
@@ -740,32 +851,41 @@ export default function AddProductsPage() {
                     />
                   </div>
 
-                  {/* Category */}
+                  {/* Category with Add Button */}
                   <div>
                     <label className={labelClass}>
                       Category
                     </label>
-                    <select
-                      name="category_id"
-                      value={formData.category_id}
-                      onChange={handleInputChange}
-                      className={selectClass}
-                      disabled={categoriesLoading}
-                    >
-                      <option value={0} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
-                        {categoriesLoading ? 'Loading categories...' : 'Select category'}
-                      </option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.category_name}
+                    <div className="flex space-x-2">
+                      <select
+                        name="category_id"
+                        value={formData.category_id}
+                        onChange={handleInputChange}
+                        className={selectClass}
+                        disabled={categoriesLoading}
+                      >
+                        <option value={0} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
+                          {categoriesLoading ? 'Loading categories...' : 'Select category'}
                         </option>
-                      ))}
-                    </select>
+                        {categories.map(category => (
+                          <option key={category.id} value={category.id}>
+                            {category.category_name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddCategoryClick}
+                        className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors font-medium whitespace-nowrap"
+                      >
+                        + Add
+                      </button>
+                    </div>
                     {categories.length === 0 && !categoriesLoading && (
                       <p className={`text-sm mt-1 ${
                         theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                       }`}>
-                        No categories available. Product will be uncategorized.
+                        No categories available. Click &quot;Add&quot; to create one.
                       </p>
                     )}
                   </div>
@@ -1169,6 +1289,76 @@ export default function AddProductsPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div className={modalOverlayClass}>
+          <div className={modalContentClass}>
+            <div className={modalHeaderClass}>
+              <h3 className={modalTitleClass}>Add New Category</h3>
+            </div>
+            
+            <form onSubmit={handleAddCategory} className="p-6 space-y-4">
+              <div>
+                <label className={labelClass}>
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={addCategoryFormData.name}
+                  onChange={handleAddCategoryInputChange}
+                  required
+                  className={inputClass}
+                  placeholder="Enter category name"
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={addCategoryFormData.description}
+                  onChange={handleAddCategoryInputChange}
+                  rows={3}
+                  className={inputClass}
+                  placeholder="Enter category description"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeAddCategoryModal}
+                  className={buttonSecondaryClass}
+                  disabled={addingCategory}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingCategory}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50 font-medium"
+                >
+                  {addingCategory ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Adding...
+                    </span>
+                  ) : (
+                    'Add Category'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
