@@ -44,6 +44,9 @@ interface ToggleStatusResponse {
   };
 }
 
+// Theme types
+type Theme = 'light' | 'dark';
+
 // API service functions
 async function getVendorProducts(token: string): Promise<VendorProductsResponse> {
   try {
@@ -102,7 +105,6 @@ async function toggleProductStatus(token: string, productId: number): Promise<To
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-   
 
     return await response.json();
   } catch (error) {
@@ -122,6 +124,81 @@ export default function VendorProductsPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const router = useRouter();
+
+  // Theme state
+  const [theme, setTheme] = useState<Theme>('light');
+
+  // Initialize theme and set up listeners
+  useEffect(() => {
+    // Function to get initial theme
+    const getInitialTheme = (): Theme => {
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('theme') as Theme;
+        if (savedTheme) {
+          return savedTheme;
+        }
+        // Check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
+      }
+      return 'light';
+    };
+
+    // Function to apply theme to DOM
+    const applyTheme = (newTheme: Theme) => {
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    };
+
+    // Set initial theme
+    const initialTheme = getInitialTheme();
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
+
+    // Listen for storage changes (theme changes in other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = (e.newValue as Theme) || 'light';
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    // Listen for custom theme change events
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail.theme as Theme;
+      setTheme(newTheme);
+      applyTheme(newTheme);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
+
+    // Set up mutation observer to watch for theme class changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+      observer.disconnect();
+    };
+  }, []);
+
+  // Effect to update theme when state changes
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   useEffect(() => {
     fetchVendorProducts();
@@ -262,8 +339,6 @@ export default function VendorProductsPage() {
     setFilteredProducts(filtered);
   };
 
-  
-
   const handleAddProduct = () => {
     router.push('/products/add-products');
   };
@@ -342,11 +417,15 @@ export default function VendorProductsPage() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+      }`}>
         Active
       </span>
     ) : (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-800'
+      }`}>
         Inactive
       </span>
     );
@@ -370,33 +449,61 @@ export default function VendorProductsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8 flex items-center justify-center">
+      <div className={`min-h-screen p-8 flex items-center justify-center transition-colors duration-200 ${
+        theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
+      }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading products...</p>
+          <p className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Loading products...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
+    <div className={`min-h-screen p-8 transition-colors duration-200 ${
+      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-8">
-        <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+        <ToastContainer 
+          position="bottom-right" 
+          autoClose={5000} 
+          hideProgressBar={false} 
+          newestOnTop={false} 
+          closeOnClick 
+          rtl={false} 
+          pauseOnFocusLoss 
+          draggable 
+          pauseOnHover
+          theme={theme}
+        />
+        
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Products Dashboard</h1>
-            <p className="text-gray-600 mt-1">View and manage all your product inventory in one place.</p>
+            <h1 className={`text-3xl font-extrabold tracking-tight ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Products Dashboard
+            </h1>
+            <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              View and manage all your product inventory in one place.
+            </p>
           </div>
           <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
             {/* Export Button */}
             <button
               onClick={handleExportToExcel}
               disabled={exportLoading || products.length === 0}
-              className="group relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden"
+              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+              }`}
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
+                theme === 'dark' ? 'bg-white' : 'bg-white'
+              }`}></div>
               {exportLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
@@ -410,9 +517,15 @@ export default function VendorProductsPage() {
             <button
               onClick={handleImportFromExcel}
               disabled={importLoading}
-              className="group relative px-6 py-3  text-black rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
+                theme === 'dark' ? 'bg-white' : 'bg-white'
+              }`}></div>
               {importLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
@@ -425,9 +538,15 @@ export default function VendorProductsPage() {
             {/* Add Product Button */}
             <button
               onClick={handleAddProduct}
-              className="group relative px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden"
+              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
+                theme === 'dark' ? 'bg-white' : 'bg-white'
+              }`}></div>
               <Plus className="w-4 h-4" />
               Add New Product
               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
@@ -436,8 +555,10 @@ export default function VendorProductsPage() {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-700 text-sm">
+          <div className={`p-4 rounded-xl border ${
+            theme === 'dark' ? 'bg-red-900 border-red-800 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            <p className="text-sm">
               Error loading data: {error}. Showing {products.length} product(s).
             </p>
           </div>
@@ -448,35 +569,63 @@ export default function VendorProductsPage() {
           {stats.map((stat, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-[0_2px_8px_rgba(0,0,128,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,128,0.25)] transition-all duration-200 p-3 border border-gray-100 hover:border-gray-200"
+              className={`rounded-lg transition-all duration-200 p-3 border ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-700 hover:border-gray-600 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+                  : 'bg-white border-gray-100 hover:border-gray-200 shadow-[0_2px_8px_rgba(0,0,128,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,128,0.25)]'
+              }`}
             >
-              <div className="text-xl font-medium text-gray-900">{stat.value}</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">{stat.label}</div>
+              <div className={`text-xl font-medium ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {stat.value}
+              </div>
+              <div className={`text-[11px] mt-0.5 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
 
         {/* Search and Actions Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className={`rounded-2xl shadow-sm border ${
+          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+        }`}>
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">Vendor Products</h2>
+            <h2 className={`text-lg font-semibold ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Vendor Products
+            </h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="relative flex-1 md:w-80">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                }`} />
                 <input
                   type="text"
                   placeholder="Search by product name, SKU, or category..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
+                    theme === 'dark'
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:bg-gray-600'
+                      : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 hover:bg-white'
+                  }`}
                 />
               </form>
               
               {/* Action Buttons Group */}
               <div className="flex gap-2">
                 {/* Filter Button */}
-                <button className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 text-gray-600 hover:text-gray-700 flex items-center gap-2 text-sm font-medium">
+                <button className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
+                  theme === 'dark'
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
+                }`}>
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
@@ -484,7 +633,11 @@ export default function VendorProductsPage() {
                 {/* Refresh Button */}
                 <button
                   onClick={fetchVendorProducts}
-                  className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 text-gray-600 hover:text-gray-700 flex items-center gap-2 text-sm font-medium"
+                  className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
+                    theme === 'dark'
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
+                  }`}
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh
@@ -496,17 +649,29 @@ export default function VendorProductsPage() {
           {/* Table with Light Outline */}
           <div className="overflow-x-auto">
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <div className="text-lg font-medium text-gray-400">No products found</div>
+              <div className={`text-center py-12 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                <div className={`text-lg font-medium ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                }`}>
+                  No products found
+                </div>
                 <p className="text-sm mt-1">
                   {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first product'}
                 </p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-2xl m-4 overflow-hidden">
+              <div className={`border rounded-2xl m-4 overflow-hidden ${
+                theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+              }`}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 text-left text-gray-600 uppercase tracking-wider text-xs">
+                    <tr className={`text-left uppercase tracking-wider text-xs ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 text-gray-300' 
+                        : 'bg-gray-50 text-gray-600'
+                    }`}>
                       <th className="py-4 px-4">Product</th>
                       <th className="py-4 px-4">SKU</th>
                       <th className="py-4 px-4">Price</th>
@@ -524,11 +689,15 @@ export default function VendorProductsPage() {
                         className={`group transition-colors duration-150 ${
                           index === filteredProducts.length - 1 
                             ? '' 
-                            : 'border-b border-gray-100'
-                        } hover:bg-indigo-50/50`}
+                            : `border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`
+                        } ${
+                          theme === 'dark' 
+                            ? 'hover:bg-gray-700' 
+                            : 'hover:bg-indigo-50/50'
+                        }`}
                       >
                         {/* Product Name and Image */}
-                        <td className="py-4 px-4 font-medium text-gray-900">
+                        <td className="py-4 px-4 font-medium">
                           <div className="flex items-center gap-3">
                             <div className="flex-shrink-0 h-10 w-10">
                               {product.product_image ? (
@@ -541,25 +710,43 @@ export default function VendorProductsPage() {
                                   }}
                                 />
                               ) : (
-                                <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
-                                  <span className="text-gray-400 text-xs">No Image</span>
+                                <div className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
+                                  theme === 'dark' 
+                                    ? 'bg-gray-700 border-gray-600' 
+                                    : 'bg-gray-100 border-gray-200'
+                                }`}>
+                                  <span className={`text-xs ${
+                                    theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                                  }`}>
+                                    No Image
+                                  </span>
                                 </div>
                               )}
                             </div>
                             <div>
-                              <span className="font-semibold">{product.product_name}</span>
-                              <div className="text-xs text-gray-500 mt-0.5">{product.unit}</div>
+                              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                                {product.product_name}
+                              </span>
+                              <div className={`text-xs mt-0.5 ${
+                                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                {product.unit}
+                              </div>
                             </div>
                           </div>
                         </td>
 
                         {/* SKU */}
-                        <td className="py-4 px-4 font-mono text-sm text-gray-600">
+                        <td className={`py-4 px-4 font-mono text-sm ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
                           {product.sku}
                         </td>
 
                         {/* Price */}
-                        <td className="py-4 px-4 font-semibold text-gray-900">
+                        <td className={`py-4 px-4 font-semibold ${
+                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>
                           {formatPrice(product.sales_price)}
                         </td>
 
@@ -567,10 +754,10 @@ export default function VendorProductsPage() {
                         <td className="py-4 px-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             product.qty === 0 
-                              ? 'bg-red-100 text-red-800' 
+                              ? theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800'
                               : product.qty < 10 
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-green-100 text-green-800'
+                              ? theme === 'dark' ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
+                              : theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
                           }`}>
                             {product.qty} {product.unit}
                           </span>
@@ -578,7 +765,9 @@ export default function VendorProductsPage() {
 
                         {/* Category */}
                         <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                          }`}>
                             {product.category || `Category ${product.category_id}`}
                           </span>
                         </td>
@@ -593,7 +782,7 @@ export default function VendorProductsPage() {
                               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                                 product.is_active
                                   ? 'bg-green-500 hover:bg-green-600'
-                                  : 'bg-gray-300 hover:bg-gray-400'
+                                  : theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-300 hover:bg-gray-400'
                               } ${toggleLoading === product.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <span
@@ -616,11 +805,17 @@ export default function VendorProductsPage() {
                             {/* Edit Button */}
                             <button
                               onClick={() => handleEdit(product.id)}
-                              className="group relative p-2.5 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg transition-all duration-200 border border-blue-200 hover:border-blue-500 shadow-sm hover:shadow-md"
+                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
+                                theme === 'dark'
+                                  ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
+                                  : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
+                              }`}
                               title="Edit product"
                             >
                               <Edit className="w-4 h-4" />
-                              <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200"></div>
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
+                                theme === 'dark' ? 'bg-white' : 'bg-white'
+                              }`}></div>
                             </button>
 
                             {/* Delete Button */}
@@ -629,8 +824,12 @@ export default function VendorProductsPage() {
                               disabled={deleteLoading === product.id}
                               className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
                                 deleteLoading === product.id 
-                                  ? 'text-gray-400 border-gray-200 cursor-not-allowed' 
-                                  : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
+                                  ? theme === 'dark'
+                                    ? 'text-gray-500 border-gray-600 cursor-not-allowed'
+                                    : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                  : theme === 'dark'
+                                    ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
+                                    : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
                               }`}
                               title="Delete product"
                             >
@@ -639,7 +838,9 @@ export default function VendorProductsPage() {
                               ) : (
                                 <Trash2 className="w-4 h-4" />
                               )}
-                              <div className="absolute inset-0 bg-red-500 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200"></div>
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
+                                theme === 'dark' ? 'bg-white' : 'bg-white'
+                              }`}></div>
                             </button>
                           </div>
                         </td>
@@ -651,7 +852,6 @@ export default function VendorProductsPage() {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
