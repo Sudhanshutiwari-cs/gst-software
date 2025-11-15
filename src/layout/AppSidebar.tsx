@@ -43,6 +43,14 @@ const navItems: NavItem[] = [
       { name: "Add Product", path: "/products/add-products", pro: false }
     ],
   },
+  {
+    name: "Customers",
+    icon: <TableIcon />,
+    subItems: [
+      { name: "All Customers", path: "/customer/view", pro: false },
+      { name: "Add Customer", path: "/customer/add", pro: false }
+    ],
+  },
 ];
 
 const othersItems: NavItem[] = [];
