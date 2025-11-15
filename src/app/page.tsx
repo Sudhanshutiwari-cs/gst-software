@@ -1,344 +1,153 @@
-import React from 'react';
-import Image from 'next/image';
+'use client';
+
+import Button from '@/components/ui/button/Button';
+import { ChevronDown } from 'lucide-react';
 import Link from "next/link";
 
-const GSTSoftwareLanding = () => {
+
+export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="bg-blue-600 text-white p-2 rounded-lg">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <span className="ml-3 text-xl font-bold text-gray-900">GSTPro</span>
+    <div className="min-h-screen bg-white">
+      
+      {/* Navigation Header */}
+      <header className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">GST</span>
             </div>
-            <div className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-700 hover:text-blue-600">Features</a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600">Pricing</a>
-              <a href="#testimonials" className="text-gray-700 hover:text-blue-600">Testimonials</a>
-              <a href="#contact" className="text-gray-700 hover:text-blue-600">Contact</a>
-            </div>
-            <div className="flex space-x-4">
-              <Link href="/login">
-                <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition duration-200 font-semibold">
-                  Login
-                </button>
-              </Link>
-              <Link href="/signup">
-                <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
-                  Sign Up
-                </button>
-              </Link>
-            </div>
+            <span className="font-semibold text-gray-900">GST</span>
           </div>
-        </div>
-      </nav>
+          
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#" className="text-gray-600 hover:text-gray-900 transition">Product</a>
+            <a href="#" className="text-gray-600 hover:text-gray-900 transition">Features</a>
+            <a href="#" className="text-gray-600 hover:text-gray-900 transition">Pricing</a>
+            <a href="#" className="text-gray-600 hover:text-gray-900 transition">Contact</a>
+          </div>
+
+         <div className="flex items-center gap-3">
+      <Link href="/login">
+        <button className="text-gray-600 hover:text-gray-900 transition">
+          Login
+        </button>
+      </Link>
+
+      <Link href="/signup">
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          Sign up
+        </Button>
+      </Link>
+    </div>
+        </nav>
+      </header>
 
       {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Simplify Your GST Filing with
-                <span className="text-blue-600"> Intelligent Software</span>
+      <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            
+            {/* Left Column - Text Content */}
+            <div className="space-y-6">
+              <div className="inline-block">
+                <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                  100% Safe & Secure!
+                </span>
+              </div>
+              
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                Record payments <br />
+                effortlessly
               </h1>
-              <p className="text-xl text-gray-600 mt-6">
-                Automated GST compliance, error-free filing, and real-time tracking.
-                Trusted by 50,000+ businesses across India.
+              
+              <p className="text-lg text-gray-600 leading-relaxed max-w-md">
+                Track every payment, every time — without lifting a finger. While others make it complicated, we make it simple.
               </p>
-              <div className="mt-8 flex space-x-4">
-                <button className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
-                  Get Started Free
-                </button>
-                <button className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg hover:bg-blue-50 transition duration-200 font-semibold">
-                  Watch Demo
-                </button>
-              </div>
-              <div className="mt-6 text-sm text-gray-500">
-                No credit card required • 30-day free trial • Cancel anytime
-              </div>
-            </div>
-            <div className="bg-white p-8 rounded-2xl shadow-xl">
-              <Image
-                src="/api/placeholder/600/400"
-                alt="GST Software Dashboard"
-                width={600}
-                height={400}
-                className="rounded-lg w-full"
-                priority
-              />
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Everything You Need for GST Compliance</h2>
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Comprehensive features designed to make GST filing simple, accurate, and hassle-free
-            </p>
-          </div>
-
-          <div className="mt-16 grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center p-6">
-                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mt-4 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600 mt-2">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Simple, Transparent Pricing</h2>
-            <p className="text-gray-600 mt-4">Choose the plan that works best for your business</p>
-          </div>
-
-          <div className="mt-16 grid md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div key={index} className={`bg-white rounded-2xl p-8 ${plan.popular ? 'ring-2 ring-blue-600 relative' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm">Most Popular</span>
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold text-gray-900">{plan.name}</h3>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">₹{plan.price}</span>
-                  <span className="text-gray-600">/{plan.period}</span>
-                </div>
-                <ul className="mt-6 space-y-3">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button className={`w-full mt-8 py-3 rounded-lg font-semibold ${plan.popular
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                  } transition duration-200`}>
-                  Get Started
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-base">
+                  Try for free
+                </Button>
+                <button className="px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition rounded-lg border border-gray-200">
+                  Request a demo →
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Trusted by Businesses</h2>
-          </div>
-          <div className="mt-16 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 p-6 rounded-lg">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="font-semibold text-blue-600">{testimonial.initials}</span>
+              <div className="pt-8 border-t border-gray-200">
+                <p className="text-sm text-gray-600 mb-3">💰 Trusted by</p>
+                <p className="text-2xl font-bold text-gray-900">20,00,000+ Businesses</p>
+              </div>
+            </div>
+
+            {/* Right Column - Illustration Cards */}
+            <div className="relative h-96 lg:h-full flex items-center justify-center">
+              <div className="relative w-full max-w-sm">
+                {/* Top Card - Invoice */}
+                <div className="absolute -top-8 -right-4 w-72 bg-white rounded-2xl border-2 border-gray-900 p-6 shadow-xl transform hover:scale-105 transition">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-semibold text-gray-900">Invoice</span>
+                    <span className="text-emerald-500 text-xl">✓</span>
                   </div>
-                  <div className="ml-4">
-                    <h4 className="font-semibold">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-600">{testimonial.company}</p>
+                  <div className="space-y-2">
+                    <div className="h-2 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-2 bg-gray-200 rounded w-1/2"></div>
                   </div>
                 </div>
-                <p className="text-gray-700">&ldquo;{testimonial.quote}&rdquo;</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white">Ready to Simplify Your GST Filing?</h2>
-          <p className="text-blue-100 mt-4 text-xl">
-            Join 50,000+ businesses that trust our GST software
-          </p>
-          <div className="mt-8">
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-lg hover:bg-gray-100 transition duration-200 font-semibold text-lg">
-              Start Your Free Trial Today
-            </button>
-          </div>
-          <p className="text-blue-200 mt-4 text-sm">
-            No credit card required • Setup in 5 minutes
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center">
-                <div className="bg-blue-600 text-white p-2 rounded-lg">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                {/* Middle Card - Card */}
+                <div className="absolute top-20 -right-12 w-64 bg-white rounded-2xl border-2 border-gray-900 p-4 shadow-xl transform hover:scale-105 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-pink-200 rounded-xl"></div>
+                    <span className="font-semibold text-gray-900">Card</span>
+                  </div>
                 </div>
-                <span className="ml-2 text-xl font-bold">GSTPro</span>
+
+                {/* Card - UPI */}
+                <div className="absolute top-40 -right-8 w-64 bg-white rounded-2xl border-2 border-gray-900 p-4 shadow-xl transform hover:scale-105 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
+                      <span className="text-white">✓</span>
+                    </div>
+                    <span className="font-bold text-gray-900 text-lg">UPI</span>
+                  </div>
+                </div>
+
+                {/* Card - Netbanking */}
+                <div className="absolute top-56 right-0 w-64 bg-white rounded-2xl border-2 border-gray-900 p-4 shadow-xl transform hover:scale-105 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-orange-200 rounded-xl"></div>
+                    <span className="font-semibold text-gray-900">Netbanking</span>
+                  </div>
+                </div>
+
+                {/* Card - Cash */}
+                <div className="absolute top-72 right-8 w-64 bg-white rounded-2xl border-2 border-gray-900 p-4 shadow-xl transform hover:scale-105 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-emerald-200 rounded-xl"></div>
+                    <span className="font-semibold text-gray-900">Cash</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-gray-400 mt-4">
-                Making GST compliance simple and efficient for businesses across India.
-              </p>
             </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Features</a></li>
-                <li><a href="#" className="hover:text-white">Pricing</a></li>
-                <li><a href="#" className="hover:text-white">API</a></li>
-                <li><a href="#" className="hover:text-white">Integrations</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Help Center</a></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white">Documentation</a></li>
-                <li><a href="#" className="hover:text-white">Status</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">About</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Careers</a></li>
-                <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 GSTPro. All rights reserved.</p>
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* Decorative animated elements */}
+      <style jsx>{`
+        @keyframes bounce-gentle {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        
+        .animate-bounce-gentle {
+          animation: bounce-gentle 3s infinite;
+        }
+      `}</style>
     </div>
   );
-};
-
-// Data arrays
-const features = [
-  {
-    icon: (
-      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    title: "Error-Free Filing",
-    description: "Automated validation and error detection to ensure 100% accurate GST returns"
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-    title: "Real-time Tracking",
-    description: "Monitor your GST filing status and compliance in real-time dashboard"
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    ),
-    title: "Bank-Grade Security",
-    description: "Your financial data is protected with enterprise-level security measures"
-  }
-];
-
-const pricingPlans = [
-  {
-    name: "Starter",
-    price: "999",
-    period: "month",
-    popular: false,
-    features: [
-      "Up to 50 invoices/month",
-      "GSTR-1, GSTR-3B Filing",
-      "Basic Reports",
-      "Email Support",
-      "Auto ITC Matching"
-    ]
-  },
-  {
-    name: "Professional",
-    price: "1999",
-    period: "month",
-    popular: true,
-    features: [
-      "Up to 500 invoices/month",
-      "All GST Returns",
-      "Advanced Analytics",
-      "Priority Support",
-      "Multi-user Access",
-      "API Integration"
-    ]
-  },
-  {
-    name: "Enterprise",
-    price: "3999",
-    period: "month",
-    popular: false,
-    features: [
-      "Unlimited invoices",
-      "Custom Workflows",
-      "Dedicated Account Manager",
-      "24/7 Phone Support",
-      "Custom Integrations",
-      "Advanced Security"
-    ]
-  }
-];
-
-const testimonials = [
-  {
-    name: "Rajesh Kumar",
-    company: "Kumar Traders",
-    initials: "RK",
-    quote: "Reduced our GST filing time from 2 days to 2 hours. Incredible software!"
-  },
-  {
-    name: "Priya Sharma",
-    company: "Sharma Enterprises",
-    initials: "PS",
-    quote: "The auto-error detection saved us from multiple compliance penalties."
-  },
-  {
-    name: "Amit Patel",
-    company: "Patel Industries",
-    initials: "AP",
-    quote: "Best investment we made for our business compliance. Highly recommended!"
-  }
-];
-
-export default GSTSoftwareLanding;
+}

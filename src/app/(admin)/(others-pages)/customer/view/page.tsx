@@ -1,15 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import router from 'next/router';
 
 interface VendorCustomer {
   id: number;
   vendor_id: string;
   customer_id: string | null;
   name: string;
+
   mobile: string;
   email: string;
   gstin: string;
+
   address: string;
   city: string;
   pincode: string;
@@ -31,7 +35,9 @@ interface Client {
   id: number;
   gstin: string;
   name: string;
+
   phone: string;
+  customer_id: string | null;
   caseRef: string;
   openedAt: string;
   city: string;
@@ -51,6 +57,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const router = useRouter();
   const [exportLoading, setExportLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -135,7 +142,7 @@ export default function ClientsPage() {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('jwtToken') || sessionStorage.getItem('authToken') || sessionStorage.getItem('jwtToken');
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -159,6 +166,7 @@ export default function ClientsPage() {
           id: customer.id,
           name: customer.name,
           phone: customer.mobile,
+          customer_id: customer.customer_id,
           email: customer.email,
           caseRef: `CASE-${index + 1}`,
           openedAt: new Date(customer.created_at).toLocaleDateString('en-GB'),
@@ -203,6 +211,7 @@ export default function ClientsPage() {
 
   // Edit client function
   const handleEdit = (client: Client) => {
+    router.push(`/customer/update/${client.id}`);
     console.log('Edit client:', client);
     alert(`Edit functionality for ${client.name} would be implemented here`);
   };
@@ -223,6 +232,7 @@ export default function ClientsPage() {
         'Name': client.name,
         'Phone': client.phone,
         'Email': client.email,
+        'Customer ID': client.customer_id,
         'Case Reference': client.caseRef,
         'Created Date': client.openedAt,
         'City': client.city,
@@ -287,6 +297,7 @@ export default function ClientsPage() {
         'Name': client.name,
         'Phone': client.phone,
         'Email': client.email,
+        'Customer ID': client.customer_id,
         'Case Reference': client.caseRef,
         'Created Date': client.openedAt,
         'City': client.city,
