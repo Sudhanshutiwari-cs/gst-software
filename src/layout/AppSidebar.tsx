@@ -10,6 +10,7 @@ import {
   HorizontaLDots,
   TableIcon,
 } from "../icons/index";
+import { User2Icon } from "lucide-react";
 
 // Types for vendor profile
 type VendorProfile = {
@@ -45,7 +46,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Customers",
-    icon: <TableIcon />,
+    icon: <User2Icon />,
     subItems: [
       { name: "All Customers", path: "/customer/view", pro: false },
       { name: "Add Customer", path: "/customer/add", pro: false }
