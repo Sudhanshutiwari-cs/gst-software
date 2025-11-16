@@ -287,7 +287,7 @@ export default function AddCustomerPage() {
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
               >
-                ← Back
+                Back
               </button>
             </div>
           </div>
