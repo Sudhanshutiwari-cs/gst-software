@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Copy, Share2 } from 'lucide-react';
+import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Transaction {
@@ -313,10 +313,7 @@ export default function SalesPage() {
     alert(`Sending invoice ${transaction.billNumber} to ${transaction.customerEmail}`);
   };
 
-  const handleExport = () => {
-    console.log('Exporting transactions...');
-    alert(`Exporting ${filteredTransactions.length} transactions`);
-  };
+ 
 
   const handleBulkAction = (action: string) => {
     if (selectedTransactions.length === 0) {
@@ -596,7 +593,7 @@ export default function SalesPage() {
             >
               <option value="">Actions</option>
               {actionOptions.map(option => {
-                const IconComponent = option.icon;
+                
                 return (
                   <option key={option.value} value={option.value}>
                     {option.label}
