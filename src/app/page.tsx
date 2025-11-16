@@ -80,7 +80,7 @@ export default function Home() {
             </div>
 
             {/* Right Column - Illustration Cards */}
-            <div className="relative h-96 lg:h-full flex items-center justify-center">
+            <div className="relative h-96 lg:h-full flex items-start pt-24 justify-center">
               <div className="relative w-full max-w-sm">
                 {/* Top Card - Invoice */}
                 <div className="absolute -top-8 -right-4 w-72 bg-white rounded-2xl border-2 border-gray-900 p-6 shadow-xl transform hover:scale-105 transition">
