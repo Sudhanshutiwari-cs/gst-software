@@ -18,6 +18,7 @@ interface ProductFormData {
   reorder_level: number;
   purchase_price: number;
   sales_price: number;
+
   discount_percent: number;
   tax_percent: number;
   tax_inclusive: boolean;
@@ -28,6 +29,7 @@ interface ProductFormData {
 interface Category {
   id: number;
   category_name: string;
+  name?: string; // Added to handle different possible response structures
 }
 
 interface ApiError {
@@ -788,33 +790,45 @@ export default function EditProductPage() {
 
                   {/* Category */}
                   <div>
-                    <label className={labelClass}>
-                      Category
-                    </label>
-                    <select
-                      name="category_id"
-                      value={formData.category_id}
-                      onChange={handleInputChange}
-                      className={selectClass}
-                      disabled={categoriesLoading}
-                    >
-                      <option value={0} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
-                        {categoriesLoading ? 'Loading categories...' : 'Select category'}
-                      </option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id} className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}>
-                          {category.category_name}
-                        </option>
-                      ))}
-                    </select>
-                    {categories.length === 0 && !categoriesLoading && (
-                      <p className={`text-sm mt-1 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        No categories available. Product will be uncategorized.
-                      </p>
-                    )}
-                  </div>
+  <label className={labelClass}>
+    Category
+  </label>
+
+  <select
+    name="category_id"
+    value={formData.category_id}
+    onChange={handleInputChange}
+    className={selectClass}
+    disabled={categoriesLoading}
+  >
+    <option
+      value={0}
+      className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}
+    >
+      {categoriesLoading ? 'Loading categories...' : 'Select category'}
+    </option>
+
+    {categories.map(category => (
+      <option
+        key={category.id}
+        value={category.id}
+        className={theme === 'dark' ? 'bg-gray-700' : 'bg-white'}
+      >
+        {category.name} {/* FIXED */}
+      </option>
+    ))}
+  </select>
+
+  {categories.length === 0 && !categoriesLoading && (
+    <p
+      className={`text-sm mt-1 ${
+        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+      }`}
+    >
+      No categories available. Product will be uncategorized.
+    </p>
+  )}
+</div>
 
                   {/* Barcode */}
                   <div>
