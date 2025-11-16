@@ -951,86 +951,113 @@ export default function ClientsPage() {
 
                       {/* Created Column with Sort and Filter */}
                       <th className="py-4 px-4 relative">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleSort('openedAt')}
-                            className="flex items-center gap-1 hover:underline focus:outline-none text-left"
-                          >
-                            Created
-                            <div className="flex flex-col">
-                              <ChevronUp 
-                                className={`w-3 h-3 -mb-1 ${sortConfig.key === 'openedAt' && sortConfig.direction === 'asc' 
-                                  ? 'text-indigo-500' 
-                                  : 'text-gray-400'}`} 
-                              />
-                              <ChevronDown 
-                                className={`w-3 h-3 -mt-1 ${sortConfig.key === 'openedAt' && sortConfig.direction === 'desc' 
-                                  ? 'text-indigo-500' 
-                                  : 'text-gray-400'}`} 
-                              />
-                            </div>
-                          </button>
-                          <button
-                            onClick={() => handleFilterClick('date')}
-                            className={`p-1 rounded transition-colors ${
-                              activeFilter === 'date' 
-                                ? 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900' 
-                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                            }`}
-                          >
-                            <Filter className="w-3 h-3" />
-                          </button>
-                        </div>
+  <div className="flex items-center gap-1">
+    <button
+      onClick={() => handleSort('openedAt')}
+      className="flex items-center gap-1 hover:underline focus:outline-none text-left"
+    >
+      Created
+      <div className="flex flex-col">
+        <ChevronUp
+          className={`w-3 h-3 -mb-1 ${
+            sortConfig.key === 'openedAt' && sortConfig.direction === 'asc'
+              ? 'text-indigo-500'
+              : 'text-gray-400'
+          }`}
+        />
+        <ChevronDown
+          className={`w-3 h-3 -mt-1 ${
+            sortConfig.key === 'openedAt' && sortConfig.direction === 'desc'
+              ? 'text-indigo-500'
+              : 'text-gray-400'
+          }`}
+        />
+      </div>
+    </button>
 
-                        {/* Date Filter Dropdown */}
-                        {activeFilter === 'date' && (
-                          <div className={`absolute top-full left-0 right-0 mt-1 p-4 rounded-lg border z-10 ${
-                            theme === 'dark' 
-                              ? 'bg-gray-800 border-gray-700' 
-                              : 'bg-white border-gray-200 shadow-lg'
-                          }`}>
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className={`text-sm font-medium ${
-                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  Date Range
-                                </span>
-                              </div>
-                              <div className="flex gap-2">
-                                <input
-                                  type="date"
-                                  value={dateRange[0]}
-                                  onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
-                                  className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                    theme === 'dark'
-                                      ? 'bg-gray-700 border-gray-600 text-white'
-                                      : 'bg-white border-gray-300 text-gray-900'
-                                  }`}
-                                />
-                                <input
-                                  type="date"
-                                  value={dateRange[1]}
-                                  onChange={(e) => setDateRange([dateRange[0], e.target.value])}
-                                  className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                    theme === 'dark'
-                                      ? 'bg-gray-700 border-gray-600 text-white'
-                                      : 'bg-white border-gray-300 text-gray-900'
-                                  }`}
-                                />
-                              </div>
-                              <div className="flex justify-between text-xs">
-                                <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                                  {dateMinMax[0]}
-                                </span>
-                                <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                                  {dateMinMax[1]}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </th>
+    {/* Filter Button */}
+    <button
+      onClick={() => handleFilterClick('date')}
+      className={`p-1 rounded transition-colors ${
+        activeFilter === 'date'
+          ? 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900'
+          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+      }`}
+    >
+      <Filter className="w-3 h-3" />
+    </button>
+  </div>
+
+  {/* Date Filter Dropdown */}
+  {activeFilter === 'date' && (
+    <div
+      className={`absolute top-full left-0 mt-1 p-4 rounded-lg border z-20 min-w-[240px] max-w-[260px]
+        whitespace-normal overflow-hidden
+        ${
+          theme === 'dark'
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-200 shadow-lg'
+        }`}
+    >
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <span
+            className={`text-sm font-medium ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+            }`}
+          >
+            Date Range
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <input
+            type="date"
+            value={dateRange[0]}
+            onChange={(e) =>
+              setDateRange([e.target.value, dateRange[1]])
+            }
+            className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              theme === 'dark'
+                ? 'bg-gray-700 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          />
+
+          <input
+            type="date"
+            value={dateRange[1]}
+            onChange={(e) =>
+              setDateRange([dateRange[0], e.target.value])
+            }
+            className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              theme === 'dark'
+                ? 'bg-gray-700 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          />
+        </div>
+
+        <div className="flex justify-between text-xs">
+          <span
+            className={
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }
+          >
+            {dateMinMax[0]}
+          </span>
+          <span
+            className={
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }
+          >
+            {dateMinMax[1]}
+          </span>
+        </div>
+      </div>
+    </div>
+  )}
+</th>
 
                       {/* City Column with Filter */}
                       <th className="py-4 px-4 relative">
