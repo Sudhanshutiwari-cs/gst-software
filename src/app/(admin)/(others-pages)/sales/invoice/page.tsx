@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -47,11 +47,9 @@ type TabType = 'all' | 'pending' | 'paid' | 'cancelled' | 'drafts';
 
 export default function SalesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
-
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
-  // Theme state
   const [theme, setTheme] = useState<Theme>('light');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const allTransactionCount = mockTransactions.length;
 
@@ -66,31 +64,26 @@ export default function SalesPage() {
 
   // Initialize theme and set up listeners
   useEffect(() => {
-    // Function to get initial theme
     const getInitialTheme = (): Theme => {
       if (typeof window !== 'undefined') {
         const savedTheme = localStorage.getItem('theme') as Theme;
         if (savedTheme) {
           return savedTheme;
         }
-        // Check system preference
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         return prefersDark ? 'dark' : 'light';
       }
       return 'light';
     };
 
-    // Function to apply theme to DOM
     const applyTheme = (newTheme: Theme) => {
       document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
 
-    // Set initial theme
     const initialTheme = getInitialTheme();
     setTheme(initialTheme);
     applyTheme(initialTheme);
 
-    // Listen for storage changes (theme changes in other tabs/windows)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme') {
         const newTheme = (e.newValue as Theme) || 'light';
@@ -99,7 +92,6 @@ export default function SalesPage() {
       }
     };
 
-    // Listen for custom theme change events
     const handleThemeChange = (e: CustomEvent) => {
       const newTheme = e.detail.theme as Theme;
       setTheme(newTheme);
@@ -109,7 +101,6 @@ export default function SalesPage() {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('themeChange', handleThemeChange as EventListener);
 
-    // Set up mutation observer to watch for theme class changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -131,7 +122,6 @@ export default function SalesPage() {
     };
   }, []);
 
-  // Effect to update theme when state changes
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
@@ -144,24 +134,33 @@ export default function SalesPage() {
       <header className={`border-b transition-colors duration-200 ${
         theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-border bg-card'
       }`}>
-        <div className="flex items-center justify-between px-6 py-4">
+        {/* Top Bar - Mobile & Desktop */}
+        <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">Sales</h1>
-            <Play className={`h-6 w-6 ${
+            <button 
+              className="lg:hidden p-2 rounded-lg transition-colors duration-200 hover:bg-opacity-20 hover:bg-gray-400"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-xl font-bold sm:text-2xl">Sales</h1>
+            <Play className={`h-5 w-5 sm:h-6 sm:w-6 ${
               theme === 'dark' ? 'fill-pink-400 text-pink-400' : 'fill-pink-500 text-pink-500'
             }`} />
           </div>
 
-          {/* Replaced ShadCN Buttons */}
-          <div className="flex items-center gap-3">
-            <button className={`flex items-center gap-2 px-4 py-2 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+          {/* Desktop Actions */}
+          <div className="hidden lg:flex items-center gap-2 xl:gap-3">
+            <button className={`flex items-center gap-2 px-3 py-2 xl:px-4 xl:py-2 rounded-lg transition-colors duration-200 min-h-[40px] ${
+              theme === 'dark' 
+                ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}>
-              <Settings className="h-5 w-5" />
-              <span>Document Settings</span>
+              <Settings className="h-4 w-4 xl:h-5 xl:w-5" />
+              <span className="text-sm xl:text-base">Document Settings</span>
             </button>
 
-            <button className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+            <button className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${
               theme === 'dark' 
                 ? 'bg-purple-600 hover:bg-purple-700 text-white' 
                 : 'bg-purple-600 hover:bg-purple-700 text-white'
@@ -169,7 +168,7 @@ export default function SalesPage() {
               POS Billing
             </button>
 
-            <button className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors duration-200 ${
+            <button className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium flex items-center gap-2 transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${
               theme === 'dark'
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -178,24 +177,76 @@ export default function SalesPage() {
               Create Invoice
             </button>
           </div>
+
+          {/* Tablet Actions */}
+          <div className="hidden md:flex lg:hidden items-center gap-2">
+            <button className={`p-2 rounded-lg transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}>
+              <Plus className="h-4 w-4" />
+            </button>
+            <button className={`p-2 rounded-lg transition-colors duration-200 ${
+              theme === 'dark' 
+                ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}>
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Mobile Actions */}
+          <div className="flex md:hidden items-center gap-2">
+            <button className={`p-2 rounded-lg transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}>
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className={`lg:hidden border-t px-4 py-2 transition-colors duration-200 ${
+            theme === 'dark' ? 'border-gray-700' : 'border-border'
+          }`}>
+            <div className="flex flex-col gap-2">
+              <button className={`flex items-center gap-2 px-3 py-3 rounded-lg transition-colors duration-200 text-sm ${
+                theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}>
+                <Settings className="h-4 w-4" />
+                Document Settings
+              </button>
+              <button className={`px-3 py-3 rounded-lg font-medium transition-colors duration-200 text-sm text-left ${
+                theme === 'dark' 
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}>
+                POS Billing
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div className={`border-t transition-colors duration-200 px-6 ${
+        <div className={`border-t transition-colors duration-200 px-4 sm:px-6 ${
           theme === 'dark' ? 'border-gray-700' : 'border-border'
         }`}>
-          <div className="flex gap-8">
+          <div className="flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {[
-              { id: 'all' as TabType, label: 'All Transactions', count: allTransactionCount },
-              { id: 'pending' as TabType, label: 'Pending', count: 0 },
-              { id: 'paid' as TabType, label: 'Paid', count: 0 },
-              { id: 'cancelled' as TabType, label: 'Cancelled', count: 0 },
-              { id: 'drafts' as TabType, label: 'Drafts', count: 0 },
+              { id: 'all' as TabType, label: 'All', count: allTransactionCount, mobileLabel: 'All' },
+              { id: 'pending' as TabType, label: 'Pending', count: 0, mobileLabel: 'Pending' },
+              { id: 'paid' as TabType, label: 'Paid', count: 0, mobileLabel: 'Paid' },
+              { id: 'cancelled' as TabType, label: 'Cancelled', count: 0, mobileLabel: 'Cancel' },
+              { id: 'drafts' as TabType, label: 'Drafts', count: 0, mobileLabel: 'Drafts' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`border-b-2 px-0 py-4 text-sm font-medium transition-colors duration-200 ${
+                className={`flex-shrink-0 border-b-2 px-2 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap min-h-[48px] flex items-center ${
                   activeTab === tab.id
                     ? theme === 'dark'
                       ? 'border-blue-400 text-blue-400'
@@ -205,9 +256,10 @@ export default function SalesPage() {
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {tab.label}
+                <span className="sm:hidden">{tab.mobileLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
                 {tab.id === 'all' && (
-                  <span className={`ml-2 ${
+                  <span className={`ml-2 text-xs ${
                     theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                   }`}>
                     {tab.count}
@@ -220,36 +272,43 @@ export default function SalesPage() {
       </header>
 
       {/* Main */}
-      <main className="p-6">
+      <main className="p-4 sm:p-6">
         {/* Search + Filters */}
-        <div className="mb-6 flex gap-4">
-          <input
-            placeholder="Search by transaction, customers, invoice #..."
-            className={`flex-1 border px-3 py-2 rounded-lg transition-colors duration-200 ${
-              theme === 'dark'
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
-                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-            }`}
-          />
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`} />
+            <input
+              placeholder="Search transactions, customers..."
+              className={`w-full border pl-10 pr-3 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
+                  : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+              }`}
+            />
+          </div>
 
-          <div className="flex gap-2">
-            <button className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] ${
               theme === 'dark'
                 ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-              This Year
-              <ChevronDown className="h-4 w-4" />
+              <span className="hidden sm:inline">This Year</span>
+              <span className="sm:hidden">Year</span>
+              <ChevronDown className="h-4 w-4 flex-shrink-0" />
             </button>
-            <button className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+            <button className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] ${
               theme === 'dark'
                 ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-              Actions
-              <ChevronDown className="h-4 w-4" />
+              <span className="hidden xs:inline">Actions</span>
+              <span className="xs:hidden">Actions</span>
+              <ChevronDown className="h-4 w-4 flex-shrink-0" />
             </button>
-            <button className={`rounded-lg border p-2 transition-colors duration-200 ${
+            <button className={`rounded-lg border p-3 transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${
               theme === 'dark'
                 ? 'border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
                 : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -259,20 +318,20 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* Card → Replaced with plain div */}
+        {/* Scrollable Table Container */}
         <div className={`rounded-lg border shadow-sm overflow-hidden transition-colors duration-200 ${
           theme === 'dark' 
             ? 'border-gray-700 bg-gray-800' 
             : 'border-gray-200 bg-white'
         }`}>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr className={`border-b transition-colors duration-200 ${
                   theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
                 }`}>
                   {['Amount', 'Status', 'Mode', 'Bill #', 'Customer', 'Date', 'Actions'].map((head) => (
-                    <th key={head} className={`px-6 py-3 text-left text-sm font-semibold transition-colors duration-200 ${
+                    <th key={head} className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
                       theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                     }`}>
                       <div className="flex items-center gap-2">
@@ -285,8 +344,6 @@ export default function SalesPage() {
                   ))}
                 </tr>
               </thead>
-
-              {/* Rows */}
               <tbody>
                 {filteredTransactions.map((t) => (
                   <tr key={t.id} className={`border-b transition-colors duration-200 ${
@@ -294,15 +351,14 @@ export default function SalesPage() {
                       ? 'border-gray-700 hover:bg-gray-700' 
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}>
-                    <td className={`px-6 py-4 text-sm font-semibold transition-colors duration-200 ${
+                    <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
                       theme === 'dark' ? 'text-white' : 'text-gray-900'
                     }`}>
                       ₹{t.amount.toFixed(2)}
                     </td>
-
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 ${
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium transition-colors duration-200 ${
                           theme === 'dark'
                             ? 'bg-yellow-900 text-yellow-200'
                             : 'bg-yellow-100 text-yellow-800'
@@ -312,27 +368,24 @@ export default function SalesPage() {
                         <span className="text-red-500">⚠</span>
                       </div>
                       {t.daysSincePending && (
-                        <p className={`text-xs transition-colors duration-200 ${
+                        <p className={`text-xs transition-colors duration-200 mt-1 ${
                           theme === 'dark' ? 'text-red-400' : 'text-red-500'
                         }`}>
                           since {t.daysSincePending} day
                         </p>
                       )}
                     </td>
-
-                    <td className={`px-6 py-4 text-sm transition-colors duration-200 ${
+                    <td className={`px-4 py-3 text-sm transition-colors duration-200 whitespace-nowrap ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       -
                     </td>
-                    
-                    <td className={`px-6 py-4 text-sm font-medium transition-colors duration-200 ${
+                    <td className={`px-4 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
                       theme === 'dark' ? 'text-white' : 'text-gray-900'
                     }`}>
                       {t.billNumber}
                     </td>
-
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <p className={`font-medium transition-colors duration-200 ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}>
@@ -344,8 +397,7 @@ export default function SalesPage() {
                         {t.phone}
                       </p>
                     </td>
-
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <p className={`font-medium transition-colors duration-200 ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}>
@@ -357,36 +409,32 @@ export default function SalesPage() {
                         {t.time}
                       </p>
                     </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className={`rounded p-1 transition-colors duration-200 ${
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <button className={`rounded p-2 transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${
                           theme === 'dark'
                             ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
                             : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                         }`}>
                           <span className="text-xs font-medium">₹</span>
                         </button>
-
-                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 ${
+                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
                           theme === 'dark'
                             ? 'text-gray-400 hover:text-white'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}>
                           <Eye className="h-4 w-4" />
-                          View
+                          <span className="hidden lg:inline ml-1">View</span>
                         </button>
-
-                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 ${
+                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
                           theme === 'dark'
                             ? 'text-gray-400 hover:text-white'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}>
                           <Send className="h-4 w-4" />
-                          Send
+                          <span className="hidden lg:inline ml-1">Send</span>
                         </button>
-
-                        <button className={`p-1 transition-colors duration-200 ${
+                        <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] min-w-[32px] flex items-center justify-center ${
                           theme === 'dark'
                             ? 'text-gray-400 hover:text-white'
                             : 'text-gray-600 hover:text-gray-900'
@@ -403,11 +451,11 @@ export default function SalesPage() {
         </div>
 
         {/* Summary + Pagination */}
-        <div className={`mt-6 flex items-center justify-between rounded-lg px-6 py-4 transition-colors duration-200 ${
+        <div className={`mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg px-4 py-4 sm:px-6 transition-colors duration-200 ${
           theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
         }`}>
-          <div className="flex gap-8">
-            <div>
+          <div className="flex gap-4 sm:gap-6 lg:gap-8 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="text-center sm:text-left">
               <p className={`text-sm transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -419,7 +467,7 @@ export default function SalesPage() {
                 ₹{total.toFixed(2)}
               </p>
             </div>
-            <div>
+            <div className="text-center sm:text-left">
               <p className={`text-sm transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -431,7 +479,7 @@ export default function SalesPage() {
                 ₹{paid.toFixed(2)}
               </p>
             </div>
-            <div>
+            <div className="text-center sm:text-left">
               <p className={`text-sm transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -445,32 +493,34 @@ export default function SalesPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className={`p-1 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-            }`}>
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-1">
+              <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${
+                theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}>
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-            <button className={`h-8 w-8 rounded font-semibold transition-colors duration-200 ${
-              theme === 'dark'
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}>
-              1
-            </button>
+              <button className={`h-8 w-8 rounded font-semibold transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${
+                theme === 'dark'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}>
+                1
+              </button>
 
-            <button className={`p-1 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-            }`}>
-              <ChevronRight className="h-5 w-5" />
-            </button>
+              <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${
+                theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
 
             <div className="flex items-center gap-2">
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className={`rounded border px-2 py-1 text-sm transition-colors duration-200 cursor-pointer ${
+                className={`rounded border px-3 py-2 text-sm transition-colors duration-200 cursor-pointer min-h-[36px] ${
                   theme === 'dark'
                     ? 'bg-gray-700 border-gray-600 text-white'
                     : 'bg-white border-gray-200 text-gray-900'
@@ -480,7 +530,7 @@ export default function SalesPage() {
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <span className={`text-sm transition-colors duration-200 ${
+              <span className={`text-sm transition-colors duration-200 hidden sm:inline ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 / page
