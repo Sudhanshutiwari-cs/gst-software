@@ -5,7 +5,6 @@ import axios, { AxiosError } from 'axios';
 import { useRouter, useParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 
-
 interface ProductFormData {
   sku: string;
   product_name: string;
@@ -569,11 +568,28 @@ export default function EditProductPage() {
     ? "border-b border-gray-700 pb-8"
     : "border-b border-gray-200 pb-8";
 
-  const buttonSecondaryClass = theme === 'dark'
-    ? "px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
-    : "px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium border border-gray-300";
+  // Fixed Button Styling Classes (consistent with previous version)
+  const buttonBaseClass = "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow";
 
- 
+  const buttonPrimaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600`
+    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600`;
+
+  const buttonSecondaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
+    : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
+
+  const buttonSuccessClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`
+    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`;
+
+  const buttonInfoClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`
+    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`;
+
+  const buttonDangerClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`
+    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`;
 
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
@@ -599,10 +615,6 @@ export default function EditProductPage() {
     ? "text-sm text-gray-400"
     : "text-sm text-gray-500";
 
-  const cancelButtonClass = theme === 'dark'
-    ? "px-8 py-4 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-all font-semibold text-lg min-w-32"
-    : "px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all font-semibold text-lg min-w-32";
-
   if (!tokenValid) {
     return (
       <div className={containerClass}>
@@ -621,7 +633,7 @@ export default function EditProductPage() {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all font-medium"
+                className={buttonPrimaryClass}
               >
                 Go to Login
               </button>
@@ -670,15 +682,13 @@ export default function EditProductPage() {
               <h2 className={titleClass}>Edit Product</h2>
               <p className={subtitleClass}>Update product information</p>
             </div>
-            <div className="flex items-center space-x-3">
-              
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
               >
-                ← Back to Products
+                Back
               </button>
-              
             </div>
           </div>
 
@@ -745,7 +755,7 @@ export default function EditProductPage() {
                     <label className={labelClass}>
                       SKU *
                     </label>
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         name="sku"
@@ -758,7 +768,7 @@ export default function EditProductPage() {
                       <button
                         type="button"
                         onClick={generateSKU}
-                        className={buttonSecondaryClass}
+                        className={`${buttonSecondaryClass} whitespace-nowrap`}
                       >
                         Generate
                       </button>
@@ -1098,7 +1108,7 @@ export default function EditProductPage() {
                     <button
                       type="button"
                       onClick={calculateSalesPrice}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors font-medium"
+                      className={buttonInfoClass}
                     >
                       Calculate Sales Price
                     </button>
@@ -1179,22 +1189,22 @@ export default function EditProductPage() {
               </div>
 
               {/* Submit Button */}
-              <div className="flex justify-center pt-4 space-x-4">
+              <div className="flex justify-end pt-4 gap-4">
                 <button
                   type="button"
                   onClick={() => window.history.back()}
-                  className={cancelButtonClass}
+                  className={buttonSecondaryClass}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !tokenValid}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg min-w-48"
+                  className={`${buttonPrimaryClass} min-w-[120px]`}
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>

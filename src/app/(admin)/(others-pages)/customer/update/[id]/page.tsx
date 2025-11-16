@@ -44,7 +44,7 @@ interface Customer {
 
 interface CustomerResponse {
   success: boolean;
-  data: Customer;
+  data: Customer[] | Customer; // Can be array or single object
   message?: string;
 }
 
@@ -152,7 +152,7 @@ export default function EditCustomerPage() {
     }
   }, [theme, isClient]);
 
-  // Fetch customer data
+  // Fetch customer data - FIXED ENDPOINT
   useEffect(() => {
     if (!isClient || !customerId) return;
 
@@ -176,11 +176,11 @@ export default function EditCustomerPage() {
           token = storedAuth;
         }
 
-        console.log("🔄 Fetching customer data for ID:", customerId);
+        console.log("🔄 Fetching customers list to find customer with ID:", customerId);
 
-        // Fetch customer details
+        // FIX: Use the correct GET endpoint that returns all customers
         const response = await axios.get<CustomerResponse>(
-          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/customers/${customerId}`,
+          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/customers`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -189,26 +189,44 @@ export default function EditCustomerPage() {
           }
         );
 
-        console.log("✅ Customer API Response:", response.data);
+        console.log("✅ Customers API Response:", response.data);
 
         if (response.data.success && response.data.data) {
-          const customerData = response.data.data;
-          setCustomer(customerData);
-          
-          // Set form data with customer data
-          setFormData({
-            name: customerData.name || "",
-            mobile: customerData.mobile || "",
-            email: customerData.email || "",
-            gstin: customerData.gstin || "",
-            address: customerData.address || "",
-            city: customerData.city || "",
-            pincode: customerData.pincode || "",
-          });
+          let customerData: Customer | null = null;
 
-          console.log("🎯 Form data set with customer data");
+          // Handle both array and single object responses
+          if (Array.isArray(response.data.data)) {
+            // Find the specific customer from the list
+            customerData = response.data.data.find(
+              (customer: Customer) => customer.id.toString() === customerId
+            ) || null;
+          } else {
+            // If it's a single object, check if it matches the ID
+            customerData = (response.data.data as Customer).id.toString() === customerId 
+              ? (response.data.data as Customer) 
+              : null;
+          }
+
+          if (customerData) {
+            setCustomer(customerData);
+            
+            // Set form data with customer data
+            setFormData({
+              name: customerData.name || "",
+              mobile: customerData.mobile || "",
+              email: customerData.email || "",
+              gstin: customerData.gstin || "",
+              address: customerData.address || "",
+              city: customerData.city || "",
+              pincode: customerData.pincode || "",
+            });
+
+            console.log("🎯 Form data set with customer data:", customerData);
+          } else {
+            throw new Error("Customer not found in the list");
+          }
         } else {
-          throw new Error(response.data.message || "Failed to load customer data");
+          throw new Error(response.data.message || "Failed to load customers data");
         }
 
       } catch (err: unknown) {
@@ -252,6 +270,21 @@ export default function EditCustomerPage() {
       return;
     }
 
+    // Mobile number validation
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(formData.mobile.replace(/\D/g, ''))) {
+      setError("Please enter a valid 10-digit mobile number");
+      setUpdating(false);
+      return;
+    }
+
+    // Email validation (optional field)
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      setError("Please enter a valid email address");
+      setUpdating(false);
+      return;
+    }
+
     try {
       if (!isClient || !customerId) return;
 
@@ -273,7 +306,7 @@ export default function EditCustomerPage() {
       console.log("📤 Updating customer data:", formData);
       console.log("🆔 Customer ID:", customerId);
 
-      // Use PUT API for updating customer
+      // Use PUT API for updating customer - CORRECT ENDPOINT
       const response = await axios.put(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/update-customer/${customerId}`,
         formData,
@@ -406,7 +439,7 @@ export default function EditCustomerPage() {
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                 }`}
               >
-                ← Back to Customers
+              Back
               </button>
             </div>
           </div>
@@ -477,7 +510,7 @@ export default function EditCustomerPage() {
                       Mobile Number <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="text"
+                      type="tel"
                       name="mobile"
                       value={formData.mobile}
                       onChange={handleChange}
@@ -487,9 +520,10 @@ export default function EditCustomerPage() {
                           ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
-                      placeholder="Mobile number"
+                      placeholder="10-digit mobile number"
                       maxLength={10}
                       minLength={10}
+                      pattern="[0-9]{10}"
                     />
                   </div>
 
@@ -584,9 +618,10 @@ export default function EditCustomerPage() {
                           ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
-                      placeholder="Pincode"
+                      placeholder="6-digit pincode"
                       maxLength={6}
                       minLength={6}
+                      pattern="[0-9]{6}"
                     />
                   </div>
                 </div>
