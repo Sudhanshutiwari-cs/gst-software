@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, AlertCircle,  X } from 'lucide-react'
 
 // Mock data types
 interface Customer {
