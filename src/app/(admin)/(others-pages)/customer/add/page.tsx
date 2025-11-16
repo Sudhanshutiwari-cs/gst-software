@@ -125,6 +125,29 @@ export default function AddCustomerPage() {
     }
   }, [theme, isClient]);
 
+  // Button styling classes
+  const buttonBaseClass = "px-4 py-1 h-8 rounded-md transition-all duration-200 text-[14px] font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden";
+
+  const buttonPrimaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`
+    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`;
+
+  const buttonSecondaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
+    : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
+
+  const buttonSuccessClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`
+    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`;
+
+  const buttonInfoClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`
+    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`;
+
+  const buttonDangerClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`
+    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -262,21 +285,13 @@ export default function AddCustomerPage() {
             <div className="flex gap-2">
               <button
                 onClick={handleRetry}
-                className={`px-4 py-2 rounded-md text-sm transition-colors duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
+                className={buttonInfoClass}
               >
                 Retry
               </button>
               <button
                 onClick={() => window.history.back()}
-                className={`px-4 py-2 rounded-md text-sm transition-colors duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                }`}
+                className={buttonSecondaryClass}
               >
                 ← Back
               </button>
@@ -454,34 +469,26 @@ export default function AddCustomerPage() {
                 </div>
               </div>
 
-              <div className={`flex justify-end pt-4 border-t ${
+              <div className={`flex justify-end pt-4 border-t gap-2 ${
                 theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
               }`}>
                 <button
                   type="button"
                   onClick={() => window.history.back()}
-                  className={`px-6 py-2 rounded-md transition-all mr-4 ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                  }`}
+                  className={buttonSecondaryClass}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`px-6 py-2 rounded-md transition-all disabled:opacity-50 flex items-center ${
-                    theme === 'dark'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  }`}
+                  className={buttonPrimaryClass}
                 >
                   {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Creating...
-                    </>
+                    </span>
                   ) : (
                     "Create Customer"
                   )}

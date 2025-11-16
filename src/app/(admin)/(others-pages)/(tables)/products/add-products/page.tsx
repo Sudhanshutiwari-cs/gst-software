@@ -576,9 +576,27 @@ export default function AddProductsPage() {
     ? "border-b border-gray-700 pb-8"
     : "border-b border-gray-200 pb-8";
 
+  const buttonBaseClass = "px-4 py-1 h-8 rounded-md transition-all duration-200 text-[14px] font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden";
+
+  const buttonPrimaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`
+    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`;
+
   const buttonSecondaryClass = theme === 'dark'
-    ? "px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors font-medium border border-gray-600"
-    : "px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors font-medium border border-gray-300";
+    ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
+    : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
+
+  const buttonSuccessClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`
+    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`;
+
+  const buttonInfoClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`
+    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`;
+
+  const buttonDangerClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`
+    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`;
 
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
@@ -635,7 +653,7 @@ export default function AddProductsPage() {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all font-medium"
+                className={buttonPrimaryClass}
               >
                 Go to Login
               </button>
@@ -656,7 +674,7 @@ export default function AddProductsPage() {
               <h2 className={titleClass}>Add New Product</h2>
               <p className={subtitleClass}>Add a new product to your inventory</p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
@@ -734,11 +752,7 @@ export default function AddProductsPage() {
                             <button
                               type="button"
                               onClick={removeImage}
-                              className={`absolute top-2 right-2 p-1 rounded-full ${
-                                theme === 'dark' 
-                                  ? 'bg-red-600 hover:bg-red-700 text-white' 
-                                  : 'bg-red-500 hover:bg-red-600 text-white'
-                              }`}
+                              className={`absolute top-2 right-2 p-1 rounded-full ${buttonDangerClass}`}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -816,7 +830,7 @@ export default function AddProductsPage() {
                     <label className={labelClass}>
                       SKU *
                     </label>
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         name="sku"
@@ -856,7 +870,7 @@ export default function AddProductsPage() {
                     <label className={labelClass}>
                       Category
                     </label>
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <select
                         name="category_id"
                         value={formData.category_id}
@@ -876,7 +890,7 @@ export default function AddProductsPage() {
                       <button
                         type="button"
                         onClick={handleAddCategoryClick}
-                        className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors font-medium whitespace-nowrap"
+                        className={buttonSuccessClass}
                       >
                         + Add
                       </button>
@@ -1178,7 +1192,7 @@ export default function AddProductsPage() {
                     <button
                       type="button"
                       onClick={calculateSalesPrice}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors font-medium"
+                      className={buttonInfoClass}
                     >
                       Calculate Sales Price
                     </button>
@@ -1263,11 +1277,11 @@ export default function AddProductsPage() {
                 <button
                   type="submit"
                   disabled={loading || !tokenValid}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50"
+                  className={buttonPrimaryClass}
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -1328,7 +1342,7 @@ export default function AddProductsPage() {
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end gap-2 pt-4">
                 <button
                   type="button"
                   onClick={closeAddCategoryModal}
@@ -1340,11 +1354,11 @@ export default function AddProductsPage() {
                 <button
                   type="submit"
                   disabled={addingCategory}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition-all disabled:opacity-50 font-medium"
+                  className={buttonSuccessClass}
                 >
                   {addingCategory ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>

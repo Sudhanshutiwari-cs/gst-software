@@ -8,6 +8,7 @@ import {
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
+  PageIcon,
   TableIcon,
 } from "../icons/index";
 import { User2Icon } from "lucide-react";
@@ -49,6 +50,14 @@ const navItems: NavItem[] = [
     icon: <User2Icon />,
     subItems: [
       { name: "All Customers", path: "/customer/view", pro: false },
+      { name: "Add Customer", path: "/customer/add", pro: false }
+    ],
+  },
+   {
+    name: "Sales",
+    icon: <PageIcon />,
+    subItems: [
+      { name: "Invoices", path: "/sales/invoice", pro: false },
       { name: "Add Customer", path: "/customer/add", pro: false }
     ],
   },

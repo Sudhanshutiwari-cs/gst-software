@@ -3,17 +3,14 @@ import { useState, useEffect } from 'react';
 import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-
 interface VendorCustomer {
   id: number;
   vendor_id: string;
   customer_id: string | null;
   name: string;
-
   mobile: string;
   email: string;
   gstin: string;
-
   address: string;
   city: string;
   pincode: string;
@@ -35,7 +32,6 @@ interface Client {
   id: number;
   gstin: string;
   name: string;
-
   phone: string;
   customer_id: string | null;
   caseRef: string;
@@ -451,6 +447,33 @@ export default function ClientsPage() {
     { label: "Active", value: clients.length.toString() }
   ];
 
+  // Button styling classes
+  const buttonBaseClass = "px-4 py-1 h-8 rounded-md transition-all duration-200 text-[14px] font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden";
+
+  const buttonPrimaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`
+    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`;
+
+  const buttonSecondaryClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
+    : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
+
+  const buttonSuccessClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`
+    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`;
+
+  const buttonInfoClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`
+    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`;
+
+  const buttonDangerClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`
+    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`;
+
+  const buttonOutlineClass = theme === 'dark'
+    ? `${buttonBaseClass} bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white`
+    : `${buttonBaseClass} bg-transparent border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-700`;
+
   if (loading) {
     return (
       <div className={`min-h-screen p-8 flex items-center justify-center transition-colors duration-200 ${
@@ -482,44 +505,28 @@ export default function ClientsPage() {
               View and manage all your Customer information in one place.
             </p>
           </div>
-          <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
+          <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
             {/* Export All Button */}
             <button
               onClick={handleExportToExcel}
               disabled={exportLoading || clients.length === 0}
-              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden ${
-                theme === 'dark'
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-              }`}
+              className={buttonSuccessClass}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                theme === 'dark' ? 'bg-white' : 'bg-white'
-              }`}></div>
               {exportLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
               Export All
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
             </button>
 
             {/* Add New Client Button */}
             <button
               onClick={handleAddNew}
-              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden ${
-                theme === 'dark'
-                  ? 'bg-blue-500 hover:bg-blue-60 text-white'
-                  : 'bg-blue-500 hover:bg-blue-60 text-white'
-              }`}
+              className={buttonPrimaryClass}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                theme === 'dark' ? 'bg-white' : 'bg-white'
-              }`}></div>
               <Plus className="w-4 h-4" />
               Add New Customer
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
             </button>
           </div>
         </div>
@@ -569,7 +576,7 @@ export default function ClientsPage() {
             }`}>
               Customer
             </h2>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               {/* Search Bar */}
               <div className="relative flex-1 md:w-80">
                 <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
@@ -591,11 +598,7 @@ export default function ClientsPage() {
               {/* Action Buttons Group */}
               <div className="flex gap-2">
                 {/* Filter Button */}
-                <button className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
-                  theme === 'dark'
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
-                }`}>
+                <button className={buttonOutlineClass}>
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
@@ -603,11 +606,7 @@ export default function ClientsPage() {
                 {/* Refresh Button */}
                 <button
                   onClick={fetchVendorCustomers}
-                  className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
-                    theme === 'dark'
-                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
-                  }`}
+                  className={buttonOutlineClass}
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh
@@ -632,15 +631,8 @@ export default function ClientsPage() {
                   <button
                     onClick={handleExportSelectedToExcel}
                     disabled={exportLoading}
-                    className={`group relative px-5 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden ${
-                      theme === 'dark'
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                    }`}
+                    className={buttonSuccessClass}
                   >
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                      theme === 'dark' ? 'bg-white' : 'bg-white'
-                    }`}></div>
                     {exportLoading ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
                     ) : (
@@ -652,15 +644,8 @@ export default function ClientsPage() {
                   {/* Delete Selected Button */}
                   <button
                     onClick={handleBulkDelete}
-                    className={`group relative px-5 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg overflow-hidden ${
-                      theme === 'dark'
-                        ? 'bg-red-600 hover:bg-red-700 text-white'
-                        : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
-                    }`}
+                    className={buttonDangerClass}
                   >
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                      theme === 'dark' ? 'bg-white' : 'bg-white'
-                    }`}></div>
                     <Trash2 className="w-4 h-4" />
                     Delete Selected
                   </button>
@@ -792,31 +777,28 @@ export default function ClientsPage() {
                             {/* Edit Button */}
                             <button
                               onClick={() => handleEdit(client)}
-                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
+                              className={`${buttonBaseClass} ${
                                 theme === 'dark'
-                                  ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
-                                  : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                               }`}
                               title="Edit client"
                             >
                               <Edit className="w-4 h-4" />
-                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
-                                theme === 'dark' ? 'bg-white' : 'bg-white'
-                              }`}></div>
                             </button>
 
                             {/* Delete Button */}
                             <button
                               onClick={() => handleDelete(client)}
                               disabled={deleteLoading === client.id}
-                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
+                              className={`${buttonBaseClass} ${
                                 deleteLoading === client.id 
                                   ? theme === 'dark'
-                                    ? 'text-gray-500 border-gray-600 cursor-not-allowed'
-                                    : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   : theme === 'dark'
-                                    ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
-                                    : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
+                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                    : 'bg-red-600 hover:bg-red-700 text-white'
                               }`}
                               title="Delete client"
                             >
@@ -825,9 +807,6 @@ export default function ClientsPage() {
                               ) : (
                                 <Trash2 className="w-4 h-4" />
                               )}
-                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
-                                theme === 'dark' ? 'bg-white' : 'bg-white'
-                              }`}></div>
                             </button>
                           </div>
                         </td>
