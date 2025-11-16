@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter, ChevronDown, X } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 
 // Define types
@@ -19,7 +19,6 @@ interface VendorProduct {
   sales_price: number;
   is_active: boolean;
   quantity: number;
-  unit_price: number;
   status: 'active' | 'inactive' | 'out_of_stock';
   image_url?: string;
   created_at: string;
@@ -44,17 +43,6 @@ interface ToggleStatusResponse {
   data?: {
     is_active: boolean;
   };
-}
-
-// Filter types
-interface ColumnFilters {
-  product: string;
-  sku: string;
-  price: string;
-  quantity: string;
-
-  category: string;
-  status: string;
 }
 
 // Theme types
@@ -136,16 +124,6 @@ export default function VendorProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [columnFilters, setColumnFilters] = useState<ColumnFilters>({
-    product: '',
-    sku: '',
-    price: '',
-    quantity: '',
-    category: '',
-    status: ''
-  });
-  const [activeFilter, setActiveFilter] = useState<keyof ColumnFilters | null>(null);
   const router = useRouter();
 
   // Theme state
@@ -227,28 +205,28 @@ export default function VendorProductsPage() {
     fetchVendorProducts();
   }, []);
 
-  // Apply filters whenever products, search term, or column filters change
   useEffect(() => {
-    applyFilters();
-  }, [products, searchTerm, columnFilters]);
+    setFilteredProducts(products);
+  }, [products]);
 
   const fetchVendorProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const token = localStorage.getItem('authToken') || 
-                    sessionStorage.getItem('authToken') || 
-                    '';
-      
+
+      const token = localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        '';
+
       if (!token) {
         throw new Error('No JWT token found. Please log in again.');
       }
 
       const response = await getVendorProducts(token);
-      
+
       if (response.success) {
         setProducts(response.data);
+        setFilteredProducts(response.data);
       } else {
         throw new Error(response.message || 'Failed to fetch products');
       }
@@ -260,110 +238,14 @@ export default function VendorProductsPage() {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...products];
-
-    // Apply global search
-    if (searchTerm.trim()) {
-      const searchTermLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(product => 
-        product.product_name?.toLowerCase().includes(searchTermLower) ||
-        product.sku?.toLowerCase().includes(searchTermLower) ||
-        product.category?.toLowerCase().includes(searchTermLower) ||
-        product.name?.toLowerCase().includes(searchTermLower)
-      );
-    }
-
-    // Apply column filters
-    Object.entries(columnFilters).forEach(([column, filterValue]) => {
-      if (filterValue.trim()) {
-        const filterValueLower = filterValue.toLowerCase().trim();
-        filtered = filtered.filter(product => {
-          switch (column) {
-            case 'product':
-              return product.product_name?.toLowerCase().includes(filterValueLower);
-            case 'sku':
-              return product.sku?.toLowerCase().includes(filterValueLower);
-            case 'price':
-              return product.sales_price.toString().includes(filterValue);
-            case 'quantity':
-              return product.qty.toString().includes(filterValue);
-            case 'category':
-              return product.category?.toLowerCase().includes(filterValueLower);
-            case 'status':
-              const statusText = product.is_active ? 'active' : 'inactive';
-              return statusText.includes(filterValueLower);
-            default:
-              return true;
-          }
-        });
-      }
-    });
-
-    setFilteredProducts(filtered);
-  };
-
-  const handleColumnFilterChange = (column: keyof ColumnFilters, value: string) => {
-    setColumnFilters(prev => ({
-      ...prev,
-      [column]: value
-    }));
-  };
-
-  const clearColumnFilter = (column: keyof ColumnFilters) => {
-    setColumnFilters(prev => ({
-      ...prev,
-      [column]: ''
-    }));
-  };
-
-  const clearAllFilters = () => {
-    setColumnFilters({
-      product: '',
-      sku: '',
-      price: '',
-      quantity: '',
-      category: '',
-      status: ''
-    });
-    setSearchTerm('');
-  };
-
-  const hasActiveFilters = () => {
-    return Object.values(columnFilters).some(filter => filter.trim() !== '') || searchTerm.trim() !== '';
-  };
-
-  // Get unique categories for filter dropdown
-  const getUniqueCategories = () => {
-    const categories = products.map(product => product.category || product.category_name).filter(Boolean);
-    return Array.from(new Set(categories));
-  };
-
-  // Get unique status options
-  const getStatusOptions = () => {
-    return [
-      { value: 'active', label: 'Active' },
-      { value: 'inactive', label: 'Inactive' }
-    ];
-  };
-
-  // Get quantity range options
-  const getQuantityOptions = () => {
-    return [
-      { value: '0', label: 'Out of Stock' },
-      { value: '1-10', label: 'Low Stock (1-10)' },
-      { value: '10+', label: 'In Stock (10+)' }
-    ];
-  };
-
   const handleExportToExcel = async () => {
     try {
       setExportLoading(true);
-      
-      const token = localStorage.getItem('authToken') || 
-                    sessionStorage.getItem('authToken') || 
-                    '';
-      
+
+      const token = localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        '';
+
       if (!token) {
         throw new Error('No JWT token found. Please log in again.');
       }
@@ -383,7 +265,7 @@ export default function VendorProductsPage() {
       const headers = Object.keys(exportData[0] || {});
       const csvContent = [
         headers.join(','),
-        ...exportData.map(row => 
+        ...exportData.map(row =>
           headers.map(header => {
             const value = row[header as keyof typeof row];
             return `"${String(value).replace(/"/g, '""')}"`;
@@ -394,15 +276,15 @@ export default function VendorProductsPage() {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `products_export_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success('Products exported successfully!');
     } catch (err) {
       console.error('Error exporting products:', err);
@@ -416,17 +298,17 @@ export default function VendorProductsPage() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv,.xlsx,.xls';
-    
+
     fileInput.onchange = async (e) => {
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0];
-      
+
       if (!file) return;
 
       try {
         setImportLoading(true);
         toast.success(`File "${file.name}" selected for import. Import functionality would be implemented here.`);
-        
+
       } catch (err) {
         console.error('Error importing products:', err);
         toast.error(`Error importing products: ${err instanceof Error ? err.message : 'Please try again.'}`);
@@ -435,13 +317,27 @@ export default function VendorProductsPage() {
         target.value = '';
       }
     };
-    
+
     fileInput.click();
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    applyFilters();
+    if (!searchTerm.trim()) {
+      setFilteredProducts(products);
+      return;
+    }
+
+    const searchTermLower = searchTerm.toLowerCase().trim();
+
+    const filtered = products.filter(product =>
+      product.product_name?.toLowerCase().includes(searchTermLower) ||
+      product.sku?.toLowerCase().includes(searchTermLower) ||
+      product.category?.toLowerCase().includes(searchTermLower) ||
+      product.name?.toLowerCase().includes(searchTermLower)
+    );
+
+    setFilteredProducts(filtered);
   };
 
   const handleAddProduct = () => {
@@ -463,17 +359,17 @@ export default function VendorProductsPage() {
 
     try {
       setDeleteLoading(productId);
-      
-      const token = localStorage.getItem('authToken') || 
-                    sessionStorage.getItem('authToken') || 
-                    '';
-      
+
+      const token = localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        '';
+
       if (!token) {
         throw new Error('No JWT token found. Please log in again.');
       }
 
       const response = await deleteVendorProduct(token, productId);
-      
+
       if (response.success) {
         setProducts(products.filter(product => product.id !== productId));
         toast.success('Product deleted successfully!');
@@ -491,20 +387,20 @@ export default function VendorProductsPage() {
   const handleToggleStatus = async (productId: number) => {
     try {
       setToggleLoading(productId);
-      
-      const token = localStorage.getItem('authToken') || 
-                    sessionStorage.getItem('authToken') || 
-                    '';
-      
+
+      const token = localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        '';
+
       if (!token) {
         throw new Error('No JWT token found. Please log in again.');
       }
 
       const response = await toggleProductStatus(token, productId);
-      
+
       if (response.success) {
-        setProducts(products.map(product => 
-          product.id === productId 
+        setProducts(products.map(product =>
+          product.id === productId
             ? { ...product, is_active: !product.is_active }
             : product
         ));
@@ -522,15 +418,13 @@ export default function VendorProductsPage() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
-      }`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+        }`}>
         Active
       </span>
     ) : (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-800'
-      }`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-800'
+        }`}>
         Inactive
       </span>
     );
@@ -552,136 +446,10 @@ export default function VendorProductsPage() {
     { label: "Low Stock", value: products.filter(p => p.qty > 0 && p.qty < 10).length.toString() }
   ];
 
-  // Column Filter Dropdown Component
-  const ColumnFilterDropdown = ({ 
-    column, 
-    label 
-  }: { 
-    column: keyof ColumnFilters; 
-    label: string;
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const getFilterOptions = () => {
-      switch (column) {
-        case 'status':
-          return getStatusOptions();
-        case 'quantity':
-          return getQuantityOptions();
-        case 'category':
-          return getUniqueCategories().map(cat => ({ value: cat, label: cat }));
-        default:
-          return [];
-      }
-    };
-
-    const options = getFilterOptions();
-
-    return (
-      <div className="relative">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
-            columnFilters[column] 
-              ? theme === 'dark' 
-                ? 'bg-blue-900 text-blue-200' 
-                : 'bg-blue-100 text-blue-700'
-              : theme === 'dark'
-                ? 'text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          {label}
-          <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isOpen && (
-          <>
-            <div 
-              className="fixed inset-0 z-10" 
-              onClick={() => setIsOpen(false)}
-            />
-            <div className={`absolute top-full left-0 mt-1 z-20 min-w-[140px] rounded-lg border shadow-lg ${
-              theme === 'dark' 
-                ? 'bg-gray-800 border-gray-700' 
-                : 'bg-white border-gray-200'
-            }`}>
-              <div className="p-2 space-y-1">
-                {/* Clear filter option */}
-                <button
-                  onClick={() => {
-                    clearColumnFilter(column);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-2 py-1 rounded text-xs ${
-                    theme === 'dark'
-                      ? 'hover:bg-gray-700 text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  Clear Filter
-                </button>
-                
-                {/* Custom input for text-based filters */}
-                {['product', 'sku', 'price'].includes(column) && (
-                  <div className="px-2 py-1">
-                    <input
-                      type="text"
-                      placeholder={`Filter ${label}...`}
-                      value={columnFilters[column]}
-                      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-                      className={`w-full px-2 py-1 text-xs border rounded ${
-                        theme === 'dark'
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                )}
-
-                {/* Dropdown options for specific columns */}
-                {options.length > 0 && options.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      if (!option.value) return;
-  handleColumnFilterChange(column, option.value);
-  setIsOpen(false)
-                    }}
-                    className={`w-full text-left px-2 py-1 rounded text-xs ${
-                      columnFilters[column] === option.value
-                        ? theme === 'dark'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-blue-100 text-blue-700'
-                        : theme === 'dark'
-                          ? 'hover:bg-gray-700 text-gray-300'
-                          : 'hover:bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Filter indicator dot */}
-        {columnFilters[column] && (
-          <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-            theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'
-          }`} />
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
-      <div className={`min-h-screen p-8 flex items-center justify-center transition-colors duration-200 ${
-        theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
-      }`}>
+      <div className={`min-h-screen p-8 flex items-center justify-center transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
+        }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Loading products...</p>
@@ -691,29 +459,27 @@ export default function VendorProductsPage() {
   }
 
   return (
-    <div className={`min-h-screen p-8 transition-colors duration-200 ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
-    }`}>
+    <div className={`min-h-screen p-8 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
+      }`}>
       <div className="max-w-7xl mx-auto space-y-8">
-        <ToastContainer 
-          position="bottom-right" 
-          autoClose={5000} 
-          hideProgressBar={false} 
-          newestOnTop={false} 
-          closeOnClick 
-          rtl={false} 
-          pauseOnFocusLoss 
-          draggable 
+        <ToastContainer
+          position="bottom-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
           pauseOnHover
           theme={theme}
         />
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className={`text-3xl font-extrabold tracking-tight ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h1 className={`text-3xl font-extrabold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Products Dashboard
             </h1>
             <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -725,15 +491,17 @@ export default function VendorProductsPage() {
             <button
               onClick={handleExportToExcel}
               disabled={exportLoading || products.length === 0}
-              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden ${
-                theme === 'dark'
+              className={`relative px-4 py-1 h-8 rounded-md transition-all duration-200 
+       text-[14px] font-medium flex items-center gap-2 
+       shadow-lg hover:shadow-xl 
+       disabled:opacity-50 disabled:cursor-not-allowed 
+       disabled:transform-none disabled:shadow-lg overflow-hidden ${theme === 'dark'
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-              }`}
+                }`}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                theme === 'dark' ? 'bg-white' : 'bg-white'
-              }`}></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                }`}></div>
               {exportLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
@@ -747,15 +515,17 @@ export default function VendorProductsPage() {
             <button
               onClick={handleImportFromExcel}
               disabled={importLoading}
-              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden ${
-                theme === 'dark'
+              className={`relative px-4 py-1 h-8 rounded-md transition-all duration-200 
+       text-[14px] font-medium flex items-center gap-2 
+       shadow-lg hover:shadow-xl 
+       disabled:opacity-50 disabled:cursor-not-allowed 
+       disabled:transform-none disabled:shadow-lg overflow-hidden ${theme === 'dark'
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
+                }`}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                theme === 'dark' ? 'bg-white' : 'bg-white'
-              }`}></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                }`}></div>
               {importLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
@@ -768,15 +538,17 @@ export default function VendorProductsPage() {
             {/* Add Product Button */}
             <button
               onClick={handleAddProduct}
-              className={`group relative px-6 py-3 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 overflow-hidden ${
-                theme === 'dark'
+              className={`relative px-4 py-1 h-8 rounded-md transition-all duration-200 
+       text-[14px] font-medium flex items-center gap-2 
+       shadow-lg hover:shadow-xl 
+       disabled:opacity-50 disabled:cursor-not-allowed 
+       disabled:transform-none disabled:shadow-lg overflow-hidden ${theme === 'dark'
                   ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              }`}
+                }`}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${
-                theme === 'dark' ? 'bg-white' : 'bg-white'
-              }`}></div>
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                }`}></div>
               <Plus className="w-4 h-4" />
               Add New Product
               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
@@ -785,9 +557,8 @@ export default function VendorProductsPage() {
         </div>
 
         {error && (
-          <div className={`p-4 rounded-xl border ${
-            theme === 'dark' ? 'bg-red-900 border-red-800 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
-          }`}>
+          <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-red-900 border-red-800 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
             <p className="text-sm">
               Error loading data: {error}. Showing {products.length} product(s).
             </p>
@@ -799,20 +570,17 @@ export default function VendorProductsPage() {
           {stats.map((stat, index) => (
             <div
               key={index}
-              className={`rounded-lg transition-all duration-200 p-3 border ${
-                theme === 'dark'
+              className={`rounded-lg transition-all duration-200 p-3 border ${theme === 'dark'
                   ? 'bg-gray-800 border-gray-700 hover:border-gray-600 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
                   : 'bg-white border-gray-100 hover:border-gray-200 shadow-[0_2px_8px_rgba(0,0,128,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,128,0.25)]'
-              }`}
+                }`}
             >
-              <div className={`text-xl font-medium ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
+              <div className={`text-xl font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
                 {stat.value}
               </div>
-              <div className={`text-[11px] mt-0.5 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <div className={`text-[11px] mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                 {stat.label}
               </div>
             </div>
@@ -820,59 +588,48 @@ export default function VendorProductsPage() {
         </div>
 
         {/* Search and Actions Section */}
-        <div className={`rounded-2xl shadow-sm border ${
-          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
-        }`}>
+        <div className={`rounded-2xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+          }`}>
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h2 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Vendor Products
             </h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="relative flex-1 md:w-80">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
-                }`} />
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                  }`} />
                 <input
                   type="text"
                   placeholder="Search by product name, SKU, or category..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
-                    theme === 'dark'
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${theme === 'dark'
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:bg-gray-600'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 hover:bg-white'
-                  }`}
+                    }`}
                 />
               </form>
-              
+
               {/* Action Buttons Group */}
               <div className="flex gap-2">
-                {/* Clear Filters Button */}
-                {hasActiveFilters() && (
-                  <button
-                    onClick={clearAllFilters}
-                    className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
-                      theme === 'dark'
-                        ? 'border-red-600 text-red-300 hover:bg-red-700 hover:text-white'
-                        : 'border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700'
-                    }`}
-                  >
-                    <X className="w-4 h-4" />
-                    Clear
-                  </button>
-                )}
+                {/* Filter Button */}
+                <button className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${theme === 'dark'
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
+                  }`}>
+                  <Filter className="w-4 h-4" />
+                  Filter
+                </button>
 
                 {/* Refresh Button */}
                 <button
                   onClick={fetchVendorProducts}
-                  className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
-                    theme === 'dark'
+                  className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${theme === 'dark'
                       ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh
@@ -884,67 +641,31 @@ export default function VendorProductsPage() {
           {/* Table with Light Outline */}
           <div className="overflow-x-auto">
             {filteredProducts.length === 0 ? (
-              <div className={`text-center py-12 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                <div className={`text-lg font-medium ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+              <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}>
+                <div className={`text-lg font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                  }`}>
                   No products found
                 </div>
                 <p className="text-sm mt-1">
-                  {searchTerm || Object.values(columnFilters).some(f => f) 
-                    ? 'Try adjusting your search or filter terms' 
-                    : 'Get started by adding your first product'}
+                  {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first product'}
                 </p>
               </div>
             ) : (
-              <div className={`border rounded-2xl m-4 overflow-hidden ${
-                theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-              }`}>
+              <div className={`border rounded-2xl m-4 overflow-hidden ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+                }`}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className={`text-left uppercase tracking-wider text-xs ${
-                      theme === 'dark' 
-                        ? 'bg-gray-700 text-gray-300' 
+                    <tr className={`text-left uppercase tracking-wider text-xs ${theme === 'dark'
+                        ? 'bg-gray-700 text-gray-300'
                         : 'bg-gray-50 text-gray-600'
-                    }`}>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>Product</span>
-                          <ColumnFilterDropdown column="product" label="Product" />
-                        </div>
-                      </th>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>SKU</span>
-                          <ColumnFilterDropdown column="sku" label="SKU" />
-                        </div>
-                      </th>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>Price</span>
-                          <ColumnFilterDropdown column="price" label="Price" />
-                        </div>
-                      </th>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>Quantity</span>
-                          <ColumnFilterDropdown column="quantity" label="Quantity" />
-                        </div>
-                      </th>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>Category</span>
-                          <ColumnFilterDropdown column="category" label="Category" />
-                        </div>
-                      </th>
-                      <th className="py-4 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <span>Status</span>
-                          <ColumnFilterDropdown column="status" label="Status" />
-                        </div>
-                      </th>
+                      }`}>
+                      <th className="py-4 px-4">Product</th>
+                      <th className="py-4 px-4">SKU</th>
+                      <th className="py-4 px-4">Price</th>
+                      <th className="py-4 px-4">Quantity</th>
+                      <th className="py-4 px-4">Category</th>
+                      <th className="py-4 px-4">Status</th>
                       <th className="py-4 px-4">Actions</th>
                     </tr>
                   </thead>
@@ -953,15 +674,13 @@ export default function VendorProductsPage() {
                     {filteredProducts.map((product, index) => (
                       <tr
                         key={product.id}
-                        className={`group transition-colors duration-150 ${
-                          index === filteredProducts.length - 1 
-                            ? '' 
+                        className={`group transition-colors duration-150 ${index === filteredProducts.length - 1
+                            ? ''
                             : `border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`
-                        } ${
-                          theme === 'dark' 
-                            ? 'hover:bg-gray-700' 
+                          } ${theme === 'dark'
+                            ? 'hover:bg-gray-700'
                             : 'hover:bg-indigo-50/50'
-                        }`}
+                          }`}
                       >
                         {/* Product Name and Image */}
                         <td className="py-4 px-4 font-medium">
@@ -977,14 +696,12 @@ export default function VendorProductsPage() {
                                   }}
                                 />
                               ) : (
-                                <div className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
-                                  theme === 'dark' 
-                                    ? 'bg-gray-700 border-gray-600' 
+                                <div className={`h-10 w-10 rounded-lg border flex items-center justify-center ${theme === 'dark'
+                                    ? 'bg-gray-700 border-gray-600'
                                     : 'bg-gray-100 border-gray-200'
-                                }`}>
-                                  <span className={`text-xs ${
-                                    theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
                                   }`}>
+                                  <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                                    }`}>
                                     No Image
                                   </span>
                                 </div>
@@ -994,9 +711,8 @@ export default function VendorProductsPage() {
                               <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
                                 {product.product_name}
                               </span>
-                              <div className={`text-xs mt-0.5 ${
-                                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                              }`}>
+                              <div className={`text-xs mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
                                 {product.unit}
                               </div>
                             </div>
@@ -1004,37 +720,33 @@ export default function VendorProductsPage() {
                         </td>
 
                         {/* SKU */}
-                        <td className={`py-4 px-4 font-mono text-sm ${
-                          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}>
+                        <td className={`py-4 px-4 font-mono text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
                           {product.sku}
                         </td>
 
                         {/* Price */}
-                        <td className={`py-4 px-4 font-semibold ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
+                        <td className={`py-4 px-4 font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
                           {formatPrice(product.sales_price)}
                         </td>
 
                         {/* Quantity */}
                         <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.qty === 0 
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.qty === 0
                               ? theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800'
-                              : product.qty < 10 
-                              ? theme === 'dark' ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
-                              : theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
-                          }`}>
+                              : product.qty < 10
+                                ? theme === 'dark' ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
+                                : theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+                            }`}>
                             {product.qty} {product.unit}
                           </span>
                         </td>
 
                         {/* Category */}
                         <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                            }`}>
                             {product.category || `Category ${product.category_name}`}
                           </span>
                         </td>
@@ -1046,16 +758,14 @@ export default function VendorProductsPage() {
                             <button
                               onClick={() => handleToggleStatus(product.id)}
                               disabled={toggleLoading === product.id}
-                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                                product.is_active
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${product.is_active
                                   ? 'bg-green-500 hover:bg-green-600'
                                   : theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-300 hover:bg-gray-400'
-                              } ${toggleLoading === product.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                } ${toggleLoading === product.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <span
-                                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                  product.is_active ? 'translate-x-5' : 'translate-x-1'
-                                } ${toggleLoading === product.id ? 'animate-pulse' : ''}`}
+                                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${product.is_active ? 'translate-x-5' : 'translate-x-1'
+                                  } ${toggleLoading === product.id ? 'animate-pulse' : ''}`}
                               />
                               {toggleLoading === product.id && (
                                 <div className="absolute inset-0 flex items-center justify-center">
@@ -1072,32 +782,29 @@ export default function VendorProductsPage() {
                             {/* Edit Button */}
                             <button
                               onClick={() => handleEdit(product.id)}
-                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
-                                theme === 'dark'
+                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${theme === 'dark'
                                   ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
                                   : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
-                              }`}
+                                }`}
                               title="Edit product"
                             >
                               <Edit className="w-4 h-4" />
-                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
-                                theme === 'dark' ? 'bg-white' : 'bg-white'
-                              }`}></div>
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                                }`}></div>
                             </button>
 
                             {/* Delete Button */}
                             <button
                               onClick={() => handleDelete(product.id)}
                               disabled={deleteLoading === product.id}
-                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${
-                                deleteLoading === product.id 
+                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${deleteLoading === product.id
                                   ? theme === 'dark'
                                     ? 'text-gray-500 border-gray-600 cursor-not-allowed'
                                     : 'text-gray-400 border-gray-200 cursor-not-allowed'
                                   : theme === 'dark'
                                     ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
                                     : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
-                              }`}
+                                }`}
                               title="Delete product"
                             >
                               {deleteLoading === product.id ? (
@@ -1105,9 +812,8 @@ export default function VendorProductsPage() {
                               ) : (
                                 <Trash2 className="w-4 h-4" />
                               )}
-                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${
-                                theme === 'dark' ? 'bg-white' : 'bg-white'
-                              }`}></div>
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                                }`}></div>
                             </button>
                           </div>
                         </td>
