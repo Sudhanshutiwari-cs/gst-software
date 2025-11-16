@@ -1261,29 +1261,29 @@ export default function ClientsPage() {
                             {/* Edit Button */}
                             <button
                               onClick={() => handleEdit(client)}
-                              className={`${buttonBaseClass} ${
-                                theme === 'dark'
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              }`}
+                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${theme === 'dark'
+                                  ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
+                                  : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
+                                }`}
                               title="Edit client"
                             >
                               <Edit className="w-4 h-4" />
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                                }`}></div>
                             </button>
 
                             {/* Delete Button */}
                             <button
                               onClick={() => handleDelete(client)}
                               disabled={deleteLoading === client.id}
-                              className={`${buttonBaseClass} ${
-                                deleteLoading === client.id 
+                              className={`group relative p-2.5 rounded-lg transition-all duration-200 border shadow-sm hover:shadow-md ${deleteLoading === client.id
                                   ? theme === 'dark'
-                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    ? 'text-gray-500 border-gray-600 cursor-not-allowed'
+                                    : 'text-gray-400 border-gray-200 cursor-not-allowed'
                                   : theme === 'dark'
-                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                    : 'bg-red-600 hover:bg-red-700 text-white'
-                              }`}
+                                    ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
+                                    : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
+                                }`}
                               title="Delete client"
                             >
                               {deleteLoading === client.id ? (
@@ -1291,6 +1291,8 @@ export default function ClientsPage() {
                               ) : (
                                 <Trash2 className="w-4 h-4" />
                               )}
+                              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200 ${theme === 'dark' ? 'bg-white' : 'bg-white'
+                                }`}></div>
                             </button>
                           </div>
                         </td>
