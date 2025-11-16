@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter, ChevronDown, X } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 
 // Define types
@@ -19,6 +19,7 @@ interface VendorProduct {
   sales_price: number;
   is_active: boolean;
   quantity: number;
+  unit_price: number;
   status: 'active' | 'inactive' | 'out_of_stock';
   image_url?: string;
   created_at: string;
@@ -43,6 +44,17 @@ interface ToggleStatusResponse {
   data?: {
     is_active: boolean;
   };
+}
+
+// Filter types
+interface ColumnFilters {
+  product: string;
+  sku: string;
+  price: string;
+  quantity: string;
+
+  category: string;
+  status: string;
 }
 
 // Theme types
@@ -124,6 +136,16 @@ export default function VendorProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<ColumnFilters>({
+    product: '',
+    sku: '',
+    price: '',
+    quantity: '',
+    category: '',
+    status: ''
+  });
+  const [activeFilter, setActiveFilter] = useState<keyof ColumnFilters | null>(null);
   const router = useRouter();
 
   // Theme state
@@ -205,9 +227,10 @@ export default function VendorProductsPage() {
     fetchVendorProducts();
   }, []);
 
+  // Apply filters whenever products, search term, or column filters change
   useEffect(() => {
-    setFilteredProducts(products);
-  }, [products]);
+    applyFilters();
+  }, [products, searchTerm, columnFilters]);
 
   const fetchVendorProducts = async () => {
     try {
@@ -226,7 +249,6 @@ export default function VendorProductsPage() {
       
       if (response.success) {
         setProducts(response.data);
-        setFilteredProducts(response.data);
       } else {
         throw new Error(response.message || 'Failed to fetch products');
       }
@@ -236,6 +258,102 @@ export default function VendorProductsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...products];
+
+    // Apply global search
+    if (searchTerm.trim()) {
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(product => 
+        product.product_name?.toLowerCase().includes(searchTermLower) ||
+        product.sku?.toLowerCase().includes(searchTermLower) ||
+        product.category?.toLowerCase().includes(searchTermLower) ||
+        product.name?.toLowerCase().includes(searchTermLower)
+      );
+    }
+
+    // Apply column filters
+    Object.entries(columnFilters).forEach(([column, filterValue]) => {
+      if (filterValue.trim()) {
+        const filterValueLower = filterValue.toLowerCase().trim();
+        filtered = filtered.filter(product => {
+          switch (column) {
+            case 'product':
+              return product.product_name?.toLowerCase().includes(filterValueLower);
+            case 'sku':
+              return product.sku?.toLowerCase().includes(filterValueLower);
+            case 'price':
+              return product.sales_price.toString().includes(filterValue);
+            case 'quantity':
+              return product.qty.toString().includes(filterValue);
+            case 'category':
+              return product.category?.toLowerCase().includes(filterValueLower);
+            case 'status':
+              const statusText = product.is_active ? 'active' : 'inactive';
+              return statusText.includes(filterValueLower);
+            default:
+              return true;
+          }
+        });
+      }
+    });
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleColumnFilterChange = (column: keyof ColumnFilters, value: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [column]: value
+    }));
+  };
+
+  const clearColumnFilter = (column: keyof ColumnFilters) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [column]: ''
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setColumnFilters({
+      product: '',
+      sku: '',
+      price: '',
+      quantity: '',
+      category: '',
+      status: ''
+    });
+    setSearchTerm('');
+  };
+
+  const hasActiveFilters = () => {
+    return Object.values(columnFilters).some(filter => filter.trim() !== '') || searchTerm.trim() !== '';
+  };
+
+  // Get unique categories for filter dropdown
+  const getUniqueCategories = () => {
+    const categories = products.map(product => product.category || product.category_name).filter(Boolean);
+    return Array.from(new Set(categories));
+  };
+
+  // Get unique status options
+  const getStatusOptions = () => {
+    return [
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' }
+    ];
+  };
+
+  // Get quantity range options
+  const getQuantityOptions = () => {
+    return [
+      { value: '0', label: 'Out of Stock' },
+      { value: '1-10', label: 'Low Stock (1-10)' },
+      { value: '10+', label: 'In Stock (10+)' }
+    ];
   };
 
   const handleExportToExcel = async () => {
@@ -323,21 +441,7 @@ export default function VendorProductsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchTerm.trim()) {
-      setFilteredProducts(products);
-      return;
-    }
-
-    const searchTermLower = searchTerm.toLowerCase().trim();
-    
-    const filtered = products.filter(product => 
-      product.product_name?.toLowerCase().includes(searchTermLower) ||
-      product.sku?.toLowerCase().includes(searchTermLower) ||
-      product.category?.toLowerCase().includes(searchTermLower) ||
-      product.name?.toLowerCase().includes(searchTermLower)
-    );
-    
-    setFilteredProducts(filtered);
+    applyFilters();
   };
 
   const handleAddProduct = () => {
@@ -447,6 +551,131 @@ export default function VendorProductsPage() {
     { label: "Out of Stock", value: products.filter(p => p.qty === 0).length.toString() },
     { label: "Low Stock", value: products.filter(p => p.qty > 0 && p.qty < 10).length.toString() }
   ];
+
+  // Column Filter Dropdown Component
+  const ColumnFilterDropdown = ({ 
+    column, 
+    label 
+  }: { 
+    column: keyof ColumnFilters; 
+    label: string;
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const getFilterOptions = () => {
+      switch (column) {
+        case 'status':
+          return getStatusOptions();
+        case 'quantity':
+          return getQuantityOptions();
+        case 'category':
+          return getUniqueCategories().map(cat => ({ value: cat, label: cat }));
+        default:
+          return [];
+      }
+    };
+
+    const options = getFilterOptions();
+
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
+            columnFilters[column] 
+              ? theme === 'dark' 
+                ? 'bg-blue-900 text-blue-200' 
+                : 'bg-blue-100 text-blue-700'
+              : theme === 'dark'
+                ? 'text-gray-300 hover:bg-gray-700'
+                : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          {label}
+          <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsOpen(false)}
+            />
+            <div className={`absolute top-full left-0 mt-1 z-20 min-w-[140px] rounded-lg border shadow-lg ${
+              theme === 'dark' 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="p-2 space-y-1">
+                {/* Clear filter option */}
+                <button
+                  onClick={() => {
+                    clearColumnFilter(column);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-2 py-1 rounded text-xs ${
+                    theme === 'dark'
+                      ? 'hover:bg-gray-700 text-gray-300'
+                      : 'hover:bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  Clear Filter
+                </button>
+                
+                {/* Custom input for text-based filters */}
+                {['product', 'sku', 'price'].includes(column) && (
+                  <div className="px-2 py-1">
+                    <input
+                      type="text"
+                      placeholder={`Filter ${label}...`}
+                      value={columnFilters[column]}
+                      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+                      className={`w-full px-2 py-1 text-xs border rounded ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                )}
+
+                {/* Dropdown options for specific columns */}
+                {options.length > 0 && options.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      if (!option.value) return;
+  handleColumnFilterChange(column, option.value);
+  setIsOpen(false)
+                    }}
+                    className={`w-full text-left px-2 py-1 rounded text-xs ${
+                      columnFilters[column] === option.value
+                        ? theme === 'dark'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-blue-100 text-blue-700'
+                        : theme === 'dark'
+                          ? 'hover:bg-gray-700 text-gray-300'
+                          : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Filter indicator dot */}
+        {columnFilters[column] && (
+          <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+            theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'
+          }`} />
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -621,15 +850,20 @@ export default function VendorProductsPage() {
               
               {/* Action Buttons Group */}
               <div className="flex gap-2">
-                {/* Filter Button */}
-                <button className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
-                  theme === 'dark'
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700'
-                }`}>
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </button>
+                {/* Clear Filters Button */}
+                {hasActiveFilters() && (
+                  <button
+                    onClick={clearAllFilters}
+                    className={`px-4 py-3 border rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
+                      theme === 'dark'
+                        ? 'border-red-600 text-red-300 hover:bg-red-700 hover:text-white'
+                        : 'border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700'
+                    }`}
+                  >
+                    <X className="w-4 h-4" />
+                    Clear
+                  </button>
+                )}
 
                 {/* Refresh Button */}
                 <button
@@ -659,7 +893,9 @@ export default function VendorProductsPage() {
                   No products found
                 </div>
                 <p className="text-sm mt-1">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first product'}
+                  {searchTerm || Object.values(columnFilters).some(f => f) 
+                    ? 'Try adjusting your search or filter terms' 
+                    : 'Get started by adding your first product'}
                 </p>
               </div>
             ) : (
@@ -673,12 +909,42 @@ export default function VendorProductsPage() {
                         ? 'bg-gray-700 text-gray-300' 
                         : 'bg-gray-50 text-gray-600'
                     }`}>
-                      <th className="py-4 px-4">Product</th>
-                      <th className="py-4 px-4">SKU</th>
-                      <th className="py-4 px-4">Price</th>
-                      <th className="py-4 px-4">Quantity</th>
-                      <th className="py-4 px-4">Category</th>
-                      <th className="py-4 px-4">Status</th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>Product</span>
+                          <ColumnFilterDropdown column="product" label="Product" />
+                        </div>
+                      </th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>SKU</span>
+                          <ColumnFilterDropdown column="sku" label="SKU" />
+                        </div>
+                      </th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>Price</span>
+                          <ColumnFilterDropdown column="price" label="Price" />
+                        </div>
+                      </th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>Quantity</span>
+                          <ColumnFilterDropdown column="quantity" label="Quantity" />
+                        </div>
+                      </th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>Category</span>
+                          <ColumnFilterDropdown column="category" label="Category" />
+                        </div>
+                      </th>
+                      <th className="py-4 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>Status</span>
+                          <ColumnFilterDropdown column="status" label="Status" />
+                        </div>
+                      </th>
                       <th className="py-4 px-4">Actions</th>
                     </tr>
                   </thead>
