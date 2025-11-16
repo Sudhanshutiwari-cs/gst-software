@@ -47,7 +47,7 @@ type TabType = 'all' | 'pending' | 'paid' | 'cancelled' | 'drafts';
 
 export default function SalesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [currentPage, setCurrentPage] = useState(1);
+
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Theme state
