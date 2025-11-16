@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Download, RefreshCw, Filter, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface VendorCustomer {
@@ -43,6 +43,7 @@ interface Client {
   services: string[];
   amount: string;
   selected: boolean;
+  created_at: string;
 }
 
 // Theme types
@@ -50,43 +51,50 @@ type Theme = 'light' | 'dark';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const router = useRouter();
   const [exportLoading, setExportLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'city' | 'date' | 'vendor' | ''>('');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+
+  // Filter states
+  const [cityFilter, setCityFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<[string, string]>(['', '']);
+  const [vendorFilter, setVendorFilter] = useState<string>('all');
+  const [sortConfig, setSortConfig] = useState<{
+    key: 'name' | 'email' | 'city' | 'openedAt' | 'serProvider' | '';
+    direction: 'asc' | 'desc';
+  }>({ key: '', direction: 'asc' });
 
   // Theme state
   const [theme, setTheme] = useState<Theme>('light');
 
   // Initialize theme and set up listeners
   useEffect(() => {
-    // Function to get initial theme
     const getInitialTheme = (): Theme => {
       if (typeof window !== 'undefined') {
         const savedTheme = localStorage.getItem('theme') as Theme;
         if (savedTheme) {
           return savedTheme;
         }
-        // Check system preference
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         return prefersDark ? 'dark' : 'light';
       }
       return 'light';
     };
 
-    // Function to apply theme to DOM
     const applyTheme = (newTheme: Theme) => {
       document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
 
-    // Set initial theme
     const initialTheme = getInitialTheme();
     setTheme(initialTheme);
     applyTheme(initialTheme);
 
-    // Listen for storage changes (theme changes in other tabs/windows)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme') {
         const newTheme = (e.newValue as Theme) || 'light';
@@ -95,7 +103,6 @@ export default function ClientsPage() {
       }
     };
 
-    // Listen for custom theme change events
     const handleThemeChange = (e: CustomEvent) => {
       const newTheme = e.detail.theme as Theme;
       setTheme(newTheme);
@@ -105,7 +112,6 @@ export default function ClientsPage() {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('themeChange', handleThemeChange as EventListener);
 
-    // Set up mutation observer to watch for theme class changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -172,7 +178,8 @@ export default function ClientsPage() {
           serProvider: customer.vendor_id,
           services: ['Consultation'],
           amount: '$230.00',
-          selected: false
+          selected: false,
+          created_at: customer.created_at
         }));
 
         setClients(transformedClients);
@@ -191,13 +198,80 @@ export default function ClientsPage() {
     fetchVendorCustomers();
   }, []);
 
-  // Filter clients based on search term
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.caseRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone.includes(searchTerm)
-  );
+  // Get unique values for filters
+  const cities = Array.from(new Set(clients.map(client => client.city))).filter(Boolean);
+  const vendors = Array.from(new Set(clients.map(client => client.serProvider))).filter(Boolean);
+
+  // Calculate date range for filters
+  const dateMinMax = clients.length > 0 ? [
+    new Date(Math.min(...clients.map(c => new Date(c.created_at).getTime()))).toISOString().split('T')[0],
+    new Date(Math.max(...clients.map(c => new Date(c.created_at).getTime()))).toISOString().split('T')[0]
+  ] : ['', ''];
+
+  // Apply filters and sorting
+  useEffect(() => {
+    let filtered = [...clients];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(client =>
+        client.name.toLowerCase().includes(searchTermLower) ||
+        client.email.toLowerCase().includes(searchTermLower) ||
+        client.caseRef.toLowerCase().includes(searchTermLower) ||
+        client.phone.includes(searchTerm) ||
+        client.gstin.toLowerCase().includes(searchTermLower)
+      );
+    }
+
+    // Apply city filter
+    if (cityFilter !== 'all') {
+      filtered = filtered.filter(client => client.city === cityFilter);
+    }
+
+    // Apply date range filter
+    if (dateRange[0] && dateRange[1]) {
+      filtered = filtered.filter(client => {
+        const clientDate = new Date(client.created_at).toISOString().split('T')[0];
+        return clientDate >= dateRange[0] && clientDate <= dateRange[1];
+      });
+    }
+
+    // Apply vendor filter
+    if (vendorFilter !== 'all') {
+      filtered = filtered.filter(client => client.serProvider === vendorFilter);
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        if (sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc' 
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name);
+        } else if (sortConfig.key === 'email') {
+          return sortConfig.direction === 'asc'
+            ? a.email.localeCompare(b.email)
+            : b.email.localeCompare(a.email);
+        } else if (sortConfig.key === 'city') {
+          return sortConfig.direction === 'asc'
+            ? (a.city || '').localeCompare(b.city || '')
+            : (b.city || '').localeCompare(a.city || '');
+        } else if (sortConfig.key === 'openedAt') {
+          return sortConfig.direction === 'asc'
+            ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        } else if (sortConfig.key === 'serProvider') {
+          return sortConfig.direction === 'asc'
+            ? a.serProvider.localeCompare(b.serProvider)
+            : b.serProvider.localeCompare(a.serProvider);
+        }
+        return 0;
+      });
+    }
+
+    setFilteredClients(filtered);
+  }, [clients, searchTerm, cityFilter, dateRange, vendorFilter, sortConfig]);
 
   const toggleClientSelection = (id: number) => {
     setClients(clients.map(client =>
@@ -209,7 +283,6 @@ export default function ClientsPage() {
   const handleEdit = (client: Client) => {
     router.push(`/customer/update/${client.id}`);
     console.log('Edit client:', client);
-    alert(`Edit functionality for ${client.name} would be implemented here`);
   };
 
   // Add new client function
@@ -223,7 +296,7 @@ export default function ClientsPage() {
     try {
       setExportLoading(true);
       
-      const exportData = clients.map(client => ({
+      const exportData = filteredClients.map(client => ({
         'ID': client.id,
         'Name': client.name,
         'Phone': client.phone,
@@ -266,7 +339,7 @@ export default function ClientsPage() {
       
       URL.revokeObjectURL(url);
       
-      alert(`Exported ${clients.length} clients successfully!`);
+      alert(`Exported ${filteredClients.length} clients successfully!`);
       
     } catch (err) {
       console.error('Error exporting to Excel:', err);
@@ -278,7 +351,7 @@ export default function ClientsPage() {
 
   // Export selected clients to Excel
   const handleExportSelectedToExcel = () => {
-    const selectedClients = clients.filter(client => client.selected);
+    const selectedClients = filteredClients.filter(client => client.selected);
     
     if (selectedClients.length === 0) {
       alert('Please select at least one client to export.');
@@ -389,7 +462,7 @@ export default function ClientsPage() {
 
   // Bulk delete function
   const handleBulkDelete = async () => {
-    const selectedClients = clients.filter(client => client.selected);
+    const selectedClients = filteredClients.filter(client => client.selected);
     
     if (selectedClients.length === 0) {
       alert('Please select at least one client to delete.');
@@ -440,6 +513,27 @@ export default function ClientsPage() {
     }
   };
 
+  const handleSort = (key: 'name' | 'email' | 'city' | 'openedAt' | 'serProvider') => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+    setActiveFilter(''); // Close filter dropdown when sorting
+  };
+
+  const handleFilterClick = (filterType: 'city' | 'date' | 'vendor') => {
+    setActiveFilter(activeFilter === filterType ? '' : filterType);
+  };
+
+  const resetFilters = () => {
+    setCityFilter('all');
+    setDateRange(['', '']);
+    setVendorFilter('all');
+    setSortConfig({ key: '', direction: 'asc' });
+    setSearchTerm('');
+    setActiveFilter('');
+  };
+
   const stats = [
     { label: "Total Customers", value: clients.length.toString() },
     { label: "Selected", value: clients.filter(client => client.selected).length.toString() },
@@ -488,20 +582,20 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className={`min-h-screen p-8 transition-colors duration-200 ${
+    <div className={`min-h-screen p-4 md:p-8 transition-colors duration-200 ${
       theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-b from-gray-50 to-gray-100'
     }`}>
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className={`text-3xl font-extrabold tracking-tight ${
+            <h1 className={`text-2xl md:text-3xl font-extrabold tracking-tight ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
               Customers
             </h1>
-            <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`mt-1 text-sm md:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               View and manage all your Customer information in one place.
             </p>
           </div>
@@ -517,7 +611,8 @@ export default function ClientsPage() {
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              Export All
+              <span className="hidden sm:inline">Export All</span>
+              <span className="sm:hidden">Export</span>
             </button>
 
             {/* Add New Client Button */}
@@ -526,7 +621,8 @@ export default function ClientsPage() {
               className={buttonPrimaryClass}
             >
               <Plus className="w-4 h-4" />
-              Add New Customer
+              <span className="hidden sm:inline">Add Customer</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
@@ -542,7 +638,7 @@ export default function ClientsPage() {
         )}
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
           {stats.map((stat, index) => (
             <div
               key={index}
@@ -552,12 +648,12 @@ export default function ClientsPage() {
                   : 'bg-white border-gray-100 hover:border-gray-200 shadow-[0_2px_8px_rgba(0,0,128,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,128,0.25)]'
               }`}
             >
-              <div className={`text-xl font-medium ${
+              <div className={`text-lg md:text-xl font-medium ${
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
                 {stat.value}
               </div>
-              <div className={`text-[11px] mt-0.5 ${
+              <div className={`text-[10px] md:text-[11px] mt-0.5 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 {stat.label}
@@ -570,7 +666,7 @@ export default function ClientsPage() {
         <div className={`rounded-2xl shadow-sm border ${
           theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
         }`}>
-          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="p-4 md:p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h2 className={`text-lg font-semibold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
@@ -584,10 +680,10 @@ export default function ClientsPage() {
                 }`} />
                 <input
                   type="text"
-                  placeholder="Search by name, email, or case ref..."
+                  placeholder="Search customers..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
+                  className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
                     theme === 'dark'
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:bg-gray-600'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 hover:bg-white'
@@ -598,9 +694,12 @@ export default function ClientsPage() {
               {/* Action Buttons Group */}
               <div className="flex gap-2">
                 {/* Filter Button */}
-                <button className={buttonOutlineClass}>
+                <button 
+                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  className={buttonOutlineClass}
+                >
                   <Filter className="w-4 h-4" />
-                  Filter
+                  <span className="hidden sm:inline">Filter</span>
                 </button>
 
                 {/* Refresh Button */}
@@ -609,22 +708,135 @@ export default function ClientsPage() {
                   className={buttonOutlineClass}
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+
+                {/* Reset Filters Button */}
+                <button
+                  onClick={resetFilters}
+                  className={buttonOutlineClass}
+                >
+                  <X className="w-4 h-4" />
+                  <span className="hidden sm:inline">Reset</span>
                 </button>
               </div>
             </div>
           </div>
 
+          {/* Filter Panel */}
+          {showFilterPanel && (
+            <div className={`p-4 md:p-6 border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-750' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Filters
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={resetFilters}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${theme === 'dark'
+                        ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                  >
+                    Reset All
+                  </button>
+                  <button
+                    onClick={() => setShowFilterPanel(false)}
+                    className={`p-1 rounded-md transition-colors ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-300'
+                        : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* City Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    City
+                  </label>
+                  <select
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    className={`w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="all">All Cities</option>
+                    {cities.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date Range Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Date Range
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={dateRange[0]}
+                      onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
+                      className={`w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                    <input
+                      type="date"
+                      value={dateRange[1]}
+                      onChange={(e) => setDateRange([dateRange[0], e.target.value])}
+                      className={`w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Vendor Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Vendor
+                  </label>
+                  <select
+                    value={vendorFilter}
+                    onChange={(e) => setVendorFilter(e.target.value)}
+                    className={`w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="all">All Vendors</option>
+                    {vendors.map(vendor => (
+                      <option key={vendor} value={vendor}>{vendor}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Bulk Actions */}
-          {clients.filter(client => client.selected).length > 0 && (
-            <div className={`px-6 py-4 border-b ${
+          {filteredClients.filter(client => client.selected).length > 0 && (
+            <div className={`px-4 md:px-6 py-4 border-b ${
               theme === 'dark' ? 'bg-indigo-900 border-indigo-800' : 'bg-indigo-50 border-indigo-100'
             }`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className={`text-sm font-medium ${
                   theme === 'dark' ? 'text-indigo-200' : 'text-indigo-700'
                 }`}>
-                  {clients.filter(client => client.selected).length} client(s) selected
+                  {filteredClients.filter(client => client.selected).length} client(s) selected
                 </div>
                 <div className="flex gap-2">
                   {/* Export Selected Button */}
@@ -638,7 +850,8 @@ export default function ClientsPage() {
                     ) : (
                       <Download className="w-4 h-4" />
                     )}
-                    Export Selected
+                    <span className="hidden sm:inline">Export Selected</span>
+                    <span className="sm:hidden">Export</span>
                   </button>
 
                   {/* Delete Selected Button */}
@@ -647,15 +860,146 @@ export default function ClientsPage() {
                     className={buttonDangerClass}
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete Selected
+                    <span className="hidden sm:inline">Delete Selected</span>
+                    <span className="sm:hidden">Delete</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Table with Light Outline */}
-          <div className="overflow-x-auto">
+          {/* Mobile Cards View */}
+          <div className="block md:hidden">
+            {filteredClients.length === 0 ? (
+              <div className={`text-center py-12 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                <div className={`text-lg font-medium ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                }`}>
+                  No clients found
+                </div>
+                <p className="text-sm mt-1">
+                  {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first client'}
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {filteredClients.map((client) => (
+                  <div
+                    key={client.id}
+                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-750'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    } ${client.selected ? (theme === 'dark' ? 'bg-indigo-900 border-indigo-700' : 'bg-indigo-50 border-indigo-200') : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={client.selected}
+                          onChange={() => toggleClientSelection(client.id)}
+                          className={`rounded mt-1 ${
+                            theme === 'dark' ? 'accent-indigo-500' : 'accent-indigo-600'
+                          }`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`font-semibold truncate ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {client.name}
+                          </h3>
+                          <p className={`text-xs mt-0.5 ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            {client.phone} • {client.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => handleEdit(client)}
+                          className={`p-2 rounded-lg transition-all duration-200 border ${
+                            theme === 'dark'
+                              ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
+                              : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
+                          }`}
+                          title="Edit client"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(client)}
+                          disabled={deleteLoading === client.id}
+                          className={`p-2 rounded-lg transition-all duration-200 border ${
+                            deleteLoading === client.id
+                              ? theme === 'dark'
+                                ? 'text-gray-500 border-gray-600 cursor-not-allowed'
+                                : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                              : theme === 'dark'
+                                ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
+                                : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
+                          }`}
+                          title="Delete client"
+                        >
+                          {deleteLoading === client.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Case Ref:</span>
+                        <div className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {client.caseRef}
+                        </div>
+                      </div>
+                      <div>
+                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Created:</span>
+                        <div className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
+                          {client.openedAt}
+                        </div>
+                      </div>
+                      <div>
+                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>City:</span>
+                        <div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {client.city}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Vendor:</span>
+                        <div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {client.serProvider}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>PAN/GSTIN:</span>
+                        <div className={`font-mono text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                          {client.gstin}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             {filteredClients.length === 0 ? (
               <div className={`text-center py-12 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
@@ -686,19 +1030,294 @@ export default function ClientsPage() {
                           className={`rounded ${
                             theme === 'dark' ? 'accent-indigo-500' : 'accent-indigo-600'
                           }`}
-                          checked={clients.length > 0 && clients.every(client => client.selected)}
+                          checked={filteredClients.length > 0 && filteredClients.every(client => client.selected)}
                           onChange={(e) => {
                             const isChecked = e.target.checked;
-                            setClients(clients.map(client => ({ ...client, selected: isChecked })));
+                            setClients(clients.map(client => ({ 
+                              ...client, 
+                              selected: filteredClients.some(fc => fc.id === client.id) ? isChecked : client.selected 
+                            })));
                           }}
                         />
                       </th>
-                      <th className="py-4 px-4">Name</th>
-                      <th className="py-4 px-4">Email</th>
-                      <th className="py-4 px-4">Created</th>
-                      <th className="py-4 px-4">City</th>
+                      
+                      {/* Name Column with Sort */}
+                      <th className="py-4 px-4 relative">
+                        <button
+                          onClick={() => handleSort('name')}
+                          className="flex items-center gap-1 hover:underline focus:outline-none w-full text-left"
+                        >
+                          Name
+                          <div className="flex flex-col">
+                            <ChevronUp 
+                              className={`w-3 h-3 -mb-1 ${sortConfig.key === 'name' && sortConfig.direction === 'asc' 
+                                ? 'text-indigo-500' 
+                                : 'text-gray-400'}`} 
+                            />
+                            <ChevronDown 
+                              className={`w-3 h-3 -mt-1 ${sortConfig.key === 'name' && sortConfig.direction === 'desc' 
+                                ? 'text-indigo-500' 
+                                : 'text-gray-400'}`} 
+                            />
+                          </div>
+                        </button>
+                      </th>
+
+                      {/* Email Column with Sort */}
+                      <th className="py-4 px-4 relative">
+                        <button
+                          onClick={() => handleSort('email')}
+                          className="flex items-center gap-1 hover:underline focus:outline-none w-full text-left"
+                        >
+                          Email
+                          <div className="flex flex-col">
+                            <ChevronUp 
+                              className={`w-3 h-3 -mb-1 ${sortConfig.key === 'email' && sortConfig.direction === 'asc' 
+                                ? 'text-indigo-500' 
+                                : 'text-gray-400'}`} 
+                            />
+                            <ChevronDown 
+                              className={`w-3 h-3 -mt-1 ${sortConfig.key === 'email' && sortConfig.direction === 'desc' 
+                                ? 'text-indigo-500' 
+                                : 'text-gray-400'}`} 
+                            />
+                          </div>
+                        </button>
+                      </th>
+
+                      {/* Created Column with Sort and Filter */}
+                      <th className="py-4 px-4 relative">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleSort('openedAt')}
+                            className="flex items-center gap-1 hover:underline focus:outline-none text-left"
+                          >
+                            Created
+                            <div className="flex flex-col">
+                              <ChevronUp 
+                                className={`w-3 h-3 -mb-1 ${sortConfig.key === 'openedAt' && sortConfig.direction === 'asc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                              <ChevronDown 
+                                className={`w-3 h-3 -mt-1 ${sortConfig.key === 'openedAt' && sortConfig.direction === 'desc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleFilterClick('date')}
+                            className={`p-1 rounded transition-colors ${
+                              activeFilter === 'date' 
+                                ? 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900' 
+                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                            }`}
+                          >
+                            <Filter className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Date Filter Dropdown */}
+                        {activeFilter === 'date' && (
+                          <div className={`absolute top-full left-0 right-0 mt-1 p-4 rounded-lg border z-10 ${
+                            theme === 'dark' 
+                              ? 'bg-gray-800 border-gray-700' 
+                              : 'bg-white border-gray-200 shadow-lg'
+                          }`}>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className={`text-sm font-medium ${
+                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  Date Range
+                                </span>
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="date"
+                                  value={dateRange[0]}
+                                  onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
+                                  className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                    theme === 'dark'
+                                      ? 'bg-gray-700 border-gray-600 text-white'
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                                <input
+                                  type="date"
+                                  value={dateRange[1]}
+                                  onChange={(e) => setDateRange([dateRange[0], e.target.value])}
+                                  className={`w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                    theme === 'dark'
+                                      ? 'bg-gray-700 border-gray-600 text-white'
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                                  {dateMinMax[0]}
+                                </span>
+                                <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                                  {dateMinMax[1]}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </th>
+
+                      {/* City Column with Filter */}
+                      <th className="py-4 px-4 relative">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleSort('city')}
+                            className="flex items-center gap-1 hover:underline focus:outline-none text-left"
+                          >
+                            City
+                            <div className="flex flex-col">
+                              <ChevronUp 
+                                className={`w-3 h-3 -mb-1 ${sortConfig.key === 'city' && sortConfig.direction === 'asc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                              <ChevronDown 
+                                className={`w-3 h-3 -mt-1 ${sortConfig.key === 'city' && sortConfig.direction === 'desc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleFilterClick('city')}
+                            className={`p-1 rounded transition-colors ${
+                              activeFilter === 'city' 
+                                ? 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900' 
+                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                            }`}
+                          >
+                            <Filter className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* City Filter Dropdown */}
+                        {activeFilter === 'city' && (
+                          <div className={`absolute top-full left-0 right-0 mt-1 p-4 rounded-lg border z-10 ${
+                            theme === 'dark' 
+                              ? 'bg-gray-800 border-gray-700' 
+                              : 'bg-white border-gray-200 shadow-lg'
+                          }`}>
+                            <div className="space-y-2">
+                              <label className={`flex items-center gap-2 text-sm ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <input
+                                  type="radio"
+                                  name="city"
+                                  value="all"
+                                  checked={cityFilter === 'all'}
+                                  onChange={(e) => setCityFilter(e.target.value)}
+                                  className="text-indigo-600 focus:ring-indigo-500"
+                                />
+                                All Cities
+                              </label>
+                              {cities.map(city => (
+                                <label key={city} className={`flex items-center gap-2 text-sm ${
+                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  <input
+                                    type="radio"
+                                    name="city"
+                                    value={city}
+                                    checked={cityFilter === city}
+                                    onChange={(e) => setCityFilter(e.target.value)}
+                                    className="text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  {city}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </th>
+
                       <th className="py-4 px-4">PAN Number</th>
-                      <th className="py-4 px-4">Vendor ID</th>
+
+                      {/* Vendor Column with Filter */}
+                      <th className="py-4 px-4 relative">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleSort('serProvider')}
+                            className="flex items-center gap-1 hover:underline focus:outline-none text-left"
+                          >
+                            Vendor ID
+                            <div className="flex flex-col">
+                              <ChevronUp 
+                                className={`w-3 h-3 -mb-1 ${sortConfig.key === 'serProvider' && sortConfig.direction === 'asc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                              <ChevronDown 
+                                className={`w-3 h-3 -mt-1 ${sortConfig.key === 'serProvider' && sortConfig.direction === 'desc' 
+                                  ? 'text-indigo-500' 
+                                  : 'text-gray-400'}`} 
+                              />
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleFilterClick('vendor')}
+                            className={`p-1 rounded transition-colors ${
+                              activeFilter === 'vendor' 
+                                ? 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900' 
+                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                            }`}
+                          >
+                            <Filter className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Vendor Filter Dropdown */}
+                        {activeFilter === 'vendor' && (
+                          <div className={`absolute top-full left-0 right-0 mt-1 p-4 rounded-lg border z-10 ${
+                            theme === 'dark' 
+                              ? 'bg-gray-800 border-gray-700' 
+                              : 'bg-white border-gray-200 shadow-lg'
+                          }`}>
+                            <div className="space-y-2">
+                              <label className={`flex items-center gap-2 text-sm ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <input
+                                  type="radio"
+                                  name="vendor"
+                                  value="all"
+                                  checked={vendorFilter === 'all'}
+                                  onChange={(e) => setVendorFilter(e.target.value)}
+                                  className="text-indigo-600 focus:ring-indigo-500"
+                                />
+                                All Vendors
+                              </label>
+                              {vendors.map(vendor => (
+                                <label key={vendor} className={`flex items-center gap-2 text-sm ${
+                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  <input
+                                    type="radio"
+                                    name="vendor"
+                                    value={vendor}
+                                    checked={vendorFilter === vendor}
+                                    onChange={(e) => setVendorFilter(e.target.value)}
+                                    className="text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  {vendor}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </th>
+
                       <th className="py-4 px-4">Actions</th>
                     </tr>
                   </thead>

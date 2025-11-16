@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 interface Transaction {
@@ -15,6 +15,9 @@ interface Transaction {
   time: string;
   daysSincePending?: number;
 }
+
+// Theme types
+type Theme = 'light' | 'dark';
 
 const mockTransactions: Transaction[] = [
   {
@@ -46,6 +49,9 @@ export default function SalesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Theme state
+  const [theme, setTheme] = useState<Theme>('light');
 
   const allTransactionCount = mockTransactions.length;
 
@@ -58,28 +64,116 @@ export default function SalesPage() {
   const paid = mockTransactions.filter((t) => t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
   const pending = mockTransactions.filter((t) => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
 
+  // Initialize theme and set up listeners
+  useEffect(() => {
+    // Function to get initial theme
+    const getInitialTheme = (): Theme => {
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('theme') as Theme;
+        if (savedTheme) {
+          return savedTheme;
+        }
+        // Check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
+      }
+      return 'light';
+    };
+
+    // Function to apply theme to DOM
+    const applyTheme = (newTheme: Theme) => {
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    };
+
+    // Set initial theme
+    const initialTheme = getInitialTheme();
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
+
+    // Listen for storage changes (theme changes in other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = (e.newValue as Theme) || 'light';
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    // Listen for custom theme change events
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail.theme as Theme;
+      setTheme(newTheme);
+      applyTheme(newTheme);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
+
+    // Set up mutation observer to watch for theme class changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+      observer.disconnect();
+    };
+  }, []);
+
+  // Effect to update theme when state changes
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen transition-colors duration-200 ${
+      theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
+    }`}>
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className={`border-b transition-colors duration-200 ${
+        theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-border bg-card'
+      }`}>
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold">Sales</h1>
-            <Play className="h-6 w-6 fill-pink-500 text-pink-500" />
+            <Play className={`h-6 w-6 ${
+              theme === 'dark' ? 'fill-pink-400 text-pink-400' : 'fill-pink-500 text-pink-500'
+            }`} />
           </div>
 
           {/* Replaced ShadCN Buttons */}
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900">
+            <button className={`flex items-center gap-2 px-4 py-2 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+            }`}>
               <Settings className="h-5 w-5" />
               <span>Document Settings</span>
             </button>
 
-            <button className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium">
+            <button className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+              theme === 'dark' 
+                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}>
               POS Billing
             </button>
 
-            <button className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center gap-2">
+            <button className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}>
               <Plus className="h-4 w-4" />
               Create Invoice
             </button>
@@ -87,7 +181,9 @@ export default function SalesPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-t border-border px-6">
+        <div className={`border-t transition-colors duration-200 px-6 ${
+          theme === 'dark' ? 'border-gray-700' : 'border-border'
+        }`}>
           <div className="flex gap-8">
             {[
               { id: 'all' as TabType, label: 'All Transactions', count: allTransactionCount },
@@ -99,14 +195,24 @@ export default function SalesPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`border-b-2 px-0 py-4 text-sm font-medium transition-colors ${
+                className={`border-b-2 px-0 py-4 text-sm font-medium transition-colors duration-200 ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
+                    ? theme === 'dark'
+                      ? 'border-blue-400 text-blue-400'
+                      : 'border-blue-500 text-blue-600'
+                    : theme === 'dark'
+                    ? 'border-transparent text-gray-400 hover:text-gray-200'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
                 {tab.label}
-                {tab.id === 'all' && <span className="ml-2 text-gray-500">{tab.count}</span>}
+                {tab.id === 'all' && (
+                  <span className={`ml-2 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -119,35 +225,61 @@ export default function SalesPage() {
         <div className="mb-6 flex gap-4">
           <input
             placeholder="Search by transaction, customers, invoice #..."
-            className="flex-1 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg"
+            className={`flex-1 border px-3 py-2 rounded-lg transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
+                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+            }`}
           />
 
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium hover:bg-gray-200">
+            <button className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}>
               This Year
               <ChevronDown className="h-4 w-4" />
             </button>
-            <button className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium hover:bg-gray-200">
+            <button className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}>
               Actions
               <ChevronDown className="h-4 w-4" />
             </button>
-            <button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50">
-              <Filter className="h-5 w-5 text-gray-600" />
+            <button className={`rounded-lg border p-2 transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}>
+              <Filter className="h-5 w-5" />
             </button>
           </div>
         </div>
 
         {/* Card → Replaced with plain div */}
-        <div className="rounded-lg border border-gray-200 shadow-sm overflow-hidden bg-white">
+        <div className={`rounded-lg border shadow-sm overflow-hidden transition-colors duration-200 ${
+          theme === 'dark' 
+            ? 'border-gray-700 bg-gray-800' 
+            : 'border-gray-200 bg-white'
+        }`}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-gray-50">
+                <tr className={`border-b transition-colors duration-200 ${
+                  theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                }`}>
                   {['Amount', 'Status', 'Mode', 'Bill #', 'Customer', 'Date', 'Actions'].map((head) => (
-                    <th key={head} className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                    <th key={head} className={`px-6 py-3 text-left text-sm font-semibold transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       <div className="flex items-center gap-2">
                         {head}
-                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                        <ChevronDown className={`h-4 w-4 transition-colors duration-200 ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                        }`} />
                       </div>
                     </th>
                   ))}
@@ -157,51 +289,108 @@ export default function SalesPage() {
               {/* Rows */}
               <tbody>
                 {filteredTransactions.map((t) => (
-                  <tr key={t.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-semibold">₹{t.amount.toFixed(2)}</td>
+                  <tr key={t.id} className={`border-b transition-colors duration-200 ${
+                    theme === 'dark' 
+                      ? 'border-gray-700 hover:bg-gray-700' 
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}>
+                    <td className={`px-6 py-4 text-sm font-semibold transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      ₹{t.amount.toFixed(2)}
+                    </td>
 
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'bg-yellow-900 text-yellow-200'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
                           {t.status}
                         </span>
                         <span className="text-red-500">⚠</span>
                       </div>
                       {t.daysSincePending && (
-                        <p className="text-xs text-red-500">since {t.daysSincePending} day</p>
+                        <p className={`text-xs transition-colors duration-200 ${
+                          theme === 'dark' ? 'text-red-400' : 'text-red-500'
+                        }`}>
+                          since {t.daysSincePending} day
+                        </p>
                       )}
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-gray-600">-</td>
-                    <td className="px-6 py-4 text-sm font-medium">{t.billNumber}</td>
-
-                    <td className="px-6 py-4 text-sm">
-                      <p className="font-medium">{t.customer}</p>
-                      <p className="text-xs text-gray-500">{t.phone}</p>
+                    <td className={`px-6 py-4 text-sm transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      -
+                    </td>
+                    
+                    <td className={`px-6 py-4 text-sm font-medium transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {t.billNumber}
                     </td>
 
                     <td className="px-6 py-4 text-sm">
-                      <p className="font-medium">{t.date}</p>
-                      <p className="text-xs text-gray-500">{t.time}</p>
+                      <p className={`font-medium transition-colors duration-200 ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {t.customer}
+                      </p>
+                      <p className={`text-xs transition-colors duration-200 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {t.phone}
+                      </p>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm">
+                      <p className={`font-medium transition-colors duration-200 ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {t.date}
+                      </p>
+                      <p className={`text-xs transition-colors duration-200 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {t.time}
+                      </p>
                     </td>
 
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <button className="rounded bg-yellow-100 p-1 text-yellow-700 hover:bg-yellow-200">
+                        <button className={`rounded p-1 transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
+                            : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                        }`}>
                           <span className="text-xs font-medium">₹</span>
                         </button>
 
-                        <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'text-gray-400 hover:text-white'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}>
                           <Eye className="h-4 w-4" />
                           View
                         </button>
 
-                        <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+                        <button className={`flex items-center gap-1 text-sm transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'text-gray-400 hover:text-white'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}>
                           <Send className="h-4 w-4" />
                           Send
                         </button>
 
-                        <button className="p-1 text-gray-600 hover:text-gray-900">
+                        <button className={`p-1 transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'text-gray-400 hover:text-white'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}>
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </div>
@@ -214,30 +403,66 @@ export default function SalesPage() {
         </div>
 
         {/* Summary + Pagination */}
-        <div className="mt-6 flex items-center justify-between rounded-lg bg-gray-50 px-6 py-4">
+        <div className={`mt-6 flex items-center justify-between rounded-lg px-6 py-4 transition-colors duration-200 ${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
+        }`}>
           <div className="flex gap-8">
             <div>
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-lg font-bold">₹{total.toFixed(2)}</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Total
+              </p>
+              <p className={`text-lg font-bold transition-colors duration-200 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                ₹{total.toFixed(2)}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Paid</p>
-              <p className="text-lg font-bold">₹{paid.toFixed(2)}</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Paid
+              </p>
+              <p className={`text-lg font-bold transition-colors duration-200 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                ₹{paid.toFixed(2)}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Pending</p>
-              <p className="text-lg font-bold text-orange-600">₹{pending.toFixed(2)}</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Pending
+              </p>
+              <p className={`text-lg font-bold transition-colors duration-200 ${
+                theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
+              }`}>
+                ₹{pending.toFixed(2)}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-1 text-gray-600 hover:text-gray-900">
+            <button className={`p-1 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+            }`}>
               <ChevronLeft className="h-5 w-5" />
             </button>
 
-            <button className="h-8 w-8 rounded bg-blue-600 text-white font-semibold">1</button>
+            <button className={`h-8 w-8 rounded font-semibold transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}>
+              1
+            </button>
 
-            <button className="p-1 text-gray-600 hover:text-gray-900">
+            <button className={`p-1 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+            }`}>
               <ChevronRight className="h-5 w-5" />
             </button>
 
@@ -245,13 +470,21 @@ export default function SalesPage() {
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="rounded border border-gray-200 px-2 py-1 text-sm bg-background cursor-pointer"
+                className={`rounded border px-2 py-1 text-sm transition-colors duration-200 cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-200 text-gray-900'
+                }`}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <span className="text-sm text-gray-600">/ page</span>
+              <span className={`text-sm transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                / page
+              </span>
             </div>
           </div>
         </div>
