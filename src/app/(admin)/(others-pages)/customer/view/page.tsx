@@ -287,8 +287,7 @@ export default function ClientsPage() {
 
   // Add new client function
   const handleAddNew = () => {
-    console.log('Add new client clicked');
-    alert('Add new client functionality would be implemented here');
+      router.push("/customer/add");
   };
 
   // Export to Excel function
