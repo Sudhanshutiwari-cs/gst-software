@@ -1262,7 +1262,7 @@ export default function VendorProductsPage() {
                         <td className="py-4 px-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
                             }`}>
-                            {product.category || `Category ${product.category_name}`}
+                            {product.category ||product.category_name}
                           </span>
                         </td>
 
