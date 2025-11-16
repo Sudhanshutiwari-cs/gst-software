@@ -576,27 +576,28 @@ export default function AddProductsPage() {
     ? "border-b border-gray-700 pb-8"
     : "border-b border-gray-200 pb-8";
 
-  const buttonBaseClass = "px-4 py-1 h-8 rounded-md transition-all duration-200 text-[14px] font-medium flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg overflow-hidden";
+  // Fixed Button Styling Classes
+  const buttonBaseClass = "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow";
 
   const buttonPrimaryClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`
-    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white`;
+    ? `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600`
+    : `${buttonBaseClass} bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600`;
 
   const buttonSecondaryClass = theme === 'dark'
     ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
     : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
 
   const buttonSuccessClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`
-    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`;
+    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`
+    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`;
 
   const buttonInfoClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`
-    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`;
+    ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`
+    : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`;
 
   const buttonDangerClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`
-    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`;
+    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`
+    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`;
 
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
@@ -620,8 +621,8 @@ export default function AddProductsPage() {
 
   // Modal styling classes
   const modalOverlayClass = theme === 'dark'
-    ? "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4"
-    : "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4";
+    ? "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4 z-50"
+    : "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4 z-50";
 
   const modalContentClass = theme === 'dark'
     ? "bg-gray-800 rounded-xl w-full max-w-md border border-gray-700"
@@ -752,7 +753,7 @@ export default function AddProductsPage() {
                             <button
                               type="button"
                               onClick={removeImage}
-                              className={`absolute top-2 right-2 p-1 rounded-full ${buttonDangerClass}`}
+                              className={`absolute top-2 right-2 p-2 rounded-full ${buttonDangerClass}`}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -843,7 +844,7 @@ export default function AddProductsPage() {
                       <button
                         type="button"
                         onClick={generateSKU}
-                        className={buttonSecondaryClass}
+                        className={`${buttonSecondaryClass} whitespace-nowrap`}
                       >
                         Generate
                       </button>
@@ -890,7 +891,7 @@ export default function AddProductsPage() {
                       <button
                         type="button"
                         onClick={handleAddCategoryClick}
-                        className={buttonSuccessClass}
+                        className={`${buttonSuccessClass} whitespace-nowrap`}
                       >
                         + Add
                       </button>
@@ -1277,7 +1278,7 @@ export default function AddProductsPage() {
                 <button
                   type="submit"
                   disabled={loading || !tokenValid}
-                  className={buttonPrimaryClass}
+                  className={`${buttonPrimaryClass} min-w-[120px]`}
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -1354,7 +1355,7 @@ export default function AddProductsPage() {
                 <button
                   type="submit"
                   disabled={addingCategory}
-                  className={buttonSuccessClass}
+                  className={`${buttonSuccessClass} min-w-[120px]`}
                 >
                   {addingCategory ? (
                     <span className="flex items-center justify-center gap-2">

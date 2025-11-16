@@ -85,15 +85,15 @@ const AppHeader: React.FC = () => {
 
           <Link href="/" className="lg:hidden">
             <Image
-              width={18}
-              height={18}
+              width={45}
+              height={30}
               className="dark:hidden"
               src="https://res.cloudinary.com/doficc2yl/image/upload/v1762695538/Screenshot_2025-11-09_190815_v05dqe.png"
               alt="Logo"
             />
             <Image
-              width={18}
-              height={18}
+              width={45}
+              height={30}
               className="hidden dark:block"
               src="https://res.cloudinary.com/doficc2yl/image/upload/v1762695538/Screenshot_2025-11-09_190815_v05dqe.png"
               alt="Logo"

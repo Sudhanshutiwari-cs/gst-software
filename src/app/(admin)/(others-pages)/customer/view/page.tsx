@@ -863,8 +863,8 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {/* Mobile Cards View */}
-          <div className="block md:hidden">
+          {/* Table Container with Horizontal Scroll */}
+          <div className="w-full overflow-x-auto">
             {filteredClients.length === 0 ? (
               <div className={`text-center py-12 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
@@ -879,137 +879,7 @@ export default function ClientsPage() {
                 </p>
               </div>
             ) : (
-              <div className="p-4 space-y-4">
-                {filteredClients.map((client) => (
-                  <div
-                    key={client.id}
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-750'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                    } ${client.selected ? (theme === 'dark' ? 'bg-indigo-900 border-indigo-700' : 'bg-indigo-50 border-indigo-200') : ''}`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={client.selected}
-                          onChange={() => toggleClientSelection(client.id)}
-                          className={`rounded mt-1 ${
-                            theme === 'dark' ? 'accent-indigo-500' : 'accent-indigo-600'
-                          }`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`font-semibold truncate ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {client.name}
-                          </h3>
-                          <p className={`text-xs mt-0.5 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {client.phone} • {client.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          onClick={() => handleEdit(client)}
-                          className={`p-2 rounded-lg transition-all duration-200 border ${
-                            theme === 'dark'
-                              ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
-                              : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
-                          }`}
-                          title="Edit client"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(client)}
-                          disabled={deleteLoading === client.id}
-                          className={`p-2 rounded-lg transition-all duration-200 border ${
-                            deleteLoading === client.id
-                              ? theme === 'dark'
-                                ? 'text-gray-500 border-gray-600 cursor-not-allowed'
-                                : 'text-gray-400 border-gray-200 cursor-not-allowed'
-                              : theme === 'dark'
-                                ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
-                                : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
-                          }`}
-                          title="Delete client"
-                        >
-                          {deleteLoading === client.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Case Ref:</span>
-                        <div className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {client.caseRef}
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Created:</span>
-                        <div className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
-                          {client.openedAt}
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>City:</span>
-                        <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {client.city}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Vendor:</span>
-                        <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {client.serProvider}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>PAN/GSTIN:</span>
-                        <div className={`font-mono text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {client.gstin}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            {filteredClients.length === 0 ? (
-              <div className={`text-center py-12 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                <div className={`text-lg font-medium ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
-                }`}>
-                  No clients found
-                </div>
-                <p className="text-sm mt-1">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first client'}
-                </p>
-              </div>
-            ) : (
-              <div className={`border rounded-2xl m-4 overflow-hidden ${
+              <div className={`min-w-[1024px] border rounded-2xl m-4 overflow-hidden ${
                 theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
               }`}>
                 <table className="w-full text-sm">

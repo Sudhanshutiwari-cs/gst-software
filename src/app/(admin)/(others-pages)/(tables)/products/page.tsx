@@ -735,170 +735,135 @@ export default function VendorProductsPage() {
             </div>
           </div>
 
-          {/* Mobile Cards View */}
-          <div className="block md:hidden">
-            {filteredProducts.length === 0 ? (
-              <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                <div className={`text-lg font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
-                  }`}>
-                  No products found
+          {/* Filter Panel */}
+          {showFilterPanel && (
+            <div className={`p-4 md:p-6 border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-750' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Filters
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={resetFilters}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${theme === 'dark'
+                        ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                  >
+                    Reset All
+                  </button>
+                  <button
+                    onClick={() => setShowFilterPanel(false)}
+                    className={`p-1 rounded-md transition-colors ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-300'
+                        : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <p className="text-sm mt-1">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first product'}
-                </p>
               </div>
-            ) : (
-              <div className="p-4 space-y-4">
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Price Range Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Price Range
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                        {formatPrice(priceRange[0])}
+                      </span>
+                      <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                        {formatPrice(priceRange[1])}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={priceMinMax[0]}
+                      max={priceMinMax[1]}
+                      value={priceRange[0]}
+                      onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                        theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
+                      }`}
+                    />
+                    <input
+                      type="range"
+                      min={priceMinMax[0]}
+                      max={priceMinMax[1]}
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                        theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Quantity Range Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Quantity Range
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                        {quantityRange[0]}
+                      </span>
+                      <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                        {quantityRange[1]}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={quantityMinMax[0]}
+                      max={quantityMinMax[1]}
+                      value={quantityRange[0]}
+                      onChange={(e) => setQuantityRange([Number(e.target.value), quantityRange[1]])}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                        theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
+                      }`}
+                    />
+                    <input
+                      type="range"
+                      min={quantityMinMax[0]}
+                      max={quantityMinMax[1]}
+                      value={quantityRange[1]}
+                      onChange={(e) => setQuantityRange([quantityRange[0], Number(e.target.value)])}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                        theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Status
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                    className={`w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                       theme === 'dark'
-                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-750'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="flex-shrink-0 h-12 w-12">
-                          {product.product_image ? (
-                            <img
-                              className="h-12 w-12 rounded-lg object-cover border border-gray-200"
-                              src={product.product_image}
-                              alt={product.product_name}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjRGNUY3Ii8+CjxwYXRoIGQ9Ik0yNCAxNkMyMC42ODYzIDE2IDE4IDE4LjY4NjMgMTggMjJDMTggMjUuMzEzNyAyMC42ODYzIDI4IDI0IDI4QzI3LjMxMzcgMjggMzAgMjUuMzEzNyAzMCAyMkMzMCAxOC42ODYzIDI3LjMxMzcgMTYgMjQgMTZaIiBmaWxsPSIjOEU5MEEwIi8+CjxwYXRoIGQ9Ik0zMyAyNkMzNCAyNi44OTU0IDM0IDI4LjEwNDYgMzMgMjlDMzEuODk1NCAzMCAzMC4xMDQ2IDMwIDI5IDMwQzI3Ljg5NTQgMzAgMjYuMTA0NiAzMCAyNSAyOUMyNCAyOC4xMDQ2IDI0IDI2Ljg5NTQgMjUgMjZDMjUuODk1NCAyNSAyNy43MDQ2IDI1IDI5IDI1QzMwLjI5NTQgMjUgMzIuMTA0NiAyNSAzMyAyNloiIGZpbGw9IiM4RTkwQTAiLz4KPC9zdmc+';
-                              }}
-                            />
-                          ) : (
-                            <div className={`h-12 w-12 rounded-lg border flex items-center justify-center ${
-                              theme === 'dark'
-                                ? 'bg-gray-700 border-gray-600'
-                                : 'bg-gray-100 border-gray-200'
-                            }`}>
-                              <span className={`text-xs ${
-                                theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
-                              }`}>
-                                No Image
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`font-semibold truncate ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {product.product_name}
-                          </h3>
-                          <p className={`text-xs mt-0.5 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            SKU: {product.sku}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          onClick={() => handleEdit(product.id)}
-                          className={`p-2 rounded-lg transition-all duration-200 border ${
-                            theme === 'dark'
-                              ? 'text-blue-400 hover:bg-blue-500 hover:text-white border-blue-800 hover:border-blue-500'
-                              : 'text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 hover:border-blue-500'
-                          }`}
-                          title="Edit product"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          disabled={deleteLoading === product.id}
-                          className={`p-2 rounded-lg transition-all duration-200 border ${
-                            deleteLoading === product.id
-                              ? theme === 'dark'
-                                ? 'text-gray-500 border-gray-600 cursor-not-allowed'
-                                : 'text-gray-400 border-gray-200 cursor-not-allowed'
-                              : theme === 'dark'
-                                ? 'text-red-400 hover:bg-red-500 hover:text-white border-red-800 hover:border-red-500'
-                                : 'text-red-600 hover:bg-red-500 hover:text-white border-red-200 hover:border-red-500'
-                          }`}
-                          title="Delete product"
-                        >
-                          {deleteLoading === product.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Price:</span>
-                        <div className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {formatPrice(product.sales_price)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Quantity:</span>
-                        <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            product.qty === 0
-                              ? theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800'
-                              : product.qty < 10
-                                ? theme === 'dark' ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
-                                : theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
-                          }`}>
-                            {product.qty} {product.unit}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Category:</span>
-                        <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {product.category || `Category ${product.category_name}`}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Status:</span>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(product.is_active)}
-                          <button
-                            onClick={() => handleToggleStatus(product.id)}
-                            disabled={toggleLoading === product.id}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                              product.is_active
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-300 hover:bg-gray-400'
-                            } ${toggleLoading === product.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                product.is_active ? 'translate-x-5' : 'translate-x-1'
-                              } ${toggleLoading === product.id ? 'animate-pulse' : ''}`}
-                            />
-                            {toggleLoading === product.id && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <RefreshCw className="w-3 h-3 text-white animate-spin" />
-                              </div>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    <option value="all">All Status</option>
+                    <option value="active">Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                  </select>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
+          {/* Table Container with Horizontal Scroll */}
+          <div className="w-full overflow-x-auto">
             {filteredProducts.length === 0 ? (
               <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}>
@@ -911,7 +876,7 @@ export default function VendorProductsPage() {
                 </p>
               </div>
             ) : (
-              <div className={`border rounded-2xl m-4 overflow-hidden ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+              <div className={`min-w-[1024px] border rounded-2xl m-4 overflow-hidden ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
                 }`}>
                 <table className="w-full text-sm">
                   <thead>
