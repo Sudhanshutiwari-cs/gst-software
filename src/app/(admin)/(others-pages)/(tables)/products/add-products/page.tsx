@@ -680,7 +680,7 @@ export default function AddProductsPage() {
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
               >
-                ← Back to Products
+                Back 
               </button>
             </div>
           </div>
