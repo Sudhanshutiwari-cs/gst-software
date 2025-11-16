@@ -602,8 +602,8 @@ export default function AddProductsPage() {
 
   // Modal styling classes
   const modalOverlayClass = theme === 'dark'
-    ? "fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center  p-4"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center  p-4";
+    ? "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4"
+    : "fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4";
 
   const modalContentClass = theme === 'dark'
     ? "bg-gray-800 rounded-xl w-full max-w-md border border-gray-700"

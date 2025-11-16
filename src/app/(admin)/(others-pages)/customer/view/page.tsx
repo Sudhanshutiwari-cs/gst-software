@@ -445,9 +445,9 @@ export default function ClientsPage() {
   };
 
   const stats = [
-    { label: "Total Clients", value: clients.length.toString() },
+    { label: "Total Customers", value: clients.length.toString() },
     { label: "Selected", value: clients.filter(client => client.selected).length.toString() },
-    { label: "Vendor Clients", value: clients.length.toString() },
+    { label: "Vendor Client", value: clients.length.toString() },
     { label: "Active", value: clients.length.toString() }
   ];
 
@@ -476,10 +476,10 @@ export default function ClientsPage() {
             <h1 className={`text-3xl font-extrabold tracking-tight ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Clients Dashboard
+              Customers
             </h1>
             <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              View and manage all your client information in one place.
+              View and manage all your Customer information in one place.
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
@@ -518,7 +518,7 @@ export default function ClientsPage() {
                 theme === 'dark' ? 'bg-white' : 'bg-white'
               }`}></div>
               <Plus className="w-4 h-4" />
-              Add New Client
+              Add New Customer
               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
             </button>
           </div>
@@ -567,7 +567,7 @@ export default function ClientsPage() {
             <h2 className={`text-lg font-semibold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Vendor Clients
+              Customer
             </h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               {/* Search Bar */}
