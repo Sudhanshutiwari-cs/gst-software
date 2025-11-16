@@ -136,17 +136,11 @@ export default function AddCustomerPage() {
     ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
     : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
 
-  const buttonSuccessClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`
-    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white`;
 
   const buttonInfoClass = theme === 'dark'
     ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`
     : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white`;
 
-  const buttonDangerClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`
-    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white`;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
