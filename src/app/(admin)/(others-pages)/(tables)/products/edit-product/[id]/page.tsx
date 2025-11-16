@@ -579,17 +579,13 @@ export default function EditProductPage() {
     ? `${buttonBaseClass} bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600`
     : `${buttonBaseClass} bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300`;
 
-  const buttonSuccessClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`
-    : `${buttonBaseClass} bg-green-600 hover:bg-green-700 text-white border border-green-600`;
+  
 
   const buttonInfoClass = theme === 'dark'
     ? `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`
     : `${buttonBaseClass} bg-blue-600 hover:bg-blue-700 text-white border border-blue-600`;
 
-  const buttonDangerClass = theme === 'dark'
-    ? `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`
-    : `${buttonBaseClass} bg-red-600 hover:bg-red-700 text-white border border-red-600`;
+
 
   const errorClass = theme === 'dark'
     ? "mb-6 p-4 bg-red-900/20 text-red-200 rounded-lg flex items-center justify-between border border-red-800/30"
