@@ -3,6 +3,23 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Plus, AlertCircle, X } from 'lucide-react'
 
+// Vendor Profile interface
+interface VendorProfile {
+  id: string
+  name: string
+  email: string
+  phone: string
+  shop_name: string
+  shop_address: string
+  shop_logo?: string
+  business_type?: string
+  gst_number?: string
+  pan_number?: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
 // Customer interface
 interface Customer {
   id: string
@@ -64,6 +81,11 @@ export default function CreateInvoice() {
   const [invoiceNumber, setInvoiceNumber] = useState('1181')
   const [invoiceType, setInvoiceType] = useState('regular')
   
+  // Vendor Profile State
+  const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  
   // Customer State
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState('')
@@ -102,6 +124,52 @@ export default function CreateInvoice() {
   // Get JWT token helper function
   const getAuthToken = (): string | null => {
     return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+  }
+
+  // API function to fetch vendor profile
+  const fetchVendorProfile = async () => {
+    setLoadingProfile(true)
+    setProfileError('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vendor profile: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('Vendor Profile API Response:', data)
+      
+      // Handle different response formats
+      if (data.success && data.data) {
+        setVendorProfile(data.data)
+      } else if (data.data) {
+        setVendorProfile(data.data)
+      } else if (data.profile) {
+        setVendorProfile(data.profile)
+      } else {
+        // If the response is the profile object directly
+        setVendorProfile(data)
+      }
+    } catch (error) {
+      console.error('Error fetching vendor profile:', error)
+      setProfileError(error instanceof Error ? error.message : 'Failed to load vendor profile')
+    } finally {
+      setLoadingProfile(false)
+    }
   }
 
   // API function to fetch customers
@@ -262,8 +330,9 @@ export default function CreateInvoice() {
     }
   }
 
-  // Fetch customers and products on component mount
+  // Fetch all data on component mount
   useEffect(() => {
+    fetchVendorProfile()
     fetchCustomers()
     fetchProducts()
   }, [])
@@ -392,6 +461,10 @@ export default function CreateInvoice() {
     setShowCustomerDropdown(false)
   }
 
+  const retryFetchProfile = () => {
+    fetchVendorProfile()
+  }
+
   const retryFetchCustomers = () => {
     fetchCustomers()
   }
@@ -408,7 +481,17 @@ export default function CreateInvoice() {
           <div className="flex items-center gap-2">
             <ChevronDown className="h-4 w-4 text-slate-600" />
             <h1 className="text-lg font-semibold text-slate-900">Create Invoice</h1>
-            <span className="text-sm text-slate-600">Shriram Claryx</span>
+            <span className="text-sm text-slate-600">
+              {loadingProfile ? (
+                'Loading...'
+              ) : profileError ? (
+                <span className="text-red-600">Error loading profile</span>
+              ) : vendorProfile ? (
+                vendorProfile.shop_name || 'Vendor Shop'
+              ) : (
+                'Shriram Claryx'
+              )}
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
@@ -444,10 +527,47 @@ export default function CreateInvoice() {
         </div>
       </div>
 
+      {/* Profile Error Banner */}
+      {profileError && (
+        <div className="bg-red-50 border-b border-red-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-red-600">{profileError}</span>
+            </div>
+            <button 
+              onClick={retryFetchProfile}
+              className="text-sm font-medium text-red-700 hover:text-red-800 underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="grid grid-cols-3 gap-6 p-6">
         {/* Left Column */}
         <div className="col-span-2 space-y-4">
+          {/* Vendor Info Card (Optional - can be removed if not needed) */}
+          {vendorProfile && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-900">{vendorProfile.shop_name}</h3>
+                  <p className="text-sm text-slate-600">
+                    {vendorProfile.business_type && `${vendorProfile.business_type} • `}
+                    {vendorProfile.gst_number && `GST: ${vendorProfile.gst_number}`}
+                  </p>
+                </div>
+                <div className="text-right text-sm text-slate-600">
+                  <p>{vendorProfile.name}</p>
+                  <p>{vendorProfile.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Type Selector */}
           <div className="bg-white p-4 rounded-lg border border-slate-200">
             <div className="flex items-center gap-4">
