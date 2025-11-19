@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle,  X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, AlertCircle, X } from 'lucide-react'
 
-// Mock data types
+// Customer interface
 interface Customer {
   id: string
   name: string
@@ -14,14 +14,19 @@ interface Customer {
   address: string
 }
 
+// Product interface based on your API response
 interface Product {
   id: string
   name: string
-  category: string
+  category?: string
   price: number
-  stock: number
-  hsnCode: string
-  taxRate: number
+  stock?: number
+  hsnCode?: string
+  taxRate?: number
+  description?: string
+  sku?: string
+  product_image?: string
+  vendor_id?: string
 }
 
 interface InvoiceItem {
@@ -38,58 +43,6 @@ interface Bank {
   accountNumber: string
   ifsc: string
 }
-
-// Mock data
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    company: 'ABC Corporation',
-    gstin: '07AABCU9603R1ZM',
-    email: 'john@abccorp.com',
-    phone: '+91 9876543210',
-    address: '123 Business Street, New Delhi'
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    company: 'XYZ Industries',
-    gstin: '08BXYZS9603R1ZN',
-    email: 'jane@xyz.com',
-    phone: '+91 9876543211',
-    address: '456 Industrial Area, Mumbai'
-  }
-]
-
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Laptop Computer',
-    category: 'Electronics',
-    price: 75000,
-    stock: 15,
-    hsnCode: '84713000',
-    taxRate: 18
-  },
-  {
-    id: '2',
-    name: 'Office Chair',
-    category: 'Furniture',
-    price: 12000,
-    stock: 25,
-    hsnCode: '94013000',
-    taxRate: 12
-  },
-  {
-    id: '3',
-    name: 'Printer',
-    category: 'Electronics',
-    price: 25000,
-    stock: 8,
-    hsnCode: '84433100',
-    taxRate: 18
-  }
-]
 
 const mockBanks: Bank[] = [
   {
@@ -112,17 +65,23 @@ export default function CreateInvoice() {
   const [invoiceType, setInvoiceType] = useState('regular')
   
   // Customer State
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
+  const [customerError, setCustomerError] = useState('')
   
   // Products State
+  const [products, setProducts] = useState<Product[]>([])
   const [selectedProducts, setSelectedProducts] = useState<InvoiceItem[]>([])
   const [productSearch, setProductSearch] = useState('')
   const [productQuantity, setProductQuantity] = useState(1)
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [showProductDropdown, setShowProductDropdown] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [productError, setProductError] = useState('')
   
   // Section Expansion State
   const [expandedNotes, setExpandedNotes] = useState(true)
@@ -140,44 +99,213 @@ export default function CreateInvoice() {
   const [createEWaybill, setCreateEWaybill] = useState(false)
   const [createEInvoice, setCreateEInvoice] = useState(false)
 
-  // Calculations
-  const taxableAmount = selectedProducts.reduce((sum, item) => sum + item.total, 0)
-  const totalTax = selectedProducts.reduce((sum, item) => sum + (item.total * item.product.taxRate / 100), 0)
-  const totalAmount = taxableAmount + totalTax
-  const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
-  const roundOff = roundedAmount - totalAmount
+  // Get JWT token helper function
+  const getAuthToken = (): string | null => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+  }
+
+  // API function to fetch customers
+  const fetchCustomers = async () => {
+    setLoadingCustomers(true)
+    setCustomerError('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/customers', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch customers: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('Customers API Response:', data)
+      
+      // Flexible response handling
+      if (data.success && data.data) {
+        setCustomers(data.data)
+      } else if (Array.isArray(data)) {
+        setCustomers(data)
+      } else if (data.data && Array.isArray(data.data)) {
+        setCustomers(data.data)
+      } else {
+        throw new Error('Unexpected API response format for customers')
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+      setCustomerError(error instanceof Error ? error.message : 'Failed to load customers')
+    } finally {
+      setLoadingCustomers(false)
+    }
+  }
+
+  // API function to fetch products
+  const fetchProducts = async () => {
+    setLoadingProducts(true)
+    setProductError('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/products', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('Products API Response:', data)
+      
+      // Flexible response handling for products
+      let productsData: any[] = []
+
+      if (data.success && data.data && Array.isArray(data.data)) {
+        productsData = data.data
+      } else if (Array.isArray(data)) {
+        productsData = data
+      } else if (data.data && Array.isArray(data.data)) {
+        productsData = data.data
+      } else if (data.products && Array.isArray(data.products)) {
+        productsData = data.products
+      } else {
+        throw new Error('Unexpected API response format for products')
+      }
+
+      // Transform the data to match our Product interface based on the actual API response
+      const transformedProducts: Product[] = productsData.map((item: any) => {
+        // Debug each product item
+        console.log('Processing product:', item)
+        
+        // Find price - check multiple possible fields
+        let price = 0
+        if (item.sale_price !== undefined && item.sale_price !== null) {
+          price = parseFloat(item.sale_price)
+        } else if (item.price !== undefined && item.price !== null) {
+          price = parseFloat(item.price)
+        } else if (item.cost_price !== undefined && item.cost_price !== null) {
+          price = parseFloat(item.cost_price)
+        }
+
+        // Find stock - check multiple possible fields
+        let stock = 0
+        if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
+          stock = parseInt(item.stock_quantity)
+        } else if (item.stock !== undefined && item.stock !== null) {
+          stock = parseInt(item.stock)
+        } else if (item.quantity !== undefined && item.quantity !== null) {
+          stock = parseInt(item.quantity)
+        }
+
+        // Find tax rate - check multiple possible fields
+        let taxRate = 0
+        if (item.tax_rate !== undefined && item.tax_rate !== null) {
+          taxRate = parseFloat(item.tax_rate)
+        } else if (item.tax !== undefined && item.tax !== null) {
+          taxRate = parseFloat(item.tax)
+        } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
+          taxRate = parseFloat(item.gst_rate)
+        }
+
+        // Find HSN code - check multiple possible fields
+        let hsnCode = ''
+        if (item.hsn_code !== undefined && item.hsn_code !== null) {
+          hsnCode = item.hsn_code
+        } else if (item.hsn !== undefined && item.hsn !== null) {
+          hsnCode = item.hsn
+        } else if (item.hsn_number !== undefined && item.hsn_number !== null) {
+          hsnCode = item.hsn_number
+        }
+
+        return {
+          id: item.id?.toString() || Math.random().toString(),
+          name: item.product_name || item.name || item.title || 'Unnamed Product',
+          category: item.category_name || item.category || item.product_category || '',
+          price: price,
+          stock: stock,
+          hsnCode: hsnCode,
+          taxRate: taxRate,
+          description: item.description || item.product_description || '',
+          sku: item.sku || item.product_sku || '',
+          product_image: item.product_image || null,
+          vendor_id: item.vendor_id || ''
+        }
+      })
+
+      console.log('Transformed Products:', transformedProducts)
+      setProducts(transformedProducts)
+
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      setProductError(error instanceof Error ? error.message : 'Failed to load products')
+    } finally {
+      setLoadingProducts(false)
+    }
+  }
+
+  // Fetch customers and products on component mount
+  useEffect(() => {
+    fetchCustomers()
+    fetchProducts()
+  }, [])
 
   // Filter customers based on search
   useEffect(() => {
     if (customerSearch) {
-      const filtered = mockCustomers.filter(customer =>
-        customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        customer.company.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        customer.gstin.toLowerCase().includes(customerSearch.toLowerCase())
+      const filtered = customers.filter(customer =>
+        customer.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        customer.company?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        customer.gstin?.toLowerCase().includes(customerSearch.toLowerCase())
       )
       setFilteredCustomers(filtered)
     } else {
-      setFilteredCustomers(mockCustomers)
+      setFilteredCustomers(customers)
     }
-  }, [customerSearch])
+  }, [customerSearch, customers])
 
   // Filter products based on search
   useEffect(() => {
     if (productSearch) {
-      const filtered = mockProducts.filter(product =>
-        product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.category.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.hsnCode.toLowerCase().includes(productSearch.toLowerCase())
+      const filtered = products.filter(product =>
+        product.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
+        product.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
+        product.hsnCode?.toLowerCase().includes(productSearch.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(productSearch.toLowerCase())
       )
       setFilteredProducts(filtered)
     } else {
-      setFilteredProducts(mockProducts)
+      setFilteredProducts(products)
     }
-  }, [productSearch])
+  }, [productSearch, products])
 
-  // Mock API functions
+  // Calculations
+  const taxableAmount = selectedProducts.reduce((sum, item) => sum + item.total, 0)
+  const totalTax = selectedProducts.reduce((sum, item) => sum + (item.total * (item.product.taxRate || 0) / 100), 0)
+  const totalAmount = taxableAmount + totalTax
+  const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
+  const roundOff = roundedAmount - totalAmount
+
+  // Mock API functions for saving invoice
   const saveInvoice = async () => {
-    // Simulate API call
     console.log('Saving invoice...', {
       invoiceNumber,
       invoiceType,
@@ -191,9 +319,7 @@ export default function CreateInvoice() {
       }
     })
 
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
     alert('Invoice saved successfully!')
   }
 
@@ -213,7 +339,6 @@ export default function CreateInvoice() {
     const existingItem = selectedProducts.find(item => item.product.id === product.id)
     
     if (existingItem) {
-      // Update quantity if product already exists
       setSelectedProducts(prev =>
         prev.map(item =>
           item.product.id === product.id
@@ -226,7 +351,6 @@ export default function CreateInvoice() {
         )
       )
     } else {
-      // Add new product
       const newItem: InvoiceItem = {
         id: Date.now().toString(),
         product,
@@ -237,7 +361,6 @@ export default function CreateInvoice() {
       setSelectedProducts(prev => [...prev, newItem])
     }
     
-    // Reset search and quantity
     setProductSearch('')
     setProductQuantity(1)
     setShowProductDropdown(false)
@@ -265,8 +388,16 @@ export default function CreateInvoice() {
 
   const selectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer.id)
-    setCustomerSearch(customer.company)
+    setCustomerSearch(customer.company || customer.name)
     setShowCustomerDropdown(false)
+  }
+
+  const retryFetchCustomers = () => {
+    fetchCustomers()
+  }
+
+  const retryFetchProducts = () => {
+    fetchProducts()
   }
 
   return (
@@ -340,9 +471,18 @@ export default function CreateInvoice() {
                 <h2 className="font-semibold text-slate-900">Customer details</h2>
                 <AlertCircle className="h-4 w-4 text-slate-400" />
               </div>
-              <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                + Add new Customer?
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={retryFetchCustomers}
+                  disabled={loadingCustomers}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                >
+                  {loadingCustomers ? 'Loading...' : 'Refresh Customers'}
+                </button>
+                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                  + Add new Customer?
+                </button>
+              </div>
             </div>
 
             <div className="mb-6 space-y-3">
@@ -358,18 +498,44 @@ export default function CreateInvoice() {
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}
                 />
+                
+                {customerError && (
+                  <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                    {customerError}
+                    <button 
+                      onClick={retryFetchCustomers}
+                      className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
                 {showCustomerDropdown && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredCustomers.map(customer => (
-                      <div
-                        key={customer.id}
-                        className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-                        onClick={() => selectCustomer(customer)}
-                      >
-                        <div className="font-medium text-slate-900">{customer.company}</div>
-                        <div className="text-xs text-slate-600">{customer.name} • {customer.gstin}</div>
+                    {loadingCustomers ? (
+                      <div className="px-3 py-4 text-center text-sm text-slate-600">
+                        Loading customers...
                       </div>
-                    ))}
+                    ) : filteredCustomers.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-sm text-slate-600">
+                        {customerSearch ? 'No customers found' : 'No customers available'}
+                      </div>
+                    ) : (
+                      filteredCustomers.map(customer => (
+                        <div
+                          key={customer.id}
+                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <div className="font-medium text-slate-900">{customer.company || customer.name}</div>
+                          <div className="text-xs text-slate-600">
+                            {customer.name} 
+                            {customer.gstin && ` • ${customer.gstin}`}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -403,10 +569,30 @@ export default function CreateInvoice() {
                 <h2 className="font-semibold text-slate-900">Products & Services</h2>
                 <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">?</span>
               </div>
-              <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                + Add new Product?
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={retryFetchProducts}
+                  disabled={loadingProducts}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                >
+                  {loadingProducts ? 'Loading...' : 'Refresh Products'}
+                </button>
+                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                  + Add new Product?
+                </button>
+              </div>
             </div>
+
+            {/* Debug Info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <div className="text-xs text-yellow-800">
+                  <strong>Debug Info:</strong> {products.length} products loaded, 
+                  {filteredProducts.length} filtered, 
+                  {selectedProducts.length} in bill
+                </div>
+              </div>
+            )}
 
             {/* Search Bar */}
             <div className="mb-6 flex gap-3">
@@ -423,20 +609,47 @@ export default function CreateInvoice() {
                     }}
                     onFocus={() => setShowProductDropdown(true)}
                   />
+                  
+                  {productError && (
+                    <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                      {productError}
+                      <button 
+                        onClick={retryFetchProducts}
+                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+
                   {showProductDropdown && (
                     <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                      {filteredProducts.map(product => (
-                        <div
-                          key={product.id}
-                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-                          onClick={() => addProductToBill(product)}
-                        >
-                          <div className="font-medium text-slate-900">{product.name}</div>
-                          <div className="text-xs text-slate-600">
-                            {product.category} • ₹{product.price} • Stock: {product.stock}
-                          </div>
+                      {loadingProducts ? (
+                        <div className="px-3 py-4 text-center text-sm text-slate-600">
+                          Loading products...
                         </div>
-                      ))}
+                      ) : filteredProducts.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-sm text-slate-600">
+                          {productSearch ? 'No products found' : 'No products available'}
+                        </div>
+                      ) : (
+                        filteredProducts.map(product => (
+                          <div
+                            key={product.id}
+                            className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                            onClick={() => addProductToBill(product)}
+                          >
+                            <div className="font-medium text-slate-900">{product.name}</div>
+                            <div className="text-xs text-slate-600">
+                              {product.sku && `SKU: ${product.sku} • `}
+                              ₹{product.price} 
+                              {product.stock !== undefined && ` • Stock: ${product.stock}`}
+                              {product.hsnCode && ` • HSN: ${product.hsnCode}`}
+                              {product.taxRate && ` • Tax: ${product.taxRate}%`}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
@@ -462,7 +675,8 @@ export default function CreateInvoice() {
                     addProductToBill(filteredProducts[0])
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                disabled={filteredProducts.length === 0 || loadingProducts}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Add to Bill
@@ -490,7 +704,14 @@ export default function CreateInvoice() {
                   <div key={item.id} className="grid grid-cols-12 gap-4 py-3 border-b border-slate-100 last:border-b-0">
                     <div className="col-span-5">
                       <div className="font-medium text-slate-900">{item.product.name}</div>
-                      <div className="text-xs text-slate-600">HSN: {item.product.hsnCode} • Tax: {item.product.taxRate}%</div>
+                      <div className="text-xs text-slate-600">
+                        {item.product.sku && `SKU: ${item.product.sku}`}
+                        {item.product.sku && item.product.hsnCode && ' • '}
+                        {item.product.hsnCode && `HSN: ${item.product.hsnCode}`}
+                        {(item.product.sku || item.product.hsnCode) && item.product.taxRate && ' • '}
+                        {item.product.taxRate && `Tax: ${item.product.taxRate}%`}
+                        {!item.product.sku && !item.product.hsnCode && !item.product.taxRate && 'No additional info'}
+                      </div>
                     </div>
                     <div className="col-span-2">
                       <input
@@ -519,9 +740,17 @@ export default function CreateInvoice() {
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="mb-4 h-16 w-16 rounded-lg bg-slate-100"></div>
                 <p className="mb-4 text-sm text-slate-600">
-                  Search existing products to add to this list or add new product to get started! 🎯
+                  {loadingProducts 
+                    ? 'Loading products...' 
+                    : products.length === 0
+                    ? 'No products available. Please check if products exist in your inventory.'
+                    : 'Search existing products to add to this list or add new product to get started! 🎯'
+                  }
                 </p>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                <button 
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  disabled={loadingProducts}
+                >
                   <Plus className="h-4 w-4" />
                   Add New Product
                 </button>
