@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2 } from 'lucide-react'
 
 // Vendor Profile interface
 interface VendorProfile {
@@ -29,6 +29,8 @@ interface Customer {
   email: string
   phone: string
   address: string
+  city?: string
+  pincode?: string
 }
 
 // Product interface based on your API response
@@ -46,6 +48,35 @@ interface Product {
   vendor_id?: string
 }
 
+// Interface for API product response
+interface ApiProduct {
+  id?: string | number
+  product_name?: string
+  name?: string
+  title?: string
+  sale_price?: string | number
+  price?: string | number
+  cost_price?: string | number
+  stock_quantity?: string | number
+  stock?: string | number
+  quantity?: string | number
+  tax_rate?: string | number
+  tax?: string | number
+  gst_rate?: string | number
+  hsn_code?: string
+  hsn?: string
+  hsn_number?: string
+  category_name?: string
+  category?: string
+  product_category?: string
+  description?: string
+  product_description?: string
+  sku?: string
+  product_sku?: string
+  product_image?: string
+  vendor_id?: string
+}
+
 interface InvoiceItem {
   id: string
   product: Product
@@ -59,6 +90,18 @@ interface Bank {
   name: string
   accountNumber: string
   ifsc: string
+}
+
+// Add Customer Form Data interface
+interface AddCustomerFormData {
+  name: string
+  mobile: string
+  email: string
+  gstin: string
+  address: string
+  city: string
+  pincode: string
+  company?: string
 }
 
 const mockBanks: Bank[] = [
@@ -94,6 +137,24 @@ export default function CreateInvoice() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [customerError, setCustomerError] = useState('')
+  
+  // Add Customer Slider State
+  const [showAddCustomerSlider, setShowAddCustomerSlider] = useState(false)
+  const [addingCustomer, setAddingCustomer] = useState(false)
+  const [addCustomerError, setAddCustomerError] = useState('')
+  const [addCustomerSuccess, setAddCustomerSuccess] = useState('')
+  
+  // Add Customer Form State
+  const [customerFormData, setCustomerFormData] = useState<AddCustomerFormData>({
+    name: '',
+    mobile: '',
+    email: '',
+    gstin: '',
+    address: '',
+    city: '',
+    pincode: '',
+    company: ''
+  })
   
   // Products State
   const [products, setProducts] = useState<Product[]>([])
@@ -217,6 +278,72 @@ export default function CreateInvoice() {
     }
   }
 
+  // API function to add customer
+  const addCustomer = async (formData: AddCustomerFormData) => {
+    setAddingCustomer(true)
+    setAddCustomerError('')
+    setAddCustomerSuccess('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-customers', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          mobile: formData.mobile,
+          email: formData.email,
+          gstin: formData.gstin,
+          address: formData.address,
+          city: formData.city,
+          pincode: formData.pincode,
+          ...(formData.company && { company: formData.company })
+        })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to add customer: ${response.status}`)
+      }
+
+      if (data.success) {
+        setAddCustomerSuccess('Customer added successfully!')
+        // Reset form
+        setCustomerFormData({
+          name: '',
+          mobile: '',
+          email: '',
+          gstin: '',
+          address: '',
+          city: '',
+          pincode: '',
+          company: ''
+        })
+        // Refresh customers list
+        setTimeout(() => {
+          fetchCustomers()
+          setShowAddCustomerSlider(false)
+        }, 1500)
+      } else {
+        throw new Error(data.message || 'Failed to add customer')
+      }
+    } catch (error) {
+      console.error('Error adding customer:', error)
+      setAddCustomerError(error instanceof Error ? error.message : 'Failed to add customer')
+    } finally {
+      setAddingCustomer(false)
+    }
+  }
+
   // API function to fetch products
   const fetchProducts = async () => {
     setLoadingProducts(true)
@@ -245,7 +372,7 @@ export default function CreateInvoice() {
       console.log('Products API Response:', data)
       
       // Flexible response handling for products
-      let productsData: any[] = []
+      let productsData: ApiProduct[] = []
 
       if (data.success && data.data && Array.isArray(data.data)) {
         productsData = data.data
@@ -260,38 +387,38 @@ export default function CreateInvoice() {
       }
 
       // Transform the data to match our Product interface based on the actual API response
-      const transformedProducts: Product[] = productsData.map((item: any) => {
+      const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
         // Debug each product item
         console.log('Processing product:', item)
         
         // Find price - check multiple possible fields
         let price = 0
         if (item.sale_price !== undefined && item.sale_price !== null) {
-          price = parseFloat(item.sale_price)
+          price = parseFloat(item.sale_price.toString())
         } else if (item.price !== undefined && item.price !== null) {
-          price = parseFloat(item.price)
+          price = parseFloat(item.price.toString())
         } else if (item.cost_price !== undefined && item.cost_price !== null) {
-          price = parseFloat(item.cost_price)
+          price = parseFloat(item.cost_price.toString())
         }
 
         // Find stock - check multiple possible fields
         let stock = 0
         if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
-          stock = parseInt(item.stock_quantity)
+          stock = parseInt(item.stock_quantity.toString())
         } else if (item.stock !== undefined && item.stock !== null) {
-          stock = parseInt(item.stock)
+          stock = parseInt(item.stock.toString())
         } else if (item.quantity !== undefined && item.quantity !== null) {
-          stock = parseInt(item.quantity)
+          stock = parseInt(item.quantity.toString())
         }
 
         // Find tax rate - check multiple possible fields
         let taxRate = 0
         if (item.tax_rate !== undefined && item.tax_rate !== null) {
-          taxRate = parseFloat(item.tax_rate)
+          taxRate = parseFloat(item.tax_rate.toString())
         } else if (item.tax !== undefined && item.tax !== null) {
-          taxRate = parseFloat(item.tax)
+          taxRate = parseFloat(item.tax.toString())
         } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
-          taxRate = parseFloat(item.gst_rate)
+          taxRate = parseFloat(item.gst_rate.toString())
         }
 
         // Find HSN code - check multiple possible fields
@@ -314,7 +441,7 @@ export default function CreateInvoice() {
           taxRate: taxRate,
           description: item.description || item.product_description || '',
           sku: item.sku || item.product_sku || '',
-          product_image: item.product_image || null,
+          product_image: item.product_image || undefined,
           vendor_id: item.vendor_id || ''
         }
       })
@@ -461,6 +588,41 @@ export default function CreateInvoice() {
     setShowCustomerDropdown(false)
   }
 
+  const handleAddCustomerSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    addCustomer(customerFormData)
+  }
+
+  const handleCustomerFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setCustomerFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const openAddCustomerSlider = () => {
+    setShowAddCustomerSlider(true)
+    setAddCustomerError('')
+    setAddCustomerSuccess('')
+  }
+
+  const closeAddCustomerSlider = () => {
+    setShowAddCustomerSlider(false)
+    setCustomerFormData({
+      name: '',
+      mobile: '',
+      email: '',
+      gstin: '',
+      address: '',
+      city: '',
+      pincode: '',
+      company: ''
+    })
+    setAddCustomerError('')
+    setAddCustomerSuccess('')
+  }
+
   const retryFetchProfile = () => {
     fetchVendorProfile()
   }
@@ -599,8 +761,12 @@ export default function CreateInvoice() {
                 >
                   {loadingCustomers ? 'Loading...' : 'Refresh Customers'}
                 </button>
-                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                  + Add new Customer?
+                <button 
+                  onClick={openAddCustomerSlider}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Add new Customer
                 </button>
               </div>
             </div>
@@ -1117,6 +1283,205 @@ export default function CreateInvoice() {
           </div>
         </div>
       </div>
+
+      {/* Add Customer Slider */}
+      {showAddCustomerSlider && (
+        <>
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity"
+          onClick={closeAddCustomerSlider}
+        ></div>
+        
+        {/* Slider */}
+        <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out">
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
+                <p className="text-sm text-slate-600">Fill in the customer details</p>
+              </div>
+              <button
+                onClick={closeAddCustomerSlider}
+                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {addCustomerSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="text-sm text-green-700">{addCustomerSuccess}</div>
+                </div>
+              )}
+
+              {addCustomerError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <div className="text-sm text-red-700">{addCustomerError}</div>
+                </div>
+              )}
+
+              <form onSubmit={handleAddCustomerSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={customerFormData.name}
+                    onChange={handleCustomerFormChange}
+                    required
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter customer name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Mobile Number *
+                  </label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={customerFormData.mobile}
+                    onChange={handleCustomerFormChange}
+                    required
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter mobile number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={customerFormData.email}
+                    onChange={handleCustomerFormChange}
+                    required
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="company"
+                    value={customerFormData.company}
+                    onChange={handleCustomerFormChange}
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter company name (optional)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    GSTIN *
+                  </label>
+                  <input
+                    type="text"
+                    name="gstin"
+                    value={customerFormData.gstin}
+                    onChange={handleCustomerFormChange}
+                    required
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter GSTIN number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Address *
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={customerFormData.address}
+                    onChange={handleCustomerFormChange}
+                    required
+                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter full address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={customerFormData.city}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter city"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Pincode *
+                    </label>
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={customerFormData.pincode}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter pincode"
+                    />
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-slate-200">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeAddCustomerSlider}
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
+                  disabled={addingCustomer}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCustomerSubmit}
+                  disabled={addingCustomer}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {addingCustomer ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" />
+                      Add Customer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </>
+      )}
     </div>
   )
 }
