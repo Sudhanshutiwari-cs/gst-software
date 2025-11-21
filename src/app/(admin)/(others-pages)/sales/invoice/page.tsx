@@ -283,9 +283,7 @@ export default function SalesPage() {
   // Mock functions for actions
   const handleCreateInvoice = () => {
     router.push("/sales/create");
-    console.log('Creating new invoice...');
-    // In a real app, this would navigate to invoice creation page
-    alert('Navigate to invoice creation page');
+   
   };
 
   const handlePosBilling = () => {
