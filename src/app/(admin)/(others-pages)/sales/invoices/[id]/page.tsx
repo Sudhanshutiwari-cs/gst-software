@@ -20,7 +20,7 @@ export default function InvoiceViewer({ params }: { params: { id: string } }) {
       setLoading(true)
       setError(null)
       
-      const token = localStorage.getItem('jwt_token') // or your preferred token storage
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') // or your preferred token storage
       const response = await fetch(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
         {

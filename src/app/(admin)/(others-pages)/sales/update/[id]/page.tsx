@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2, Menu } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2, Menu, ArrowLeft } from 'lucide-react'
+import { useRouter, useParams } from 'next/navigation'
 
 // Vendor Profile interface
 interface VendorProfile {
@@ -127,6 +128,34 @@ interface InvoiceData {
   utr_number?: string
 }
 
+// Existing Invoice interface
+interface ExistingInvoice {
+  id: string
+  invoice_number: string
+  biller_name: string
+  billing_to: string
+  mobile?: string
+  email?: string
+  whatapp_number?: string
+  product_name: string
+  product_id?: string
+  product_sku?: string
+  qty: number
+  gross_amt: number
+  gst?: number
+  tax_inclusive?: boolean
+  discount?: number
+  grand_total: number
+  payment_status: string
+  payment_mode?: string
+  utr_number?: string
+  notes?: string
+  terms_conditions?: string
+  created_at: string
+  updated_at: string
+  items?: InvoiceItem[]
+}
+
 const mockBanks: Bank[] = [
   {
     id: '1',
@@ -142,9 +171,13 @@ const mockBanks: Bank[] = [
   }
 ]
 
-export default function CreateInvoice() {
+export default function UpdateInvoice() {
+  const router = useRouter()
+  const params = useParams()
+  const invoiceId = params.id as string
+
   // Header & Invoice State
-  const [invoiceNumber, setInvoiceNumber] = useState('1181')
+  const [invoiceNumber, setInvoiceNumber] = useState('')
   const [invoiceType, setInvoiceType] = useState('regular')
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
@@ -211,16 +244,19 @@ export default function CreateInvoice() {
   const [createEInvoice, setCreateEInvoice] = useState(false)
 
   // Loading states for API calls
-  const [savingInvoice, setSavingInvoice] = useState(false)
-  const [saveError, setSaveError] = useState('')
-  const [saveSuccess, setSaveSuccess] = useState('')
+  const [updatingInvoice, setUpdatingInvoice] = useState(false)
+  const [updateError, setUpdateError] = useState('')
+  const [updateSuccess, setUpdateSuccess] = useState('')
+
+  // Existing invoice loading state
+  const [loadingInvoice, setLoadingInvoice] = useState(true)
+  const [invoiceError, setInvoiceError] = useState('')
 
   // Check mobile screen size
   useEffect(() => {
     const checkScreenSize = () => {
       const mobile = window.innerWidth < 768
       setIsMobile(mobile)
-      // Auto-close mobile sidebar when switching to desktop
       if (!mobile) {
         setShowMobileSidebar(false)
       }
@@ -237,6 +273,105 @@ export default function CreateInvoice() {
       return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
     }
     return null
+  }
+
+  // Helper function to safely format numbers
+  const formatCurrency = (value: any): string => {
+    if (value === null || value === undefined) return '0.00'
+    const num = typeof value === 'number' ? value : parseFloat(value)
+    return isNaN(num) ? '0.00' : num.toFixed(2)
+  }
+
+  // Helper function to calculate tax rate from GST amount and gross amount
+  const calculateTaxRate = (gstAmount: number, grossAmount: number): number => {
+    if (!grossAmount || grossAmount === 0) return 0
+    return (gstAmount / grossAmount) * 100
+  }
+
+  // API function to fetch existing invoice - UPDATED
+  const fetchInvoice = async () => {
+    setLoadingInvoice(true)
+    setInvoiceError('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch invoice: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('Invoice API Response:', data)
+      
+      if (data.success && data.data) {
+        const invoice = data.data
+        console.log('Invoice data:', invoice)
+        
+        // Parse all numeric values from strings
+        const grossAmt = parseFloat(invoice.gross_amt) || 0
+        const qty = parseInt(invoice.qty) || 1
+        const gst = parseFloat(invoice.gst) || 0
+        const discount = parseFloat(invoice.discount) || 0
+        const grandTotal = parseFloat(invoice.grand_total) || 0
+        
+        // Set basic invoice info
+        setInvoiceNumber(invoice.invoice_id || '')
+        setPaymentStatus(invoice.payment_status || 'pending')
+        setPaymentMode(invoice.payment_mode || 'cash')
+        setUtrNumber(invoice.utr_number || '')
+        setNotes(invoice.notes || '')
+        setPaymentAmount(grandTotal)
+
+        // Set customer data if available
+        if (invoice.billing_to) {
+          setCustomerSearch(invoice.billing_to)
+        }
+
+        // Create product item from the single product in the invoice
+        const productItem: InvoiceItem = {
+          id: invoice.id?.toString() || Date.now().toString(),
+          product: {
+            id: invoice.product_id?.toString() || '1',
+            name: invoice.product_name || 'Product',
+            price: grossAmt / qty,
+            sku: invoice.product_sku,
+            hsnCode: invoice.hsn_code,
+            taxRate: calculateTaxRate(gst, grossAmt),
+            category: invoice.category,
+            stock: parseInt(invoice.stock) || 0,
+            description: invoice.description
+          },
+          quantity: qty,
+          unitPrice: grossAmt / qty,
+          total: grossAmt,
+          gst: gst,
+          discount: discount
+        }
+        
+        console.log('Created product item:', productItem)
+        setSelectedProducts([productItem])
+        
+      } else {
+        throw new Error('Invoice not found')
+      }
+    } catch (error) {
+      console.error('Error fetching invoice:', error)
+      setInvoiceError(error instanceof Error ? error.message : 'Failed to load invoice')
+    } finally {
+      setLoadingInvoice(false)
+    }
   }
 
   // API function to fetch vendor profile
@@ -266,7 +401,6 @@ export default function CreateInvoice() {
       const data = await response.json()
       console.log('Vendor Profile API Response:', data)
       
-      // Handle different response formats
       if (data.success && data.data) {
         setVendorProfile(data.data)
       } else if (data.data) {
@@ -274,7 +408,6 @@ export default function CreateInvoice() {
       } else if (data.profile) {
         setVendorProfile(data.profile)
       } else {
-        // If the response is the profile object directly
         setVendorProfile(data)
       }
     } catch (error) {
@@ -312,7 +445,6 @@ export default function CreateInvoice() {
       const data = await response.json()
       console.log('Customers API Response:', data)
       
-      // Flexible response handling
       if (data.success && data.data) {
         setCustomers(data.data)
       } else if (Array.isArray(data)) {
@@ -369,7 +501,6 @@ export default function CreateInvoice() {
 
       if (data.success) {
         setAddCustomerSuccess('Customer added successfully!')
-        // Reset form
         setCustomerFormData({
           name: '',
           mobile: '',
@@ -380,7 +511,6 @@ export default function CreateInvoice() {
           pincode: '',
           company: ''
         })
-        // Refresh customers list
         setTimeout(() => {
           fetchCustomers()
           setShowAddCustomerSlider(false)
@@ -423,7 +553,6 @@ export default function CreateInvoice() {
       const data = await response.json()
       console.log('Products API Response:', data)
       
-      // Flexible response handling for products
       let productsData: ApiProduct[] = []
 
       if (data.success && data.data && Array.isArray(data.data)) {
@@ -438,12 +567,7 @@ export default function CreateInvoice() {
         throw new Error('Unexpected API response format for products')
       }
 
-      // Transform the data to match our Product interface based on the actual API response
       const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
-        // Debug each product item
-        console.log('Processing product:', item)
-        
-        // Find price - check multiple possible fields
         let price = 0
         if (item.sale_price !== undefined && item.sale_price !== null) {
           price = parseFloat(item.sale_price.toString())
@@ -453,7 +577,6 @@ export default function CreateInvoice() {
           price = parseFloat(item.cost_price.toString())
         }
 
-        // Find stock - check multiple possible fields
         let stock = 0
         if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
           stock = parseInt(item.stock_quantity.toString())
@@ -463,7 +586,6 @@ export default function CreateInvoice() {
           stock = parseInt(item.quantity.toString())
         }
 
-        // Find tax rate - check multiple possible fields
         let taxRate = 0
         if (item.tax_rate !== undefined && item.tax_rate !== null) {
           taxRate = parseFloat(item.tax_rate.toString())
@@ -473,7 +595,6 @@ export default function CreateInvoice() {
           taxRate = parseFloat(item.gst_rate.toString())
         }
 
-        // Find HSN code - check multiple possible fields
         let hsnCode = ''
         if (item.hsn_code !== undefined && item.hsn_code !== null) {
           hsnCode = item.hsn_code
@@ -509,11 +630,11 @@ export default function CreateInvoice() {
     }
   }
 
-  // API function to create invoice
-  const createInvoice = async (invoiceData: InvoiceData) => {
-    setSavingInvoice(true)
-    setSaveError('')
-    setSaveSuccess('')
+  // API function to update invoice
+  const updateInvoice = async (invoiceData: InvoiceData) => {
+    setUpdatingInvoice(true)
+    setUpdateError('')
+    setUpdateSuccess('')
     
     try {
       const token = getAuthToken()
@@ -522,8 +643,8 @@ export default function CreateInvoice() {
         throw new Error('No authentication token found')
       }
 
-      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/store', {
-        method: 'POST',
+      const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/update/${invoiceId}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -534,21 +655,21 @@ export default function CreateInvoice() {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || `Failed to create invoice: ${response.status}`)
+        throw new Error(data.message || `Failed to update invoice: ${response.status}`)
       }
 
       if (data.success) {
-        setSaveSuccess('Invoice created successfully!')
+        setUpdateSuccess('Invoice updated successfully!')
         return data
       } else {
-        throw new Error(data.message || 'Failed to create invoice')
+        throw new Error(data.message || 'Failed to update invoice')
       }
     } catch (error) {
-      console.error('Error creating invoice:', error)
-      setSaveError(error instanceof Error ? error.message : 'Failed to create invoice')
+      console.error('Error updating invoice:', error)
+      setUpdateError(error instanceof Error ? error.message : 'Failed to update invoice')
       throw error
     } finally {
-      setSavingInvoice(false)
+      setUpdatingInvoice(false)
     }
   }
 
@@ -558,7 +679,7 @@ export default function CreateInvoice() {
       throw new Error('Please add at least one product to the invoice')
     }
 
-    if (!selectedCustomerData) {
+    if (!selectedCustomerData && !customerSearch) {
       throw new Error('Please select a customer')
     }
 
@@ -566,24 +687,23 @@ export default function CreateInvoice() {
       throw new Error('Vendor profile not loaded')
     }
 
-    // For now, we'll use the first product. You might want to handle multiple products differently
     const firstProduct = selectedProducts[0]
     const totalDiscount = selectedProducts.reduce((sum, item) => sum + (item.discount || 0), 0)
     const totalGST = selectedProducts.reduce((sum, item) => sum + (item.gst || 0), 0)
 
     return {
       biller_name: vendorProfile.shop_name || vendorProfile.name,
-      billing_to: selectedCustomerData.company || selectedCustomerData.name,
-      mobile: selectedCustomerData.phone || undefined,
-      email: selectedCustomerData.email || undefined,
-      whatapp_number: selectedCustomerData.phone || undefined,
+      billing_to: selectedCustomerData?.company || selectedCustomerData?.name || customerSearch,
+      mobile: selectedCustomerData?.phone || undefined,
+      email: selectedCustomerData?.email || undefined,
+      whatapp_number: selectedCustomerData?.phone || undefined,
       product_name: firstProduct.product.name,
       product_id: parseInt(firstProduct.product.id) || undefined,
       product_sku: firstProduct.product.sku || undefined,
       qty: firstProduct.quantity,
       gross_amt: taxableAmount,
       gst: totalGST || undefined,
-      tax_inclusive: false, // You can make this configurable
+      tax_inclusive: false,
       discount: totalDiscount || undefined,
       grand_total: roundedAmount,
       payment_status: paymentStatus,
@@ -592,50 +712,46 @@ export default function CreateInvoice() {
     }
   }
 
-  // Save invoice function
-  const saveInvoice = async () => {
+  // Update invoice function
+  const handleUpdateInvoice = async () => {
     try {
       const invoiceData = prepareInvoiceData()
-      const result = await createInvoice(invoiceData)
-      console.log('Invoice created successfully:', result)
-      alert('Invoice created successfully!')
+      const result = await updateInvoice(invoiceData)
+      console.log('Invoice updated successfully:', result)
     } catch (error) {
-      console.error('Error saving invoice:', error)
-      // Error is already set in createInvoice function
+      console.error('Error updating invoice:', error)
     }
   }
 
-  const saveAsDraft = async () => {
+  const updateAsDraft = async () => {
     try {
       const invoiceData = prepareInvoiceData()
-      // For draft, you might want to set payment_status to 'draft'
       const draftData = { ...invoiceData, payment_status: 'draft' }
-      const result = await createInvoice(draftData)
-      console.log('Draft saved successfully:', result)
-      alert('Draft saved successfully!')
+      const result = await updateInvoice(draftData)
+      console.log('Draft updated successfully:', result)
     } catch (error) {
-      console.error('Error saving draft:', error)
+      console.error('Error updating draft:', error)
     }
   }
 
-  const saveAndPrint = async () => {
+  const updateAndPrint = async () => {
     try {
       const invoiceData = prepareInvoiceData()
-      const result = await createInvoice(invoiceData)
-      console.log('Invoice created and ready for print:', result)
-      alert('Invoice saved and sent to printer!')
-      // Here you would typically trigger the print functionality
+      const result = await updateInvoice(invoiceData)
+      console.log('Invoice updated and ready for print:', result)
+      alert('Invoice updated and sent to printer!')
     } catch (error) {
-      console.error('Error saving and printing invoice:', error)
+      console.error('Error updating and printing invoice:', error)
     }
   }
 
   // Fetch all data on component mount
   useEffect(() => {
+    fetchInvoice()
     fetchVendorProfile()
     fetchCustomers()
     fetchProducts()
-  }, [])
+  }, [invoiceId])
 
   // Filter customers based on search
   useEffect(() => {
@@ -666,12 +782,18 @@ export default function CreateInvoice() {
     }
   }, [productSearch, products])
 
-  // Calculations
-  const taxableAmount = selectedProducts.reduce((sum, item) => sum + item.total, 0)
-  const totalTax = selectedProducts.reduce((sum, item) => {
-    const itemTax = item.product.taxRate || 0
-    return sum + (item.total * itemTax / 100)
+  // Calculations - UPDATED with safe number handling
+  const taxableAmount = selectedProducts.reduce((sum, item) => {
+    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total) || 0
+    return sum + itemTotal
   }, 0)
+
+  const totalTax = selectedProducts.reduce((sum, item) => {
+    const itemTax = typeof item.product.taxRate === 'number' ? item.product.taxRate : parseFloat(item.product.taxRate) || 0
+    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total) || 0
+    return sum + (itemTotal * itemTax / 100)
+  }, 0)
+
   const totalAmount = taxableAmount + totalTax
   const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
   const roundOff = roundedAmount - totalAmount
@@ -784,6 +906,10 @@ export default function CreateInvoice() {
     fetchProducts()
   }
 
+  const retryFetchInvoice = () => {
+    fetchInvoice()
+  }
+
   // Mobile sidebar toggle
   const toggleMobileSidebar = () => {
     setShowMobileSidebar(!showMobileSidebar)
@@ -792,12 +918,48 @@ export default function CreateInvoice() {
   // Required field indicator component
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>
 
+  // Show loading state while fetching invoice
+  if (loadingInvoice) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-slate-600">Loading invoice...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if invoice fails to load
+  if (invoiceError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{invoiceError}</p>
+          <button
+            onClick={retryFetchInvoice}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 text-slate-600" />
+            </button>
             {isMobile && (
               <button
                 onClick={toggleMobileSidebar}
@@ -807,7 +969,7 @@ export default function CreateInvoice() {
               </button>
             )}
             <ChevronDown className="h-4 w-4 text-slate-600" />
-            <h1 className="text-lg font-semibold text-slate-900">Create Invoice</h1>
+            <h1 className="text-lg font-semibold text-slate-900">Update Invoice #{invoiceNumber}</h1>
             <span className="hidden sm:inline text-sm text-slate-600">
               {loadingProfile ? (
                 'Loading...'
@@ -832,44 +994,44 @@ export default function CreateInvoice() {
             </div>
             <div className="flex gap-1 md:gap-2">
               <button 
-                onClick={saveAsDraft}
-                disabled={savingInvoice}
+                onClick={updateAsDraft}
+                disabled={updatingInvoice}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                {savingInvoice ? 'Saving...' : (isMobile ? 'Draft' : 'Save as Draft')}
+                {updatingInvoice ? 'Updating...' : (isMobile ? 'Draft' : 'Update as Draft')}
               </button>
               <button 
-                onClick={saveAndPrint}
-                disabled={savingInvoice}
+                onClick={updateAndPrint}
+                disabled={updatingInvoice}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                {savingInvoice ? 'Saving...' : (isMobile ? 'Print' : 'Save and Print')}
+                {updatingInvoice ? 'Updating...' : (isMobile ? 'Print' : 'Update and Print')}
               </button>
               <button 
-                onClick={saveInvoice}
-                disabled={savingInvoice || selectedProducts.length === 0 || !selectedCustomer}
+                onClick={handleUpdateInvoice}
+                disabled={updatingInvoice || selectedProducts.length === 0 || (!selectedCustomer && !customerSearch)}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {savingInvoice ? (
+                {updatingInvoice ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
-                {savingInvoice ? 'Saving...' : (isMobile ? 'Save →' : 'Save →')}
+                {updatingInvoice ? 'Updating...' : (isMobile ? 'Update →' : 'Update →')}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Save Status Banner */}
-      {saveError && (
+      {/* Update Status Banner */}
+      {updateError && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm text-red-600">{saveError}</span>
+              <span className="text-sm text-red-600">{updateError}</span>
             </div>
             <button 
-              onClick={() => setSaveError('')}
+              onClick={() => setUpdateError('')}
               className="text-sm font-medium text-red-700 hover:text-red-800"
             >
               <X className="h-4 w-4" />
@@ -878,17 +1040,35 @@ export default function CreateInvoice() {
         </div>
       )}
 
-      {saveSuccess && (
+      {updateSuccess && (
         <div className="bg-green-50 border-b border-green-200 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-green-600">{saveSuccess}</span>
+              <span className="text-sm text-green-600">{updateSuccess}</span>
             </div>
             <button 
-              onClick={() => setSaveSuccess('')}
+              onClick={() => setUpdateSuccess('')}
               className="text-sm font-medium text-green-700 hover:text-green-800"
             >
               <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Error Banner */}
+      {invoiceError && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-3 md:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-red-600">{invoiceError}</span>
+            </div>
+            <button 
+              onClick={retryFetchInvoice}
+              className="text-sm font-medium text-red-700 hover:text-red-800 underline"
+            >
+              Retry
             </button>
           </div>
         </div>
@@ -935,18 +1115,37 @@ export default function CreateInvoice() {
             </div>
           )}
 
-          {/* Type Selector */}
+          {/* Invoice Info Card */}
           <div className="bg-white p-4 rounded-lg border border-slate-200">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-slate-700">Type</span>
-              <select 
-                value={invoiceType} 
-                onChange={(e) => setInvoiceType(e.target.value)}
-                className="w-32 border border-slate-300 rounded-md px-3 py-2 text-sm"
-              >
-                <option value="regular">Regular</option>
-                <option value="proforma">Proforma</option>
-              </select>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-slate-900">Invoice Information</h2>
+              <div className="text-sm text-slate-600">
+                Status: <span className={`font-medium ${paymentStatus === 'paid' ? 'text-green-600' : paymentStatus === 'pending' ? 'text-orange-600' : 'text-slate-600'}`}>
+                  {paymentStatus?.charAt(0).toUpperCase() + paymentStatus?.slice(1)}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Invoice Number</label>
+                <input
+                  type="text"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Invoice Type</label>
+                <select 
+                  value={invoiceType} 
+                  onChange={(e) => setInvoiceType(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="regular">Regular</option>
+                  <option value="proforma">Proforma</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1034,6 +1233,15 @@ export default function CreateInvoice() {
               </div>
             </div>
 
+            {/* Display customer email from invoice if available */}
+            {customerSearch && (
+              <div className="mb-4 p-3 bg-slate-50 rounded-md">
+                <div className="text-sm text-slate-700">
+                  <strong>Current Customer:</strong> {customerSearch}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -1075,17 +1283,6 @@ export default function CreateInvoice() {
                 </button>
               </div>
             </div>
-
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="text-xs text-yellow-800">
-                  <strong>Debug Info:</strong> {products.length} products loaded, 
-                  {filteredProducts.length} filtered, 
-                  {selectedProducts.length} in bill
-                </div>
-              </div>
-            )}
 
             {/* Search Bar */}
             <div className="mb-6 flex flex-col sm:flex-row gap-3">
@@ -1135,10 +1332,10 @@ export default function CreateInvoice() {
                             <div className="font-medium text-slate-900">{product.name}</div>
                             <div className="text-xs text-slate-600">
                               {product.sku && `SKU: ${product.sku} • `}
-                              ₹{product.price} 
+                              ₹{formatCurrency(product.price)} 
                               {product.stock !== undefined && ` • Stock: ${product.stock}`}
                               {product.hsnCode && ` • HSN: ${product.hsnCode}`}
-                              {product.taxRate && ` • Tax: ${product.taxRate}%`}
+                              {product.taxRate && ` • Tax: ${formatCurrency(product.taxRate)}%`}
                             </div>
                           </div>
                         ))
@@ -1182,7 +1379,7 @@ export default function CreateInvoice() {
               </button>
             </div>
 
-            {/* Products Table */}
+            {/* Products Table - UPDATED with safe formatting */}
             {selectedProducts.length > 0 ? (
               <>
                 <div className="mb-4 border-b border-slate-200 pb-3">
@@ -1204,7 +1401,7 @@ export default function CreateInvoice() {
                         {item.product.sku && item.product.hsnCode && ' • '}
                         {item.product.hsnCode && `HSN: ${item.product.hsnCode}`}
                         {(item.product.sku || item.product.hsnCode) && item.product.taxRate && ' • '}
-                        {item.product.taxRate && `Tax: ${item.product.taxRate}%`}
+                        {item.product.taxRate && `Tax: ${formatCurrency(item.product.taxRate)}%`}
                         {!item.product.sku && !item.product.hsnCode && !item.product.taxRate && 'No additional info'}
                       </div>
                     </div>
@@ -1217,8 +1414,8 @@ export default function CreateInvoice() {
                         className="w-full border border-slate-300 rounded-md px-2 py-1 text-sm"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-2 text-slate-900 text-sm">₹{item.unitPrice.toFixed(2)}</div>
-                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 text-sm">₹{item.total.toFixed(2)}</div>
+                    <div className="col-span-2 md:col-span-2 text-slate-900 text-sm">₹{formatCurrency(item.unitPrice)}</div>
+                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 text-sm">₹{formatCurrency(item.total)}</div>
                     <div className="col-span-1 text-right">
                       <button
                         onClick={() => removeProduct(item.id)}
@@ -1276,17 +1473,17 @@ export default function CreateInvoice() {
 
           {(showMobileSidebar || !isMobile) && (
             <>
-              {/* Summary Card */}
+              {/* Summary Card - UPDATED with safe formatting */}
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700">Taxable Amount</span>
-                    <span className="font-semibold text-slate-900">₹ {taxableAmount.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-900">₹ {formatCurrency(taxableAmount)}</span>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700">Total Tax</span>
-                    <span className="font-semibold text-slate-900">₹ {totalTax.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-900">₹ {formatCurrency(totalTax)}</span>
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
@@ -1299,14 +1496,14 @@ export default function CreateInvoice() {
                         className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="h-5 w-9 rounded-full bg-blue-500"></span>
-                      <span className="text-xs font-medium text-slate-600">{roundOff.toFixed(2)}</span>
+                      <span className="text-xs font-medium text-slate-600">{formatCurrency(roundOff)}</span>
                     </label>
                   </div>
 
                   <div className="border-t border-green-200 pt-3">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="font-semibold text-slate-900">Total Amount</span>
-                      <span className="text-lg font-bold text-slate-900">₹ {roundedAmount.toFixed(2)}</span>
+                      <span className="text-lg font-bold text-slate-900">₹ {formatCurrency(roundedAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-600">
                       <span>Total Discount</span>
@@ -1355,6 +1552,7 @@ export default function CreateInvoice() {
                       <option value="pending">Pending</option>
                       <option value="paid">Paid</option>
                       <option value="partial">Partial</option>
+                      <option value="draft">Draft</option>
                     </select>
                   </div>
 

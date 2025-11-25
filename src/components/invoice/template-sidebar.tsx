@@ -11,8 +11,8 @@ interface Template {
 const templates: Template[] = [
   { id: "modern", name: "Modern", preview: "https://res.cloudinary.com/doficc2yl/image/upload/v1764054365/Template_1_xleypm.png" },
   { id: "classic", name: "Classic", preview: "https://res.cloudinary.com/doficc2yl/image/upload/v1764054772/Template_2_uysbdz.png" },
-  { id: "mrp-discount", name: "MRP + Discount", preview: "/mrp-discount-invoice-template.jpg" },
-  { id: "elegant", name: "Elegant", preview: "/elegant-invoice-template.png" },
+  { id: "mrp-discount", name: "MRP + Discount", preview: "https://res.cloudinary.com/doficc2yl/image/upload/v1764067405/Template_3_vfci1z.png" },
+
 ]
 
 interface TemplateSidebarProps {
