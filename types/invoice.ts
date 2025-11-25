@@ -36,10 +36,38 @@ export interface InvoiceData {
     country: string;
     
   }
+  to: {
+    companyName: string;
+    address: string;
+    city: string;
+    contactName: string;
+    zipCode: string;
+    state: string;
+    email: string;
+    phone: string;
+    country: string;
+  };
   items?: InvoiceItem[];
   total_items?: number;
+  subtotal?: number;
   total_quantity?: number;
+  tax?: {
+    rate?: number;
+    amount?: number;
+  };
+  discount?: {
+    type?: 'percentage' | 'fixed';
+    rate?: number;
+    value: number;
+    amount?: number;
+  };
   total_amount?: number;
+  currency?: string;
+  paymentTerms?: string;
+  notes?: string;
+  paymentInstructions?: string;
+   shipping?: number;
+   total  ?: number;
   amount_in_words?: string;
   amount_payable?: number;
 }
