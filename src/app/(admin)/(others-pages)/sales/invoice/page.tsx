@@ -4,20 +4,36 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-interface Transaction {
-  id: string;
-  amount: number;
-  status: 'pending' | 'paid' | 'cancelled' | 'draft';
-  mode: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'wallet' | '';
-  billNumber: string;
-  customer: string;
-  phone: string;
-  date: string;
-  time: string;
-  daysSincePending?: number;
-  customerEmail?: string;
-  items?: number;
-  tax?: number;
+// Updated interface to match API response
+interface Invoice {
+  id: number;
+  invoice_id: string;
+  vendor_id: string;
+  biller_name: string;
+  billing_to: string;
+  mobile: string | null;
+  email: string;
+  whatsapp_number: string | null;
+  product_name: string;
+  product_id: number;
+  product_sku: string;
+  qty: number;
+  gross_amt: string;
+  gst: string;
+  tax_inclusive: number;
+  discount: string;
+  grand_total: string;
+  payment_status: 'pending' | 'paid' | 'cancelled' | 'draft';
+  payment_mode: string | null;
+  utr_number: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data: Invoice[];
+  message?: string;
 }
 
 // Theme types
@@ -25,152 +41,15 @@ type Theme = 'light' | 'dark';
 type TabType = 'all' | 'pending' | 'paid' | 'cancelled' | 'drafts';
 type TimeFilter = 'today' | 'week' | 'month' | 'year' | 'custom';
 
-// Enhanced mock data with realistic transactions
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    amount: 4000.0,
-    status: 'pending',
-    mode: 'upi',
-    billNumber: 'INV-2024-1180',
-    customer: 'Sudhanshu Tiwari',
-    phone: '+919140048553',
-    date: '16 Nov 2024',
-    time: '12 hours ago',
-    daysSincePending: 1,
-    customerEmail: 'sudhanshu@example.com',
-    items: 3,
-    tax: 400
-  },
-  {
-    id: '2',
-    amount: 9500.0,
-    status: 'pending',
-    mode: 'card',
-    billNumber: 'INV-2024-1179',
-    customer: 'Aarav Sharma',
-    phone: '+919140048554',
-    date: '15 Nov 2024',
-    time: 'Yesterday, 8:57 PM',
-    daysSincePending: 2,
-    customerEmail: 'aarav@example.com',
-    items: 5,
-    tax: 950
-  },
-  {
-    id: '3',
-    amount: 2500.0,
-    status: 'paid',
-    mode: 'cash',
-    billNumber: 'INV-2024-1178',
-    customer: 'Priya Patel',
-    phone: '+919140048555',
-    date: '14 Nov 2024',
-    time: '2 days ago',
-    customerEmail: 'priya@example.com',
-    items: 2,
-    tax: 250
-  },
-  {
-    id: '4',
-    amount: 12000.0,
-    status: 'paid',
-    mode: 'bank_transfer',
-    billNumber: 'INV-2024-1177',
-    customer: 'Rahul Kumar',
-    phone: '+919140048556',
-    date: '13 Nov 2024',
-    time: '3 days ago',
-    customerEmail: 'rahul@example.com',
-    items: 8,
-    tax: 1200
-  },
-  {
-    id: '5',
-    amount: 3500.0,
-    status: 'cancelled',
-    mode: 'wallet',
-    billNumber: 'INV-2024-1176',
-    customer: 'Neha Gupta',
-    phone: '+919140048557',
-    date: '12 Nov 2024',
-    time: '4 days ago',
-    customerEmail: 'neha@example.com',
-    items: 4,
-    tax: 350
-  },
-  {
-    id: '6',
-    amount: 1800.0,
-    status: 'draft',
-    mode: '',
-    billNumber: 'INV-2024-1175',
-    customer: 'Vikram Singh',
-    phone: '+919140048558',
-    date: '11 Nov 2024',
-    time: '5 days ago',
-    customerEmail: 'vikram@example.com',
-    items: 2,
-    tax: 180
-  },
-  {
-    id: '7',
-    amount: 6200.0,
-    status: 'paid',
-    mode: 'upi',
-    billNumber: 'INV-2024-1174',
-    customer: 'Ananya Reddy',
-    phone: '+919140048559',
-    date: '10 Nov 2024',
-    time: '6 days ago',
-    customerEmail: 'ananya@example.com',
-    items: 6,
-    tax: 620
-  },
-  {
-    id: '8',
-    amount: 8900.0,
-    status: 'pending',
-    mode: 'card',
-    billNumber: 'INV-2024-1173',
-    customer: 'Karan Malhotra',
-    phone: '+919140048560',
-    date: '9 Nov 2024',
-    time: '1 week ago',
-    daysSincePending: 7,
-    customerEmail: 'karan@example.com',
-    items: 7,
-    tax: 890
-  },
-  {
-    id: '9',
-    amount: 1500.0,
-    status: 'paid',
-    mode: 'cash',
-    billNumber: 'INV-2024-1172',
-    customer: 'Sneha Joshi',
-    phone: '+919140048561',
-    date: '8 Nov 2024',
-    time: '1 week ago',
-    customerEmail: 'sneha@example.com',
-    items: 1,
-    tax: 150
-  },
-  {
-    id: '10',
-    amount: 4500.0,
-    status: 'draft',
-    mode: '',
-    billNumber: 'INV-2024-1171',
-    customer: 'Rohan Mehta',
-    phone: '+919140048562',
-    date: '7 Nov 2024',
-    time: '1 week ago',
-    customerEmail: 'rohan@example.com',
-    items: 3,
-    tax: 450
-  }
-];
+// Payment mode labels mapping
+const paymentModeLabels: { [key: string]: string } = {
+  cash: 'Cash',
+  card: 'Card',
+  upi: 'UPI',
+  bank_transfer: 'Bank Transfer',
+  wallet: 'Wallet',
+  '': 'Not Selected'
+};
 
 // Mock data for dropdown options
 const timeFilterOptions: { value: TimeFilter; label: string }[] = [
@@ -187,15 +66,6 @@ const actionOptions = [
   { value: 'bulk_delete', label: 'Bulk Delete', icon: Trash2 }
 ];
 
-const paymentModeLabels = {
-  cash: 'Cash',
-  card: 'Card',
-  upi: 'UPI',
-  bank_transfer: 'Bank Transfer',
-  wallet: 'Wallet',
-  '': 'Not Selected'
-};
-
 export default function SalesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -204,39 +74,122 @@ export default function SalesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('year');
   const [selectedAction, setSelectedAction] = useState('');
-  const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
+  const [selectedInvoices, setSelectedInvoices] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  // Filter transactions based on active tab, search, and time filter
-  const filteredTransactions = mockTransactions.filter(transaction => {
+
+  // API Integration
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get JWT token from localStorage or your auth context
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('jwtToken');
+      
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse = await response.json();
+      
+      if (data.success) {
+        setInvoices(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch invoices');
+      }
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
+
+  // Format time ago for display
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
+  // Calculate days since pending
+  const getDaysSincePending = (dateString: string, status: string) => {
+    if (status !== 'pending') return undefined;
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    return diffInDays;
+  };
+
+  // Filter invoices based on active tab, search, and time filter
+  const filteredInvoices = invoices.filter(invoice => {
     // Tab filter
-    const tabMatch = activeTab === 'all' || transaction.status === activeTab;
+    const tabMatch = activeTab === 'all' || invoice.payment_status === activeTab;
     
     // Search filter
     const searchMatch = searchQuery === '' || 
-      transaction.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.billNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.phone.includes(searchQuery) ||
-      transaction.customerEmail?.toLowerCase().includes(searchQuery.toLowerCase());
+      invoice.billing_to.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.invoice_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (invoice.mobile && invoice.mobile.includes(searchQuery)) ||
+      invoice.email.toLowerCase().includes(searchQuery.toLowerCase());
     
     return tabMatch && searchMatch;
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedInvoices = filteredInvoices.slice(startIndex, startIndex + itemsPerPage);
 
   // Statistics
-  const allTransactionCount = mockTransactions.length;
-  const pendingCount = mockTransactions.filter(t => t.status === 'pending').length;
-  const paidCount = mockTransactions.filter(t => t.status === 'paid').length;
-  const cancelledCount = mockTransactions.filter(t => t.status === 'cancelled').length;
-  const draftsCount = mockTransactions.filter(t => t.status === 'draft').length;
+  const allInvoiceCount = invoices.length;
+  const pendingCount = invoices.filter(t => t.payment_status === 'pending').length;
+  const paidCount = invoices.filter(t => t.payment_status === 'paid').length;
+  const cancelledCount = invoices.filter(t => t.payment_status === 'cancelled').length;
+  const draftsCount = invoices.filter(t => t.payment_status === 'draft').length;
 
-  const total = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const paid = mockTransactions.filter(t => t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
-  const pending = mockTransactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+  const total = invoices.reduce((sum, t) => sum + parseFloat(t.grand_total), 0);
+  const paid = invoices.filter(t => t.payment_status === 'paid').reduce((sum, t) => sum + parseFloat(t.grand_total), 0);
+  const pending = invoices.filter(t => t.payment_status === 'pending').reduce((sum, t) => sum + parseFloat(t.grand_total), 0);
 
   // Theme management
   useEffect(() => {
@@ -280,10 +233,14 @@ export default function SalesPage() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Fetch invoices on component mount
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
   // Mock functions for actions
   const handleCreateInvoice = () => {
     router.push("/sales/create");
-   
   };
 
   const handlePosBilling = () => {
@@ -296,49 +253,47 @@ export default function SalesPage() {
     alert('Opening document settings');
   };
 
-  const handlePayment = (transactionId: string) => {
-    console.log('Processing payment for:', transactionId);
-    alert(`Processing payment for transaction ${transactionId}`);
+  const handlePayment = (invoiceId: number) => {
+    console.log('Processing payment for:', invoiceId);
+    alert(`Processing payment for invoice ${invoiceId}`);
   };
 
-  const handleView = (transaction: Transaction) => {
-    console.log('Viewing transaction:', transaction);
-    alert(`Viewing transaction: ${transaction.billNumber}\nCustomer: ${transaction.customer}\nAmount: ₹${transaction.amount}`);
+  const handleView = (invoice: Invoice) => {
+    console.log('Viewing invoice:', invoice);
+    alert(`Viewing invoice: ${invoice.invoice_id}\nCustomer: ${invoice.billing_to}\nAmount: ₹${invoice.grand_total}`);
   };
 
-  const handleSend = (transaction: Transaction) => {
-    console.log('Sending transaction:', transaction);
-    alert(`Sending invoice ${transaction.billNumber} to ${transaction.customerEmail}`);
+  const handleSend = (invoice: Invoice) => {
+    console.log('Sending invoice:', invoice);
+    alert(`Sending invoice ${invoice.invoice_id} to ${invoice.email}`);
   };
-
- 
 
   const handleBulkAction = (action: string) => {
-    if (selectedTransactions.length === 0) {
-      alert('Please select transactions first');
+    if (selectedInvoices.length === 0) {
+      alert('Please select invoices first');
       return;
     }
-    console.log(`Performing ${action} on:`, selectedTransactions);
-    alert(`Performing ${action} on ${selectedTransactions.length} transactions`);
+    console.log(`Performing ${action} on:`, selectedInvoices);
+    alert(`Performing ${action} on ${selectedInvoices.length} invoices`);
   };
 
-  const toggleTransactionSelection = (transactionId: string) => {
-    setSelectedTransactions(prev =>
-      prev.includes(transactionId)
-        ? prev.filter(id => id !== transactionId)
-        : [...prev, transactionId]
+  const toggleInvoiceSelection = (invoiceId: number) => {
+    setSelectedInvoices(prev =>
+      prev.includes(invoiceId)
+        ? prev.filter(id => id !== invoiceId)
+        : [...prev, invoiceId]
     );
   };
 
-  const selectAllTransactions = () => {
-    if (selectedTransactions.length === paginatedTransactions.length) {
-      setSelectedTransactions([]);
+  const selectAllInvoices = () => {
+    if (selectedInvoices.length === paginatedInvoices.length) {
+      setSelectedInvoices([]);
     } else {
-      setSelectedTransactions(paginatedTransactions.map(t => t.id));
+      setSelectedInvoices(paginatedInvoices.map(t => t.id));
     }
   };
 
-  const getStatusColor = (status: Transaction['status']) => {
+  const getStatusColor = (status: Invoice['payment_status']) => {
     const colors = {
       pending: theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800',
       paid: theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800',
@@ -348,8 +303,9 @@ export default function SalesPage() {
     return colors[status];
   };
 
-  const getModeColor = (mode: Transaction['mode']) => {
-    const colors = {
+  const getModeColor = (mode: string | null) => {
+    const modeKey = mode || '';
+    const colors: { [key: string]: string } = {
       cash: theme === 'dark' ? 'text-green-400' : 'text-green-600',
       card: theme === 'dark' ? 'text-blue-400' : 'text-blue-600',
       upi: theme === 'dark' ? 'text-purple-400' : 'text-purple-600',
@@ -357,8 +313,46 @@ export default function SalesPage() {
       wallet: theme === 'dark' ? 'text-orange-400' : 'text-orange-600',
       '': theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
     };
-    return colors[mode];
+    return colors[modeKey] || colors[''];
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
+        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading invoices...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
+        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
+      }`}>
+        <div className="text-center">
+          <div className="text-red-500 text-lg mb-4">Error loading invoices</div>
+          <p className="mb-4">{error}</p>
+          <button 
+            onClick={fetchInvoices}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
@@ -495,7 +489,7 @@ export default function SalesPage() {
         }`}>
           <div className="flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {[
-              { id: 'all' as TabType, label: 'All', count: allTransactionCount, mobileLabel: 'All' },
+              { id: 'all' as TabType, label: 'All', count: allInvoiceCount, mobileLabel: 'All' },
               { id: 'pending' as TabType, label: 'Pending', count: pendingCount, mobileLabel: 'Pending' },
               { id: 'paid' as TabType, label: 'Paid', count: paidCount, mobileLabel: 'Paid' },
               { id: 'cancelled' as TabType, label: 'Cancelled', count: cancelledCount, mobileLabel: 'Cancel' },
@@ -548,7 +542,7 @@ export default function SalesPage() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search transactions, customers, bill numbers..."
+              placeholder="Search invoices, customers, bill numbers..."
               className={`w-full border pl-10 pr-3 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
                 theme === 'dark'
                   ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
@@ -590,14 +584,11 @@ export default function SalesPage() {
               } border`}
             >
               <option value="">Actions</option>
-              {actionOptions.map(option => {
-                
-                return (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                );
-              })}
+              {actionOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <button className={`rounded-lg border p-3 transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${
@@ -611,12 +602,12 @@ export default function SalesPage() {
         </div>
 
         {/* Bulk Actions Bar */}
-        {selectedTransactions.length > 0 && (
+        {selectedInvoices.length > 0 && (
           <div className={`mb-4 p-3 rounded-lg flex items-center justify-between transition-colors duration-200 ${
             theme === 'dark' ? 'bg-blue-900 text-blue-100' : 'bg-blue-50 text-blue-700'
           }`}>
             <span className="text-sm font-medium">
-              {selectedTransactions.length} transaction{selectedTransactions.length !== 1 ? 's' : ''} selected
+              {selectedInvoices.length} invoice{selectedInvoices.length !== 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
@@ -659,8 +650,8 @@ export default function SalesPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
                     <input
                       type="checkbox"
-                      checked={selectedTransactions.length === paginatedTransactions.length && paginatedTransactions.length > 0}
-                      onChange={selectAllTransactions}
+                      checked={selectedInvoices.length === paginatedInvoices.length && paginatedInvoices.length > 0}
+                      onChange={selectAllInvoices}
                       className={`rounded transition-colors duration-200 cursor-pointer ${
                         theme === 'dark' 
                           ? 'bg-gray-600 border-gray-500 text-blue-400' 
@@ -668,7 +659,7 @@ export default function SalesPage() {
                       }`}
                     />
                   </th>
-                  {['Amount', 'Status', 'Mode', 'Bill #', 'Customer', 'Date', 'Actions'].map((head) => (
+                  {['Amount', 'Status', 'Mode', 'Invoice #', 'Customer', 'Date', 'Actions'].map((head) => (
                     <th key={head} className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
                       theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                     }`}>
@@ -683,9 +674,12 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedTransactions.length > 0 ? (
-                  paginatedTransactions.map((transaction) => (
-                    <tr key={transaction.id} className={`border-b transition-colors duration-200 ${
+                {paginatedInvoices.length > 0 ? (
+                  paginatedInvoices.map((invoice) => {
+                    const daysSincePending = getDaysSincePending(invoice.created_at, invoice.payment_status);
+                    
+                    return (
+                    <tr key={invoice.id} className={`border-b transition-colors duration-200 ${
                       theme === 'dark' 
                         ? 'border-gray-700 hover:bg-gray-700' 
                         : 'border-gray-200 hover:bg-gray-50'
@@ -693,8 +687,8 @@ export default function SalesPage() {
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={selectedTransactions.includes(transaction.id)}
-                          onChange={() => toggleTransactionSelection(transaction.id)}
+                          checked={selectedInvoices.includes(invoice.id)}
+                          onChange={() => toggleInvoiceSelection(invoice.id)}
                           className={`rounded transition-colors duration-200 cursor-pointer ${
                             theme === 'dark' 
                               ? 'bg-gray-600 border-gray-500 text-blue-400' 
@@ -705,56 +699,54 @@ export default function SalesPage() {
                       <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}>
-                        ₹{transaction.amount.toFixed(2)}
-                        {transaction.tax && (
-                          <span className={`block text-xs font-normal ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            Tax: ₹{transaction.tax}
-                          </span>
-                        )}
+                        ₹{parseFloat(invoice.grand_total).toFixed(2)}
+                        <span className={`block text-xs font-normal ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Tax: ₹{invoice.gst}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium transition-colors duration-200 ${getStatusColor(transaction.status)}`}>
-                            {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium transition-colors duration-200 ${getStatusColor(invoice.payment_status)}`}>
+                            {invoice.payment_status.charAt(0).toUpperCase() + invoice.payment_status.slice(1)}
                           </span>
-                          {transaction.status === 'pending' && transaction.daysSincePending && (
+                          {invoice.payment_status === 'pending' && daysSincePending && (
                             <span className="text-red-500">⚠</span>
                           )}
                         </div>
-                        {transaction.daysSincePending && (
+                        {invoice.payment_status === 'pending' && daysSincePending !== undefined && (
                           <p className={`text-xs transition-colors duration-200 mt-1 ${
                             theme === 'dark' ? 'text-red-400' : 'text-red-500'
                           }`}>
-                            since {transaction.daysSincePending} day{transaction.daysSincePending !== 1 ? 's' : ''}
+                            since {daysSincePending} day{daysSincePending !== 1 ? 's' : ''}
                           </p>
                         )}
                       </td>
-                      <td className={`px-4 py-3 text-sm transition-colors duration-200 whitespace-nowrap ${getModeColor(transaction.mode)}`}>
-                        {paymentModeLabels[transaction.mode]}
+                      <td className={`px-4 py-3 text-sm transition-colors duration-200 whitespace-nowrap ${getModeColor(invoice.payment_mode)}`}>
+                        {paymentModeLabels[invoice.payment_mode || '']}
                       </td>
                       <td className={`px-4 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}>
-                        {transaction.billNumber}
+                        {invoice.invoice_id}
                       </td>
                       <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <p className={`font-medium transition-colors duration-200 ${
                           theme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {transaction.customer}
+                          {invoice.billing_to}
                         </p>
                         <p className={`text-xs transition-colors duration-200 ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          {transaction.phone}
+                          {invoice.mobile || 'No phone'}
                         </p>
-                        {transaction.customerEmail && (
+                        {invoice.email && (
                           <p className={`text-xs transition-colors duration-200 ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                           }`}>
-                            {transaction.customerEmail}
+                            {invoice.email}
                           </p>
                         )}
                       </td>
@@ -762,26 +754,24 @@ export default function SalesPage() {
                         <p className={`font-medium transition-colors duration-200 ${
                           theme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {transaction.date}
+                          {formatDate(invoice.created_at)}
                         </p>
                         <p className={`text-xs transition-colors duration-200 ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          {transaction.time}
+                          {formatTimeAgo(invoice.created_at)}
                         </p>
-                        {transaction.items && (
-                          <p className={`text-xs transition-colors duration-200 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {transaction.items} item{transaction.items !== 1 ? 's' : ''}
-                          </p>
-                        )}
+                        <p className={`text-xs transition-colors duration-200 ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {invoice.qty} item{invoice.qty !== 1 ? 's' : ''}
+                        </p>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1">
-                          {transaction.status === 'pending' && (
+                          {invoice.payment_status === 'pending' && (
                             <button 
-                              onClick={() => handlePayment(transaction.id)}
+                              onClick={() => handlePayment(invoice.id)}
                               className={`rounded p-2 transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${
                                 theme === 'dark'
                                   ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
@@ -792,7 +782,7 @@ export default function SalesPage() {
                             </button>
                           )}
                           <button 
-                            onClick={() => handleView(transaction)}
+                            onClick={() => handleView(invoice)}
                             className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
                               theme === 'dark'
                                 ? 'text-gray-400 hover:text-white'
@@ -803,7 +793,7 @@ export default function SalesPage() {
                             <span className="hidden lg:inline ml-1">View</span>
                           </button>
                           <button 
-                            onClick={() => handleSend(transaction)}
+                            onClick={() => handleSend(invoice)}
                             className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
                               theme === 'dark'
                                 ? 'text-gray-400 hover:text-white'
@@ -823,16 +813,16 @@ export default function SalesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  )})
                 ) : (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center">
                       <div className={`transition-colors duration-200 ${
                         theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                       }`}>
-                        <p className="text-lg font-medium mb-2">No transactions found</p>
+                        <p className="text-lg font-medium mb-2">No invoices found</p>
                         <p className="text-sm">
-                          {searchQuery ? 'Try adjusting your search criteria' : `No ${activeTab === 'all' ? '' : activeTab} transactions available`}
+                          {searchQuery ? 'Try adjusting your search criteria' : `No ${activeTab === 'all' ? '' : activeTab} invoices available`}
                         </p>
                       </div>
                     </td>
