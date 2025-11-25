@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2, Menu } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 // Vendor Profile interface
 interface VendorProfile {
@@ -214,6 +215,9 @@ export default function CreateInvoice() {
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
+
+
+  const router = useRouter();
 
   // Check mobile screen size
   useEffect(() => {
@@ -618,17 +622,28 @@ export default function CreateInvoice() {
     }
   }
 
-  const saveAndPrint = async () => {
-    try {
-      const invoiceData = prepareInvoiceData()
-      const result = await createInvoice(invoiceData)
-      console.log('Invoice created and ready for print:', result)
-      alert('Invoice saved and sent to printer!')
-      // Here you would typically trigger the print functionality
-    } catch (error) {
-      console.error('Error saving and printing invoice:', error)
+ const saveAndPrint = async () => {
+  try {
+    const invoiceData = prepareInvoiceData();
+    const result = await createInvoice(invoiceData);
+
+    if (result?.id) {
+      console.log('Invoice created and ready for print:', result);
+
+      // Redirect to the invoice page
+      router.push(`/sales/invoices/${result.id}`);
+
+      // Trigger print AFTER redirect (optional)
+      // window.print();
+    } else {
+      alert("Failed to save invoice. Missing invoice ID.");
     }
+
+  } catch (error) {
+    console.error('Error saving and printing invoice:', error);
+    alert("Error saving invoice!");
   }
+};
 
   // Fetch all data on component mount
   useEffect(() => {

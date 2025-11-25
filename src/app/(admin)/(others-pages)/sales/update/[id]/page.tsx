@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2, Menu, ArrowLeft } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 
@@ -128,34 +128,6 @@ interface InvoiceData {
   utr_number?: string
 }
 
-// Existing Invoice interface
-interface ExistingInvoice {
-  id: string
-  invoice_number: string
-  biller_name: string
-  billing_to: string
-  mobile?: string
-  email?: string
-  whatapp_number?: string
-  product_name: string
-  product_id?: string
-  product_sku?: string
-  qty: number
-  gross_amt: number
-  gst?: number
-  tax_inclusive?: boolean
-  discount?: number
-  grand_total: number
-  payment_status: string
-  payment_mode?: string
-  utr_number?: string
-  notes?: string
-  terms_conditions?: string
-  created_at: string
-  updated_at: string
-  items?: InvoiceItem[]
-}
-
 const mockBanks: Bank[] = [
   {
     id: '1',
@@ -252,21 +224,6 @@ export default function UpdateInvoice() {
   const [loadingInvoice, setLoadingInvoice] = useState(true)
   const [invoiceError, setInvoiceError] = useState('')
 
-  // Check mobile screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const mobile = window.innerWidth < 768
-      setIsMobile(mobile)
-      if (!mobile) {
-        setShowMobileSidebar(false)
-      }
-    }
-    
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
-
   // Get JWT token helper function
   const getAuthToken = (): string | null => {
     if (typeof window !== 'undefined') {
@@ -276,9 +233,9 @@ export default function UpdateInvoice() {
   }
 
   // Helper function to safely format numbers
-  const formatCurrency = (value: any): string => {
+  const formatCurrency = (value: unknown): string => {
     if (value === null || value === undefined) return '0.00'
-    const num = typeof value === 'number' ? value : parseFloat(value)
+    const num = typeof value === 'number' ? value : parseFloat(value as string)
     return isNaN(num) ? '0.00' : num.toFixed(2)
   }
 
@@ -289,7 +246,7 @@ export default function UpdateInvoice() {
   }
 
   // API function to fetch existing invoice - UPDATED
-  const fetchInvoice = async () => {
+  const fetchInvoice = useCallback(async () => {
     setLoadingInvoice(true)
     setInvoiceError('')
     
@@ -372,10 +329,10 @@ export default function UpdateInvoice() {
     } finally {
       setLoadingInvoice(false)
     }
-  }
+  }, [invoiceId])
 
   // API function to fetch vendor profile
-  const fetchVendorProfile = async () => {
+  const fetchVendorProfile = useCallback(async () => {
     setLoadingProfile(true)
     setProfileError('')
     
@@ -416,10 +373,10 @@ export default function UpdateInvoice() {
     } finally {
       setLoadingProfile(false)
     }
-  }
+  }, [])
 
   // API function to fetch customers
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     setLoadingCustomers(true)
     setCustomerError('')
     
@@ -460,7 +417,7 @@ export default function UpdateInvoice() {
     } finally {
       setLoadingCustomers(false)
     }
-  }
+  }, [])
 
   // API function to add customer
   const addCustomer = async (formData: AddCustomerFormData) => {
@@ -527,7 +484,7 @@ export default function UpdateInvoice() {
   }
 
   // API function to fetch products
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
     setProductError('')
     
@@ -628,7 +585,7 @@ export default function UpdateInvoice() {
     } finally {
       setLoadingProducts(false)
     }
-  }
+  }, [])
 
   // API function to update invoice
   const updateInvoice = async (invoiceData: InvoiceData) => {
@@ -745,13 +702,28 @@ export default function UpdateInvoice() {
     }
   }
 
+  // Check mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (!mobile) {
+        setShowMobileSidebar(false)
+      }
+    }
+    
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
+
   // Fetch all data on component mount
   useEffect(() => {
     fetchInvoice()
     fetchVendorProfile()
     fetchCustomers()
     fetchProducts()
-  }, [invoiceId])
+  }, [fetchInvoice, fetchVendorProfile, fetchCustomers, fetchProducts])
 
   // Filter customers based on search
   useEffect(() => {
@@ -784,13 +756,13 @@ export default function UpdateInvoice() {
 
   // Calculations - UPDATED with safe number handling
   const taxableAmount = selectedProducts.reduce((sum, item) => {
-    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total) || 0
+    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total as string) || 0
     return sum + itemTotal
   }, 0)
 
   const totalTax = selectedProducts.reduce((sum, item) => {
-    const itemTax = typeof item.product.taxRate === 'number' ? item.product.taxRate : parseFloat(item.product.taxRate) || 0
-    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total) || 0
+    const itemTax = typeof item.product.taxRate === 'number' ? item.product.taxRate : parseFloat(item.product.taxRate as string) || 0
+    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total as string) || 0
     return sum + (itemTotal * itemTax / 100)
   }, 0)
 
