@@ -760,11 +760,11 @@ export default function UpdateInvoice() {
     return sum + itemTotal
   }, 0)
 
-  const totalTax = selectedProducts.reduce((sum, item) => {
-    const itemTax = typeof item.product.taxRate === 'number' ? item.product.taxRate : parseFloat(item.product.taxRate as string) || 0
-    const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(item.total as string) || 0
-    return sum + (itemTotal * itemTax / 100)
-  }, 0)
+ const totalTax = selectedProducts.reduce((sum, item) => {
+  const itemTax = typeof item.product.taxRate === 'number' ? item.product.taxRate : parseFloat(String(item.product.taxRate || 0)) || 0
+  const itemTotal = typeof item.total === 'number' ? item.total : parseFloat(String(item.total || 0)) || 0
+  return sum + (itemTotal * itemTax / 100)
+}, 0)
 
   const totalAmount = taxableAmount + totalTax
   const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
