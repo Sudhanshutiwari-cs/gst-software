@@ -3,9 +3,11 @@ export interface Customer {
   name?: string;
   phone?: string;
   email?: string;
-}
+} 
 
 export interface InvoiceItem {
+  id ?: string;
+  unitPrice?: number;
   description?: string;
   hsn_sac?: string;
   rate?: number;
@@ -15,10 +17,25 @@ export interface InvoiceItem {
 
 export interface InvoiceData {
   id?: string;
+  invoiceNumber?: string;
   invoice_number?: string;
+  date?: string;
+  dueDate?: string;
   invoice_date?: string;
   due_date?: string;
   customer?: Customer;
+   status?: string;
+   from?: {
+    companyName: string;
+    address: string;
+    city: string;
+    zipCode: string;
+    state: string;
+    email: string;
+    phone: string;
+    country: string;
+    
+  }
   items?: InvoiceItem[];
   total_items?: number;
   total_quantity?: number;
