@@ -1,86 +1,25 @@
 // types/invoice.ts
-export interface Customer {
-  name?: string;
-  phone?: string;
-  email?: string;
-} 
-
-export interface InvoiceItem {
-  id ?: string;
-  unitPrice?: number;
-  description?: string;
-  hsn_sac?: string;
-  rate?: number;
-  quantity?: number;
-  amount?: number;
+export interface Invoice {
+  id: number;
+  invoice_id: string;
+  vendor_id: string;
+  biller_name: string;
+  billing_to: string;
+  mobile: string | null;
+  email: string;
+  whatsapp_number: string | null;
+  product_name: string;
+  product_id: number;
+  product_sku: string;
+  qty: number;
+  gross_amt: string;
+  gst: string;
+  tax_inclusive: number;
+  discount: string;
+  grand_total: string;
+  payment_status: 'pending' | 'paid' | 'failed';
+  payment_mode: string | null;
+  utr_number: string | null;
+  created_at: string;
+  updated_at: string;
 }
-
-export interface InvoiceData {
-  id?: string;
-  invoiceNumber?: string;
-  invoice_number?: string;
-  date?: string;
-  dueDate?: string;
-  invoice_date?: string;
-  due_date?: string;
-  customer?: Customer;
-  status?: string;
-
-  from?: {
-    companyName: string;
-    address: string;
-    city: string;
-    zipCode: string;
-    state: string;
-    email: string;
-    phone: string;
-    country: string;
-  }
-
-  to?: {      // <-- make this optional
-    companyName: string;
-    address: string;
-    city: string;
-    contactName: string;
-    zipCode: string;
-    state: string;
-    email: string;
-    phone: string;
-    country: string;
-  };
-
-  items?: InvoiceItem[];
-  total_items?: number;
-  subtotal?: number;
-  total_quantity?: number;
-
-  tax?: {
-    rate?: number;
-    amount?: number;
-  };
-
-  discount?: {
-    type?: 'percentage' | 'fixed';
-    rate?: number;
-    value: number;
-    amount?: number;
-  };
-
-  total_amount?: number;
-  currency?: string;
-  paymentTerms?: string;
-  notes?: string;
-  paymentInstructions?: string;
-  shipping?: number;
-  total?: number;
-  amount_in_words?: string;
-  amount_payable?: number;
-}
-
-export interface ApiResponse<T> {
-  data?: T;
-  message?: string;
-  success?: boolean;
-}
-
-export type InvoiceTemplate = 'modern' | 'classic' | 'minimal' | 'professional';
