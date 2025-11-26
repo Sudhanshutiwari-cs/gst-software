@@ -86,10 +86,10 @@ export default function SalesPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Get JWT token from localStorage or your auth context
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('jwtToken');
-      
+
       if (!token) {
         throw new Error('Authentication required. Please log in.');
       }
@@ -107,7 +107,7 @@ export default function SalesPage() {
       }
 
       const data: ApiResponse = await response.json();
-      
+
       if (data.success) {
         setInvoices(data.data);
       } else {
@@ -124,10 +124,10 @@ export default function SalesPage() {
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      day: 'numeric', 
-      month: 'short', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
     });
   };
 
@@ -151,12 +151,12 @@ export default function SalesPage() {
   // Calculate days since pending
   const getDaysSincePending = (dateString: string, status: string) => {
     if (status !== 'pending') return undefined;
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     return diffInDays;
   };
 
@@ -164,14 +164,14 @@ export default function SalesPage() {
   const filteredInvoices = invoices.filter(invoice => {
     // Tab filter
     const tabMatch = activeTab === 'all' || invoice.payment_status === activeTab;
-    
+
     // Search filter
-    const searchMatch = searchQuery === '' || 
+    const searchMatch = searchQuery === '' ||
       invoice.billing_to.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.invoice_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (invoice.mobile && invoice.mobile.includes(searchQuery)) ||
       invoice.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return tabMatch && searchMatch;
   });
 
@@ -260,7 +260,8 @@ export default function SalesPage() {
 
   const handleView = (invoice: Invoice) => {
     console.log('Viewing invoice:', invoice);
-    alert(`Viewing invoice: ${invoice.invoice_id}\nCustomer: ${invoice.billing_to}\nAmount: ₹${invoice.grand_total}`);
+    // Redirect to the invoice detail page
+    router.push(`/sales/invoices/${invoice.id}`);
   };
 
   const handleSend = (invoice: Invoice) => {
@@ -319,9 +320,8 @@ export default function SalesPage() {
   // Loading state
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
-      }`}>
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
+        }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-lg">Loading invoices...</p>
@@ -333,19 +333,17 @@ export default function SalesPage() {
   // Error state
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
-      }`}>
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
+        }`}>
         <div className="text-center">
           <div className="text-red-500 text-lg mb-4">Error loading invoices</div>
           <p className="mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchInvoices}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
-              theme === 'dark'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${theme === 'dark'
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+              }`}
           >
             Retry
           </button>
@@ -355,60 +353,54 @@ export default function SalesPage() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${
-      theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
-    }`}>
-      {/* Header */}
-      <header className={`border-b transition-colors duration-200 ${
-        theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-border bg-card'
+    <div className={`min-h-screen transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
       }`}>
+      {/* Header */}
+      <header className={`border-b transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-border bg-card'
+        }`}>
         {/* Top Bar - Mobile & Desktop */}
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <button 
+            <button
               className="lg:hidden p-2 rounded-lg transition-colors duration-200 hover:bg-opacity-20 hover:bg-gray-400"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold sm:text-2xl">Sales</h1>
-            <Play className={`h-5 w-5 sm:h-6 sm:w-6 ${
-              theme === 'dark' ? 'fill-pink-400 text-pink-400' : 'fill-pink-500 text-pink-500'
-            }`} />
+            <Play className={`h-5 w-5 sm:h-6 sm:w-6 ${theme === 'dark' ? 'fill-pink-400 text-pink-400' : 'fill-pink-500 text-pink-500'
+              }`} />
           </div>
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3">
-            <button 
+            <button
               onClick={handleDocumentSettings}
-              className={`flex items-center gap-2 px-3 py-2 xl:px-4 xl:py-2 rounded-lg transition-colors duration-200 min-h-[40px] ${
-                theme === 'dark' 
-                  ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+              className={`flex items-center gap-2 px-3 py-2 xl:px-4 xl:py-2 rounded-lg transition-colors duration-200 min-h-[40px] ${theme === 'dark'
+                  ? 'text-gray-300 hover:text-white hover:bg-gray-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <Settings className="h-4 w-4 xl:h-5 xl:w-5" />
               <span className="text-sm xl:text-base">Document Settings</span>
             </button>
 
-            <button 
+            <button
               onClick={handlePosBilling}
-              className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${
-                theme === 'dark' 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+              className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${theme === 'dark'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
                   : 'bg-purple-600 hover:bg-purple-700 text-white'
-              }`}
+                }`}
             >
               POS Billing
             </button>
 
-            <button 
+            <button
               onClick={handleCreateInvoice}
-              className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium flex items-center gap-2 transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${
-                theme === 'dark'
+              className={`px-3 py-2 xl:px-4 xl:py-2 rounded-lg font-medium flex items-center gap-2 transition-colors duration-200 min-h-[40px] text-sm xl:text-base ${theme === 'dark'
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+                }`}
             >
               <Plus className="h-4 w-4" />
               Create Invoice
@@ -417,23 +409,21 @@ export default function SalesPage() {
 
           {/* Tablet Actions */}
           <div className="hidden md:flex lg:hidden items-center gap-2">
-            <button 
+            <button
               onClick={handleCreateInvoice}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                theme === 'dark'
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+                }`}
             >
               <Plus className="h-4 w-4" />
             </button>
-            <button 
+            <button
               onClick={handleDocumentSettings}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                theme === 'dark' 
-                  ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
+                  ? 'text-gray-300 hover:text-white hover:bg-gray-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -441,13 +431,12 @@ export default function SalesPage() {
 
           {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-2">
-            <button 
+            <button
               onClick={handleCreateInvoice}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                theme === 'dark'
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+                }`}
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -456,26 +445,23 @@ export default function SalesPage() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className={`lg:hidden border-t px-4 py-2 transition-colors duration-200 ${
-            theme === 'dark' ? 'border-gray-700' : 'border-border'
-          }`}>
+          <div className={`lg:hidden border-t px-4 py-2 transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-border'
+            }`}>
             <div className="flex flex-col gap-2">
-              <button 
+              <button
                 onClick={handleDocumentSettings}
-                className={`flex items-center gap-2 px-3 py-3 rounded-lg transition-colors duration-200 text-sm ${
-                  theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={`flex items-center gap-2 px-3 py-3 rounded-lg transition-colors duration-200 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
               >
                 <Settings className="h-4 w-4" />
                 Document Settings
               </button>
-              <button 
+              <button
                 onClick={handlePosBilling}
-                className={`px-3 py-3 rounded-lg font-medium transition-colors duration-200 text-sm text-left ${
-                  theme === 'dark' 
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                className={`px-3 py-3 rounded-lg font-medium transition-colors duration-200 text-sm text-left ${theme === 'dark'
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
                     : 'bg-purple-600 hover:bg-purple-700 text-white'
-                }`}
+                  }`}
               >
                 POS Billing
               </button>
@@ -484,9 +470,8 @@ export default function SalesPage() {
         )}
 
         {/* Tabs */}
-        <div className={`border-t transition-colors duration-200 px-4 sm:px-6 ${
-          theme === 'dark' ? 'border-gray-700' : 'border-border'
-        }`}>
+        <div className={`border-t transition-colors duration-200 px-4 sm:px-6 ${theme === 'dark' ? 'border-gray-700' : 'border-border'
+          }`}>
           <div className="flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {[
               { id: 'all' as TabType, label: 'All', count: allInvoiceCount, mobileLabel: 'All' },
@@ -501,24 +486,22 @@ export default function SalesPage() {
                   setActiveTab(tab.id);
                   setCurrentPage(1);
                 }}
-                className={`flex-shrink-0 border-b-2 px-2 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap min-h-[48px] flex items-center ${
-                  activeTab === tab.id
+                className={`flex-shrink-0 border-b-2 px-2 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap min-h-[48px] flex items-center ${activeTab === tab.id
                     ? theme === 'dark'
                       ? 'border-blue-400 text-blue-400'
                       : 'border-blue-500 text-blue-600'
                     : theme === 'dark'
-                    ? 'border-transparent text-gray-400 hover:text-gray-200'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                      ? 'border-transparent text-gray-400 hover:text-gray-200'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 <span className="sm:hidden">{tab.mobileLabel}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
                 {tab.count > 0 && (
-                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
-                    theme === 'dark' 
+                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${theme === 'dark'
                       ? activeTab === tab.id ? 'bg-blue-900 text-blue-100' : 'bg-gray-600 text-gray-300'
                       : activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600'
-                  }`}>
+                    }`}>
                     {tab.count}
                   </span>
                 )}
@@ -533,9 +516,8 @@ export default function SalesPage() {
         {/* Search + Filters */}
         <div className="mb-6 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`} />
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`} />
             <input
               value={searchQuery}
               onChange={(e) => {
@@ -543,11 +525,10 @@ export default function SalesPage() {
                 setCurrentPage(1);
               }}
               placeholder="Search invoices, customers, bill numbers..."
-              className={`w-full border pl-10 pr-3 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
-                theme === 'dark'
+              className={`w-full border pl-10 pr-3 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base ${theme === 'dark'
                   ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
                   : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-              }`}
+                }`}
             />
           </div>
 
@@ -555,11 +536,10 @@ export default function SalesPage() {
             <select
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${
-                theme === 'dark'
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${theme === 'dark'
                   ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'
-              } border`}
+                } border`}
             >
               {timeFilterOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -577,11 +557,10 @@ export default function SalesPage() {
                   setSelectedAction('');
                 }
               }}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${
-                theme === 'dark'
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${theme === 'dark'
                   ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'
-              } border`}
+                } border`}
             >
               <option value="">Actions</option>
               {actionOptions.map(option => (
@@ -591,11 +570,10 @@ export default function SalesPage() {
               ))}
             </select>
 
-            <button className={`rounded-lg border p-3 transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              theme === 'dark'
+            <button className={`rounded-lg border p-3 transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${theme === 'dark'
                 ? 'border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
                 : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}>
+              }`}>
               <Filter className="h-5 w-5" />
             </button>
           </div>
@@ -603,9 +581,8 @@ export default function SalesPage() {
 
         {/* Bulk Actions Bar */}
         {selectedInvoices.length > 0 && (
-          <div className={`mb-4 p-3 rounded-lg flex items-center justify-between transition-colors duration-200 ${
-            theme === 'dark' ? 'bg-blue-900 text-blue-100' : 'bg-blue-50 text-blue-700'
-          }`}>
+          <div className={`mb-4 p-3 rounded-lg flex items-center justify-between transition-colors duration-200 ${theme === 'dark' ? 'bg-blue-900 text-blue-100' : 'bg-blue-50 text-blue-700'
+            }`}>
             <span className="text-sm font-medium">
               {selectedInvoices.length} invoice{selectedInvoices.length !== 1 ? 's' : ''} selected
             </span>
@@ -636,38 +613,33 @@ export default function SalesPage() {
         )}
 
         {/* Scrollable Table Container */}
-        <div className={`rounded-lg border shadow-sm overflow-hidden transition-colors duration-200 ${
-          theme === 'dark' 
-            ? 'border-gray-700 bg-gray-800' 
+        <div className={`rounded-lg border shadow-sm overflow-hidden transition-colors duration-200 ${theme === 'dark'
+            ? 'border-gray-700 bg-gray-800'
             : 'border-gray-200 bg-white'
-        }`}>
+          }`}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead>
-                <tr className={`border-b transition-colors duration-200 ${
-                  theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-                }`}>
+                <tr className={`border-b transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                  }`}>
                   <th className="px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedInvoices.length === paginatedInvoices.length && paginatedInvoices.length > 0}
                       onChange={selectAllInvoices}
-                      className={`rounded transition-colors duration-200 cursor-pointer ${
-                        theme === 'dark' 
-                          ? 'bg-gray-600 border-gray-500 text-blue-400' 
+                      className={`rounded transition-colors duration-200 cursor-pointer ${theme === 'dark'
+                          ? 'bg-gray-600 border-gray-500 text-blue-400'
                           : 'bg-white border-gray-300 text-blue-500'
-                      }`}
+                        }`}
                     />
                   </th>
                   {['Amount', 'Status', 'Mode', 'Invoice #', 'Customer', 'Date', 'Actions'].map((head) => (
-                    <th key={head} className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <th key={head} className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
                       <div className="flex items-center gap-2">
                         {head}
-                        <ChevronDown className={`h-4 w-4 transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
-                        }`} />
+                        <ChevronDown className={`h-4 w-4 transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                          }`} />
                       </div>
                     </th>
                   ))}
@@ -677,149 +649,133 @@ export default function SalesPage() {
                 {paginatedInvoices.length > 0 ? (
                   paginatedInvoices.map((invoice) => {
                     const daysSincePending = getDaysSincePending(invoice.created_at, invoice.payment_status);
-                    
+
                     return (
-                    <tr key={invoice.id} className={`border-b transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'border-gray-700 hover:bg-gray-700' 
-                        : 'border-gray-200 hover:bg-gray-50'
-                    }`}>
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedInvoices.includes(invoice.id)}
-                          onChange={() => toggleInvoiceSelection(invoice.id)}
-                          className={`rounded transition-colors duration-200 cursor-pointer ${
-                            theme === 'dark' 
-                              ? 'bg-gray-600 border-gray-500 text-blue-400' 
-                              : 'bg-white border-gray-300 text-blue-500'
-                          }`}
-                        />
-                      </td>
-                      <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        ₹{parseFloat(invoice.grand_total).toFixed(2)}
-                        <span className={`block text-xs font-normal ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      <tr key={invoice.id} className={`border-b transition-colors duration-200 ${theme === 'dark'
+                          ? 'border-gray-700 hover:bg-gray-700'
+                          : 'border-gray-200 hover:bg-gray-50'
                         }`}>
-                          Tax: ₹{invoice.gst}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium transition-colors duration-200 ${getStatusColor(invoice.payment_status)}`}>
-                            {invoice.payment_status.charAt(0).toUpperCase() + invoice.payment_status.slice(1)}
-                          </span>
-                          {invoice.payment_status === 'pending' && daysSincePending && (
-                            <span className="text-red-500">⚠</span>
-                          )}
-                        </div>
-                        {invoice.payment_status === 'pending' && daysSincePending !== undefined && (
-                          <p className={`text-xs transition-colors duration-200 mt-1 ${
-                            theme === 'dark' ? 'text-red-400' : 'text-red-500'
-                          }`}>
-                            since {daysSincePending} day{daysSincePending !== 1 ? 's' : ''}
-                          </p>
-                        )}
-                      </td>
-                      <td className={`px-4 py-3 text-sm transition-colors duration-200 whitespace-nowrap ${getModeColor(invoice.payment_mode)}`}>
-                        {paymentModeLabels[invoice.payment_mode || '']}
-                      </td>
-                      <td className={`px-4 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {invoice.invoice_id}
-                      </td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        <p className={`font-medium transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {invoice.billing_to}
-                        </p>
-                        <p className={`text-xs transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                          {invoice.mobile || 'No phone'}
-                        </p>
-                        {invoice.email && (
-                          <p className={`text-xs transition-colors duration-200 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {invoice.email}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        <p className={`font-medium transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {formatDate(invoice.created_at)}
-                        </p>
-                        <p className={`text-xs transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                          {formatTimeAgo(invoice.created_at)}
-                        </p>
-                        <p className={`text-xs transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                          {invoice.qty} item{invoice.qty !== 1 ? 's' : ''}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          {invoice.payment_status === 'pending' && (
-                            <button 
-                              onClick={() => handlePayment(invoice.id)}
-                              className={`rounded p-2 transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${
-                                theme === 'dark'
-                                  ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
-                                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoices.includes(invoice.id)}
+                            onChange={() => toggleInvoiceSelection(invoice.id)}
+                            className={`rounded transition-colors duration-200 cursor-pointer ${theme === 'dark'
+                                ? 'bg-gray-600 border-gray-500 text-blue-400'
+                                : 'bg-white border-gray-300 text-blue-500'
                               }`}
-                            >
-                              <span className="text-xs font-medium">₹</span>
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleView(invoice)}
-                            className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
-                              theme === 'dark'
-                                ? 'text-gray-400 hover:text-white'
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span className="hidden lg:inline ml-1">View</span>
-                          </button>
-                          <button 
-                            onClick={() => handleSend(invoice)}
-                            className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${
-                              theme === 'dark'
-                                ? 'text-gray-400 hover:text-white'
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            <Send className="h-4 w-4" />
-                            <span className="hidden lg:inline ml-1">Send</span>
-                          </button>
-                          <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] min-w-[32px] flex items-center justify-center ${
-                            theme === 'dark'
-                              ? 'text-gray-400 hover:text-white'
-                              : 'text-gray-600 hover:text-gray-900'
+                          />
+                        </td>
+                        <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                           }`}>
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})
+                          ₹{parseFloat(invoice.grand_total).toFixed(2)}
+                          <span className={`block text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                            Tax: ₹{invoice.gst}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2 py-1 text-xs font-medium transition-colors duration-200 ${getStatusColor(invoice.payment_status)}`}>
+                              {invoice.payment_status.charAt(0).toUpperCase() + invoice.payment_status.slice(1)}
+                            </span>
+                            {invoice.payment_status === 'pending' && daysSincePending && (
+                              <span className="text-red-500">⚠</span>
+                            )}
+                          </div>
+                          {invoice.payment_status === 'pending' && daysSincePending !== undefined && (
+                            <p className={`text-xs transition-colors duration-200 mt-1 ${theme === 'dark' ? 'text-red-400' : 'text-red-500'
+                              }`}>
+                              since {daysSincePending} day{daysSincePending !== 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </td>
+                        <td className={`px-4 py-3 text-sm transition-colors duration-200 whitespace-nowrap ${getModeColor(invoice.payment_mode)}`}>
+                          {paymentModeLabels[invoice.payment_mode || '']}
+                        </td>
+                        <td className={`px-4 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
+                          {invoice.invoice_id}
+                        </td>
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
+                          <p className={`font-medium transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>
+                            {invoice.billing_to}
+                          </p>
+                          <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                            {invoice.mobile || 'No phone'}
+                          </p>
+                          {invoice.email && (
+                            <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                              {invoice.email}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
+                          <p className={`font-medium transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>
+                            {formatDate(invoice.created_at)}
+                          </p>
+                          <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                            {formatTimeAgo(invoice.created_at)}
+                          </p>
+                          <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                            {invoice.qty} item{invoice.qty !== 1 ? 's' : ''}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {invoice.payment_status === 'pending' && (
+                              <button
+                                onClick={() => handlePayment(invoice.id)}
+                                className={`rounded p-2 transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
+                                    ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
+                                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  }`}
+                              >
+                                <span className="text-xs font-medium">₹</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleView(invoice)}
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-gray-400 hover:text-white'
+                                  : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="hidden lg:inline ml-1">View</span>
+                            </button>
+                            <button
+                              onClick={() => handleSend(invoice)}
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-gray-400 hover:text-white'
+                                  : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                              <Send className="h-4 w-4" />
+                              <span className="hidden lg:inline ml-1">Send</span>
+                            </button>
+                            <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
+                                ? 'text-gray-400 hover:text-white'
+                                : 'text-gray-600 hover:text-gray-900'
+                              }`}>
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
                 ) : (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center">
-                      <div className={`transition-colors duration-200 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <div className={`transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         <p className="text-lg font-medium mb-2">No invoices found</p>
                         <p className="text-sm">
                           {searchQuery ? 'Try adjusting your search criteria' : `No ${activeTab === 'all' ? '' : activeTab} invoices available`}
@@ -834,43 +790,36 @@ export default function SalesPage() {
         </div>
 
         {/* Summary + Pagination */}
-        <div className={`mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg px-4 py-4 sm:px-6 transition-colors duration-200 ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
-        }`}>
+        <div className={`mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg px-4 py-4 sm:px-6 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
+          }`}>
           <div className="flex gap-4 sm:gap-6 lg:gap-8 w-full sm:w-auto justify-between sm:justify-start">
             <div className="text-center sm:text-left">
-              <p className={`text-sm transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <p className={`text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 Total
               </p>
-              <p className={`text-lg font-bold transition-colors duration-200 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
+              <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
                 ₹{total.toFixed(2)}
               </p>
             </div>
             <div className="text-center sm:text-left">
-              <p className={`text-sm transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <p className={`text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 Paid
               </p>
-              <p className={`text-lg font-bold transition-colors duration-200 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
+              <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
                 ₹{paid.toFixed(2)}
               </p>
             </div>
             <div className="text-center sm:text-left">
-              <p className={`text-sm transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <p className={`text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 Pending
               </p>
-              <p className={`text-lg font-bold transition-colors duration-200 ${
-                theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
-              }`}>
+              <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
+                }`}>
                 ₹{pending.toFixed(2)}
               </p>
             </div>
@@ -878,36 +827,33 @@ export default function SalesPage() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${
-                  currentPage === 1 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : theme === 'dark' 
-                      ? 'text-gray-400 hover:text-white' 
+                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === 1
+                    ? 'opacity-50 cursor-not-allowed'
+                    : theme === 'dark'
+                      ? 'text-gray-400 hover:text-white'
                       : 'text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
 
-              <span className={`px-3 py-1 text-sm transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <span className={`px-3 py-1 text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                 Page {currentPage} of {totalPages}
               </span>
 
-              <button 
+              <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${
-                  currentPage === totalPages 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : theme === 'dark' 
-                      ? 'text-gray-400 hover:text-white' 
+                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === totalPages
+                    ? 'opacity-50 cursor-not-allowed'
+                    : theme === 'dark'
+                      ? 'text-gray-400 hover:text-white'
                       : 'text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -920,20 +866,18 @@ export default function SalesPage() {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className={`rounded border px-3 py-2 text-sm transition-colors duration-200 cursor-pointer min-h-[36px] ${
-                  theme === 'dark'
+                className={`rounded border px-3 py-2 text-sm transition-colors duration-200 cursor-pointer min-h-[36px] ${theme === 'dark'
                     ? 'bg-gray-700 border-gray-600 text-white'
                     : 'bg-white border-gray-200 text-gray-900'
-                }`}
+                  }`}
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <span className={`text-sm transition-colors duration-200 hidden sm:inline ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <span className={`text-sm transition-colors duration-200 hidden sm:inline ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 / page
               </span>
             </div>
