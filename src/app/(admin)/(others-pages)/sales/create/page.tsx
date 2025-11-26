@@ -42,11 +42,14 @@ interface Product {
   price: number
   stock?: number
   hsnCode?: string
+
   taxRate?: number
   description?: string
   sku?: string
   product_image?: string
   vendor_id?: string
+  is_active?: boolean // Add this field
+
 }
 
 // Interface for API product response
@@ -54,6 +57,7 @@ interface ApiProduct {
   id?: string | number
   product_name?: string
   name?: string
+  is_active?: boolean | string | number
   title?: string
   sale_price?: string | number
   price?: string | number
@@ -62,6 +66,7 @@ interface ApiProduct {
   stock?: string | number
   quantity?: string | number
   tax_rate?: string | number
+  status?: string | number
   tax?: string | number
   gst_rate?: string | number
   hsn_code?: string
@@ -176,12 +181,12 @@ export default function CreateInvoice() {
   const [invoiceType, setInvoiceType] = useState('regular')
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
-  
+
   // Vendor Profile State
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
-  
+
   // Customer State
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState('')
@@ -191,13 +196,13 @@ export default function CreateInvoice() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [customerError, setCustomerError] = useState('')
-  
+
   // Add Customer Slider State
   const [showAddCustomerSlider, setShowAddCustomerSlider] = useState(false)
   const [addingCustomer, setAddingCustomer] = useState(false)
   const [addCustomerError, setAddCustomerError] = useState('')
   const [addCustomerSuccess, setAddCustomerSuccess] = useState('')
-  
+
   // Add Customer Form State
   const [customerFormData, setCustomerFormData] = useState<AddCustomerFormData>({
     name: '',
@@ -209,7 +214,7 @@ export default function CreateInvoice() {
     pincode: '',
     company: ''
   })
-  
+
   // Products State
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProducts, setSelectedProducts] = useState<InvoiceItem[]>([])
@@ -219,7 +224,7 @@ export default function CreateInvoice() {
   const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
-  
+
   // Add Product Slider State
   const [showAddProductSlider, setShowAddProductSlider] = useState(false)
   const [addingProduct, setAddingProduct] = useState(false)
@@ -246,11 +251,11 @@ export default function CreateInvoice() {
   })
   const [productImage, setProductImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  
+
   // Section Expansion State
   const [expandedNotes, setExpandedNotes] = useState(true)
   const [expandedTerms, setExpandedTerms] = useState(false)
-  
+
   // Payment State
   const [isRoundedOff, setIsRoundedOff] = useState(true)
   const [selectedBank, setSelectedBank] = useState('')
@@ -259,7 +264,7 @@ export default function CreateInvoice() {
   const [paymentMode, setPaymentMode] = useState('cash')
   const [paymentStatus, setPaymentStatus] = useState('pending')
   const [utrNumber, setUtrNumber] = useState('')
-  
+
   // Notes & Terms
   const [notes, setNotes] = useState('')
   const [createEWaybill, setCreateEWaybill] = useState(false)
@@ -282,7 +287,7 @@ export default function CreateInvoice() {
         setShowMobileSidebar(false)
       }
     }
-    
+
     checkScreenSize()
     window.addEventListener('resize', checkScreenSize)
     return () => window.removeEventListener('resize', checkScreenSize)
@@ -300,10 +305,10 @@ export default function CreateInvoice() {
   const fetchVendorProfile = async () => {
     setLoadingProfile(true)
     setProfileError('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -322,7 +327,7 @@ export default function CreateInvoice() {
 
       const data = await response.json()
       console.log('Vendor Profile API Response:', data)
-      
+
       // Handle different response formats
       if (data.success && data.data) {
         setVendorProfile(data.data)
@@ -346,10 +351,10 @@ export default function CreateInvoice() {
   const fetchCustomers = async () => {
     setLoadingCustomers(true)
     setCustomerError('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -368,7 +373,7 @@ export default function CreateInvoice() {
 
       const data = await response.json()
       console.log('Customers API Response:', data)
-      
+
       // Flexible response handling
       if (data.success && data.data) {
         setCustomers(data.data)
@@ -392,10 +397,10 @@ export default function CreateInvoice() {
     setAddingCustomer(true)
     setAddCustomerError('')
     setAddCustomerSuccess('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -419,7 +424,7 @@ export default function CreateInvoice() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.message || `Failed to add customer: ${response.status}`)
       }
@@ -457,10 +462,10 @@ export default function CreateInvoice() {
   const fetchProducts = async () => {
     setLoadingProducts(true)
     setProductError('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -479,7 +484,7 @@ export default function CreateInvoice() {
 
       const data = await response.json()
       console.log('Products API Response:', data)
-      
+
       // Flexible response handling for products
       let productsData: ApiProduct[] = []
 
@@ -496,10 +501,11 @@ export default function CreateInvoice() {
       }
 
       // Transform the data to match our Product interface based on the actual API response
+      // Transform the data to match our Product interface based on the actual API response
       const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
         // Debug each product item
         console.log('Processing product:', item)
-        
+
         // Find price - check multiple possible fields
         let price = 0
         if (item.sale_price !== undefined && item.sale_price !== null) {
@@ -540,6 +546,14 @@ export default function CreateInvoice() {
           hsnCode = item.hsn_number
         }
 
+        // Get active status - check multiple possible fields
+        let is_active = true // Default to true if not specified
+        if (item.is_active !== undefined && item.is_active !== null) {
+          is_active = Boolean(item.is_active)
+        } else if (item.status !== undefined && item.status !== null) {
+          is_active = item.status === 'active' || item.status === '1'
+        }
+
         return {
           id: item.id?.toString() || Math.random().toString(),
           name: item.product_name || item.name || item.title || 'Unnamed Product',
@@ -551,7 +565,8 @@ export default function CreateInvoice() {
           description: item.description || item.product_description || '',
           sku: item.sku || item.product_sku || '',
           product_image: item.product_image || undefined,
-          vendor_id: item.vendor_id || ''
+          vendor_id: item.vendor_id || '',
+          is_active: is_active // Add the active status
         }
       })
 
@@ -571,10 +586,10 @@ export default function CreateInvoice() {
     setAddingProduct(true)
     setAddProductError('')
     setAddProductSuccess('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -588,7 +603,7 @@ export default function CreateInvoice() {
       }
 
       const formDataToSend = new FormData()
-      
+
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           if (key === 'is_active' || key === 'tax_inclusive') {
@@ -600,7 +615,7 @@ export default function CreateInvoice() {
           }
         }
       })
-      
+
       if (imageFile) {
         formDataToSend.append('product_image', imageFile)
       }
@@ -619,7 +634,7 @@ export default function CreateInvoice() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.message || `Failed to add product: ${response.status}`)
       }
@@ -648,7 +663,7 @@ export default function CreateInvoice() {
         })
         setProductImage(null)
         setImagePreview(null)
-        
+
         // Refresh products list
         setTimeout(() => {
           fetchProducts()
@@ -670,10 +685,10 @@ export default function CreateInvoice() {
     setSavingInvoice(true)
     setSaveError('')
     setSaveSuccess('')
-    
+
     try {
       const token = getAuthToken()
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
@@ -688,7 +703,7 @@ export default function CreateInvoice() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.message || `Failed to create invoice: ${response.status}`)
       }
@@ -774,28 +789,28 @@ export default function CreateInvoice() {
     }
   }
 
- const saveAndPrint = async () => {
-  try {
-    const invoiceData = prepareInvoiceData();
-    const result = await createInvoice(invoiceData);
+  const saveAndPrint = async () => {
+    try {
+      const invoiceData = prepareInvoiceData();
+      const result = await createInvoice(invoiceData);
 
-    if (result?.id) {
-      console.log('Invoice created and ready for print:', result);
+      if (result?.id) {
+        console.log('Invoice created and ready for print:', result);
 
-      // Redirect to the invoice page
-      router.push(`/sales/invoices/${result.id}`);
+        // Redirect to the invoice page
+        router.push(`/sales/invoices/${result.id}`);
 
-      // Trigger print AFTER redirect (optional)
-      // window.print();
-    } else {
-      alert("Failed to save invoice. Missing invoice ID.");
+        // Trigger print AFTER redirect (optional)
+        // window.print();
+      } else {
+        alert("Failed to save invoice. Missing invoice ID.");
+      }
+
+    } catch (error) {
+      console.error('Error saving and printing invoice:', error);
+      alert("Error saving invoice!");
     }
-
-  } catch (error) {
-    console.error('Error saving and printing invoice:', error);
-    alert("Error saving invoice!");
-  }
-};
+  };
 
   // Fetch all data on component mount
   useEffect(() => {
@@ -819,17 +834,24 @@ export default function CreateInvoice() {
   }, [customerSearch, customers])
 
   // Filter products based on search
+  // Filter products based on search and active status
   useEffect(() => {
     if (productSearch) {
       const filtered = products.filter(product =>
-        product.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.hsnCode?.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(productSearch.toLowerCase())
+        (product.is_active === undefined || product.is_active === true) && ( // Only active products
+          product.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
+          product.category?.toLowerCase().includes(productSearch.toLowerCase()) ||
+          product.hsnCode?.toLowerCase().includes(productSearch.toLowerCase()) ||
+          product.sku?.toLowerCase().includes(productSearch.toLowerCase())
+        )
       )
       setFilteredProducts(filtered)
     } else {
-      setFilteredProducts(products)
+      // Show only active products when no search
+      const activeProducts = products.filter(product =>
+        product.is_active === undefined || product.is_active === true
+      )
+      setFilteredProducts(activeProducts)
     }
   }, [productSearch, products])
 
@@ -845,17 +867,17 @@ export default function CreateInvoice() {
 
   const addProductToBill = (product: Product) => {
     const existingItem = selectedProducts.find(item => item.product.id === product.id)
-    
+
     if (existingItem) {
       setSelectedProducts(prev =>
         prev.map(item =>
           item.product.id === product.id
             ? {
-                ...item,
-                quantity: item.quantity + productQuantity,
-                total: (item.quantity + productQuantity) * item.unitPrice,
-                gst: ((item.quantity + productQuantity) * item.unitPrice * (product.taxRate || 0)) / 100
-              }
+              ...item,
+              quantity: item.quantity + productQuantity,
+              total: (item.quantity + productQuantity) * item.unitPrice,
+              gst: ((item.quantity + productQuantity) * item.unitPrice * (product.taxRate || 0)) / 100
+            }
             : item
         )
       )
@@ -870,7 +892,7 @@ export default function CreateInvoice() {
       }
       setSelectedProducts(prev => [...prev, newItem])
     }
-    
+
     setProductSearch('')
     setProductQuantity(1)
     setShowProductDropdown(false)
@@ -882,16 +904,16 @@ export default function CreateInvoice() {
 
   const updateProductQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return
-    
+
     setSelectedProducts(prev =>
       prev.map(item =>
         item.id === productId
           ? {
-              ...item,
-              quantity: newQuantity,
-              total: newQuantity * item.unitPrice,
-              gst: (newQuantity * item.unitPrice * (item.product.taxRate || 0)) / 100
-            }
+            ...item,
+            quantity: newQuantity,
+            total: newQuantity * item.unitPrice,
+            gst: (newQuantity * item.unitPrice * (item.product.taxRate || 0)) / 100
+          }
           : item
       )
     )
@@ -914,30 +936,30 @@ export default function CreateInvoice() {
 
   const calculateSalesPrice = () => {
     const { purchase_price, discount_percent, tax_percent, tax_inclusive } = productFormData
-    
+
     if (purchase_price > 0) {
       let calculatedPrice = purchase_price
-      
+
       if (discount_percent > 0) {
         calculatedPrice = purchase_price * (1 - discount_percent / 100)
       }
-      
+
       if (!tax_inclusive && tax_percent > 0) {
         calculatedPrice = calculatedPrice * (1 + tax_percent / 100)
       }
-      
+
       setProductFormData(prev => ({ ...prev, sales_price: parseFloat(calculatedPrice.toFixed(2)) }))
     }
   }
 
   const handleProductFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
-    
+
     setProductFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' 
+      [name]: type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
-        : type === 'number' 
+        : type === 'number'
           ? parseFloat(value) || 0
           : value
     }))
@@ -958,7 +980,7 @@ export default function CreateInvoice() {
       }
 
       setProductImage(file)
-      
+
       const reader = new FileReader()
       reader.onloadend = () => {
         setImagePreview(reader.result as string)
@@ -1105,21 +1127,21 @@ export default function CreateInvoice() {
               />
             </div>
             <div className="flex gap-1 md:gap-2">
-              <button 
+              <button
                 onClick={saveAsDraft}
                 disabled={savingInvoice}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 {savingInvoice ? 'Saving...' : (isMobile ? 'Draft' : 'Save as Draft')}
               </button>
-              <button 
+              <button
                 onClick={saveAndPrint}
                 disabled={savingInvoice}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 {savingInvoice ? 'Saving...' : (isMobile ? 'Print' : 'Save and Print')}
               </button>
-              <button 
+              <button
                 onClick={saveInvoice}
                 disabled={savingInvoice || selectedProducts.length === 0 || !selectedCustomer}
                 className="px-2 py-2 text-xs md:px-3 md:text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -1142,7 +1164,7 @@ export default function CreateInvoice() {
               <AlertCircle className="h-4 w-4 text-red-600" />
               <span className="text-sm text-red-600">{saveError}</span>
             </div>
-            <button 
+            <button
               onClick={() => setSaveError('')}
               className="text-sm font-medium text-red-700 hover:text-red-800"
             >
@@ -1158,7 +1180,7 @@ export default function CreateInvoice() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-green-600">{saveSuccess}</span>
             </div>
-            <button 
+            <button
               onClick={() => setSaveSuccess('')}
               className="text-sm font-medium text-green-700 hover:text-green-800"
             >
@@ -1176,7 +1198,7 @@ export default function CreateInvoice() {
               <AlertCircle className="h-4 w-4 text-red-600" />
               <span className="text-sm text-red-600">{profileError}</span>
             </div>
-            <button 
+            <button
               onClick={retryFetchProfile}
               className="text-sm font-medium text-red-700 hover:text-red-800 underline"
             >
@@ -1213,8 +1235,8 @@ export default function CreateInvoice() {
           <div className="bg-white p-4 rounded-lg border border-slate-200">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-slate-700">Type</span>
-              <select 
-                value={invoiceType} 
+              <select
+                value={invoiceType}
                 onChange={(e) => setInvoiceType(e.target.value)}
                 className="w-32 border border-slate-300 rounded-md px-3 py-2 text-sm"
               >
@@ -1233,14 +1255,14 @@ export default function CreateInvoice() {
                 <AlertCircle className="h-4 w-4 text-slate-400" />
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={retryFetchCustomers}
                   disabled={loadingCustomers}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
                 >
                   {loadingCustomers ? 'Loading...' : 'Refresh'}
                 </button>
-                <button 
+                <button
                   onClick={openAddCustomerSlider}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
                 >
@@ -1265,11 +1287,11 @@ export default function CreateInvoice() {
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}
                 />
-                
+
                 {customerError && (
                   <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
                     {customerError}
-                    <button 
+                    <button
                       onClick={retryFetchCustomers}
                       className="ml-2 text-blue-600 hover:text-blue-800 underline"
                     >
@@ -1297,7 +1319,7 @@ export default function CreateInvoice() {
                         >
                           <div className="font-medium text-slate-900">{customer.company || customer.name}</div>
                           <div className="text-xs text-slate-600">
-                            {customer.name} 
+                            {customer.name}
                             {customer.gstin && ` • ${customer.gstin}`}
                           </div>
                         </div>
@@ -1337,14 +1359,14 @@ export default function CreateInvoice() {
                 <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">?</span>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={retryFetchProducts}
                   disabled={loadingProducts}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
                 >
                   {loadingProducts ? 'Loading...' : 'Refresh'}
                 </button>
-                <button 
+                <button
                   onClick={openAddProductSlider}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700"
                 >
@@ -1357,8 +1379,8 @@ export default function CreateInvoice() {
             {process.env.NODE_ENV === 'development' && (
               <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                 <div className="text-xs text-yellow-800">
-                  <strong>Debug Info:</strong> {products.length} products loaded, 
-                  {filteredProducts.length} filtered, 
+                  <strong>Debug Info:</strong> {products.length} products loaded,
+                  {filteredProducts.length} filtered,
                   {selectedProducts.length} in bill
                 </div>
               </div>
@@ -1369,8 +1391,8 @@ export default function CreateInvoice() {
               <div className="flex-1">
                 <div className="mb-2 text-xs font-medium text-slate-600">All Categories</div>
                 <div className="relative">
-                  <input 
-                    placeholder="Search or scan barcode for existing products" 
+                  <input
+                    placeholder="Search or scan barcode for existing products"
                     className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={productSearch}
                     onChange={(e) => {
@@ -1379,11 +1401,11 @@ export default function CreateInvoice() {
                     }}
                     onFocus={() => setShowProductDropdown(true)}
                   />
-                  
+
                   {productError && (
                     <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
                       {productError}
-                      <button 
+                      <button
                         onClick={retryFetchProducts}
                         className="ml-2 text-blue-600 hover:text-blue-800 underline"
                       >
@@ -1404,21 +1426,26 @@ export default function CreateInvoice() {
                         </div>
                       ) : (
                         filteredProducts.map(product => (
-                          <div
-                            key={product.id}
-                            className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-                            onClick={() => addProductToBill(product)}
-                          >
-                            <div className="font-medium text-slate-900">{product.name}</div>
-                            <div className="text-xs text-slate-600">
-                              {product.sku && `SKU: ${product.sku} • `}
-                              ₹{product.price} 
-                              {product.stock !== undefined && ` • Stock: ${product.stock}`}
-                              {product.hsnCode && ` • HSN: ${product.hsnCode}`}
-                              {product.taxRate && ` • Tax: ${product.taxRate}%`}
-                            </div>
-                          </div>
-                        ))
+  <div
+    key={product.id}
+    className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+    onClick={() => addProductToBill(product)}
+  >
+    <div className="font-medium text-slate-900 flex items-center gap-2">
+      {product.name}
+      {product.is_active === false && (
+        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Inactive</span>
+      )}
+    </div>
+    <div className="text-xs text-slate-600">
+      {product.sku && `SKU: ${product.sku} • `}
+      ₹{product.price} 
+      {product.stock !== undefined && ` • Stock: ${product.stock}`}
+      {product.hsnCode && ` • HSN: ${product.hsnCode}`}
+      {product.taxRate && ` • Tax: ${product.taxRate}%`}
+    </div>
+  </div>
+))
                       )}
                     </div>
                   )}
@@ -1428,9 +1455,9 @@ export default function CreateInvoice() {
                 <div className="mb-2 text-xs font-medium text-slate-600">
                   Qty <RequiredStar />
                 </div>
-                <input 
-                  placeholder="0" 
-                  type="number" 
+                <input
+                  placeholder="0"
+                  type="number"
                   min="1"
                   value={productQuantity}
                   onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
@@ -1441,7 +1468,7 @@ export default function CreateInvoice() {
 
             {/* Action Buttons */}
             <div className="mb-6 flex flex-col sm:flex-row gap-2">
-              <button 
+              <button
                 onClick={() => {
                   if (filteredProducts.length > 0) {
                     addProductToBill(filteredProducts[0])
@@ -1512,14 +1539,16 @@ export default function CreateInvoice() {
               <div className="flex flex-col items-center justify-center py-8 md:py-16 text-center">
                 <div className="mb-4 h-12 w-12 md:h-16 md:w-16 rounded-lg bg-slate-100"></div>
                 <p className="mb-4 text-sm text-slate-600 px-4">
-                  {loadingProducts 
-                    ? 'Loading products...' 
-                    : products.length === 0
-                    ? 'No products available. Please check if products exist in your inventory.'
-                    : 'Search existing products to add to this list or add new product to get started! 🎯'
+                  {loadingProducts
+                    ? 'Loading products...'
+                    : filteredProducts.length === 0 && productSearch
+                      ? 'No active products found matching your search.'
+                      : products.length === 0
+                        ? 'No products available. Please check if products exist in your inventory.'
+                        : 'Search active products to add to this list or add new product to get started! 🎯'
                   }
                 </p>
-                <button 
+                <button
                   onClick={openAddProductSlider}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   disabled={loadingProducts}
@@ -1561,7 +1590,7 @@ export default function CreateInvoice() {
                     <span className="text-slate-700">Taxable Amount</span>
                     <span className="font-semibold text-slate-900">₹ {taxableAmount.toFixed(2)}</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700">Total Tax</span>
                     <span className="font-semibold text-slate-900">₹ {totalTax.toFixed(2)}</span>
@@ -1600,7 +1629,7 @@ export default function CreateInvoice() {
                   <h3 className="font-semibold text-slate-900">Select Bank</h3>
                   <AlertCircle className="h-4 w-4 text-slate-400" />
                 </div>
-                <select 
+                <select
                   value={selectedBank}
                   onChange={(e) => setSelectedBank(e.target.value)}
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1625,7 +1654,7 @@ export default function CreateInvoice() {
                     <label className="mb-1 block text-xs font-semibold text-slate-700">
                       Payment Status <RequiredStar />
                     </label>
-                    <select 
+                    <select
                       className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       value={paymentStatus}
                       onChange={(e) => setPaymentStatus(e.target.value)}
@@ -1638,7 +1667,7 @@ export default function CreateInvoice() {
 
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">UTR Number</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="Enter UTR number if available"
                       className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1649,8 +1678,8 @@ export default function CreateInvoice() {
 
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Notes</label>
-                    <textarea 
-                      placeholder="Advance received, UTR number etc..." 
+                    <textarea
+                      placeholder="Advance received, UTR number etc..."
                       className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       rows={3}
                       value={paymentNotes}
@@ -1661,9 +1690,9 @@ export default function CreateInvoice() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-slate-700">Amount</label>
-                      <input 
-                        type="number" 
-                        placeholder="0" 
+                      <input
+                        type="number"
+                        placeholder="0"
                         className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
@@ -1673,7 +1702,7 @@ export default function CreateInvoice() {
                       <label className="mb-1 block text-xs font-semibold text-slate-700">
                         Payment Mode <RequiredStar />
                       </label>
-                      <select 
+                      <select
                         className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={paymentMode}
                         onChange={(e) => setPaymentMode(e.target.value)}
@@ -1750,8 +1779,8 @@ export default function CreateInvoice() {
 
               {expandedNotes && (
                 <div className="space-y-3">
-                  <textarea 
-                    placeholder="Enter your notes, say thanks, or anything else" 
+                  <textarea
+                    placeholder="Enter your notes, say thanks, or anything else"
                     className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={4}
                     value={notes}
@@ -1787,8 +1816,8 @@ export default function CreateInvoice() {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <label className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         id="ewaybill"
                         checked={createEWaybill}
                         onChange={(e) => setCreateEWaybill(e.target.checked)}
@@ -1797,8 +1826,8 @@ export default function CreateInvoice() {
                       <span className="text-sm font-medium text-slate-700">Create E-Waybill</span>
                     </label>
                     <label className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         id="einvoice"
                         checked={createEInvoice}
                         onChange={(e) => setCreateEInvoice(e.target.checked)}
@@ -1829,15 +1858,14 @@ export default function CreateInvoice() {
       {showAddCustomerSlider && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0  transition-opacity z-40"
             onClick={closeAddCustomerSlider}
           ></div>
-          
+
           {/* Slider */}
-          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-            isMobile ? 'w-full' : 'w-96'
-          }`}>
+          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-96'
+            }`}>
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200">
@@ -2030,15 +2058,14 @@ export default function CreateInvoice() {
       {showAddProductSlider && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 transition-opacity z-40"
             onClick={closeAddProductSlider}
           ></div>
-          
+
           {/* Slider */}
-          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-            isMobile ? 'w-full' : 'w-full max-w-2xl'
-          } overflow-y-auto`}>
+          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-full max-w-2xl'
+            } overflow-y-auto`}>
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 sticky top-0 bg-white">
