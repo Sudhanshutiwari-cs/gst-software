@@ -107,6 +107,33 @@ interface AddCustomerFormData {
   company?: string
 }
 
+// Add Product Form Data interface
+interface AddProductFormData {
+  sku: string
+  product_name: string
+  price: number
+  barcode: string
+  category_id: number
+  brand: string
+  hsn_sac: string
+  unit: string
+  qty: number
+  reorder_level: number
+  purchase_price: number
+  sales_price: number
+  discount_percent: number
+  tax_percent: number
+  tax_inclusive: boolean
+  product_description: string
+  is_active: boolean
+}
+
+interface ApiError {
+  message?: string
+  success?: boolean
+  errors?: Record<string, string[]>
+}
+
 // Invoice Data interface for API
 interface InvoiceData {
   biller_name: string
@@ -193,6 +220,33 @@ export default function CreateInvoice() {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
   
+  // Add Product Slider State
+  const [showAddProductSlider, setShowAddProductSlider] = useState(false)
+  const [addingProduct, setAddingProduct] = useState(false)
+  const [addProductError, setAddProductError] = useState('')
+  const [addProductSuccess, setAddProductSuccess] = useState('')
+  const [productFormData, setProductFormData] = useState<AddProductFormData>({
+    sku: '',
+    product_name: '',
+    price: 0,
+    barcode: '',
+    category_id: 0,
+    brand: '',
+    hsn_sac: '',
+    unit: 'pcs',
+    qty: 0,
+    reorder_level: 0,
+    purchase_price: 0,
+    sales_price: 0,
+    discount_percent: 0,
+    tax_percent: 0,
+    tax_inclusive: false,
+    product_description: '',
+    is_active: true,
+  })
+  const [productImage, setProductImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  
   // Section Expansion State
   const [expandedNotes, setExpandedNotes] = useState(true)
   const [expandedTerms, setExpandedTerms] = useState(false)
@@ -215,7 +269,6 @@ export default function CreateInvoice() {
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
-
 
   const router = useRouter();
 
@@ -513,6 +566,105 @@ export default function CreateInvoice() {
     }
   }
 
+  // API function to add product
+  const addProduct = async (formData: AddProductFormData, imageFile: File | null) => {
+    setAddingProduct(true)
+    setAddProductError('')
+    setAddProductSuccess('')
+    
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      if (!formData.product_name.trim()) {
+        throw new Error('Product name is required')
+      }
+
+      if (!formData.sku.trim()) {
+        throw new Error('SKU is required')
+      }
+
+      const formDataToSend = new FormData()
+      
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          if (key === 'is_active' || key === 'tax_inclusive') {
+            formDataToSend.append(key, value ? '1' : '0')
+          } else if (typeof value === 'number') {
+            formDataToSend.append(key, value.toString())
+          } else {
+            formDataToSend.append(key, value)
+          }
+        }
+      })
+      
+      if (imageFile) {
+        formDataToSend.append('product_image', imageFile)
+      }
+
+      console.log('Sending Product FormData:')
+      for (const [key, value] of formDataToSend.entries()) {
+        console.log(key, value)
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/add-products', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataToSend
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to add product: ${response.status}`)
+      }
+
+      if (data.success) {
+        setAddProductSuccess('Product added successfully!')
+        // Reset form
+        setProductFormData({
+          sku: '',
+          product_name: '',
+          price: 0,
+          barcode: '',
+          category_id: 0,
+          brand: '',
+          hsn_sac: '',
+          unit: 'pcs',
+          qty: 0,
+          reorder_level: 0,
+          purchase_price: 0,
+          sales_price: 0,
+          discount_percent: 0,
+          tax_percent: 0,
+          tax_inclusive: false,
+          product_description: '',
+          is_active: true,
+        })
+        setProductImage(null)
+        setImagePreview(null)
+        
+        // Refresh products list
+        setTimeout(() => {
+          fetchProducts()
+          closeAddProductSlider()
+        }, 1500)
+      } else {
+        throw new Error(data.message || 'Failed to add product')
+      }
+    } catch (error) {
+      console.error('Error adding product:', error)
+      setAddProductError(error instanceof Error ? error.message : 'Failed to add product')
+    } finally {
+      setAddingProduct(false)
+    }
+  }
+
   // API function to create invoice
   const createInvoice = async (invoiceData: InvoiceData) => {
     setSavingInvoice(true)
@@ -750,6 +902,113 @@ export default function CreateInvoice() {
     setSelectedCustomerData(customer)
     setCustomerSearch(customer.company || customer.name)
     setShowCustomerDropdown(false)
+  }
+
+  // Product Form Functions
+  const generateSKU = () => {
+    const prefix = productFormData.brand ? productFormData.brand.substring(0, 3).toUpperCase() : 'PRO'
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const sku = `${prefix}-${random}`
+    setProductFormData(prev => ({ ...prev, sku }))
+  }
+
+  const calculateSalesPrice = () => {
+    const { purchase_price, discount_percent, tax_percent, tax_inclusive } = productFormData
+    
+    if (purchase_price > 0) {
+      let calculatedPrice = purchase_price
+      
+      if (discount_percent > 0) {
+        calculatedPrice = purchase_price * (1 - discount_percent / 100)
+      }
+      
+      if (!tax_inclusive && tax_percent > 0) {
+        calculatedPrice = calculatedPrice * (1 + tax_percent / 100)
+      }
+      
+      setProductFormData(prev => ({ ...prev, sales_price: parseFloat(calculatedPrice.toFixed(2)) }))
+    }
+  }
+
+  const handleProductFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target
+    
+    setProductFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' 
+        ? (e.target as HTMLInputElement).checked
+        : type === 'number' 
+          ? parseFloat(value) || 0
+          : value
+    }))
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!validTypes.includes(file.type)) {
+        setAddProductError('Please select a valid image file (JPEG, PNG, GIF, WebP)')
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setAddProductError('Image size should be less than 5MB')
+        return
+      }
+
+      setProductImage(file)
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+      setAddProductError('')
+    }
+  }
+
+  const removeImage = () => {
+    setProductImage(null)
+    setImagePreview(null)
+  }
+
+  const handleAddProductSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    addProduct(productFormData, productImage)
+  }
+
+  const openAddProductSlider = () => {
+    setShowAddProductSlider(true)
+    setAddProductError('')
+    setAddProductSuccess('')
+  }
+
+  const closeAddProductSlider = () => {
+    setShowAddProductSlider(false)
+    setProductFormData({
+      sku: '',
+      product_name: '',
+      price: 0,
+      barcode: '',
+      category_id: 0,
+      brand: '',
+      hsn_sac: '',
+      unit: 'pcs',
+      qty: 0,
+      reorder_level: 0,
+      purchase_price: 0,
+      sales_price: 0,
+      discount_percent: 0,
+      tax_percent: 0,
+      tax_inclusive: false,
+      product_description: '',
+      is_active: true,
+    })
+    setProductImage(null)
+    setImagePreview(null)
+    setAddProductError('')
+    setAddProductSuccess('')
   }
 
   const handleAddCustomerSubmit = (e: React.FormEvent) => {
@@ -1085,7 +1344,10 @@ export default function CreateInvoice() {
                 >
                   {loadingProducts ? 'Loading...' : 'Refresh'}
                 </button>
-                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                <button 
+                  onClick={openAddProductSlider}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
                   {isMobile ? '+ Add' : '+ Add Product'}
                 </button>
               </div>
@@ -1258,6 +1520,7 @@ export default function CreateInvoice() {
                   }
                 </p>
                 <button 
+                  onClick={openAddProductSlider}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   disabled={loadingProducts}
                 >
@@ -1565,201 +1828,608 @@ export default function CreateInvoice() {
       {/* Add Customer Slider */}
       {showAddCustomerSlider && (
         <>
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity"
-          onClick={closeAddCustomerSlider}
-        ></div>
-        
-        {/* Slider */}
-        <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isMobile ? 'w-full' : 'w-96'
-        }`}>
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
-                <p className="text-sm text-slate-600">Fill in the customer details</p>
-              </div>
-              <button
-                onClick={closeAddCustomerSlider}
-                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-600" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6">
-              {addCustomerSuccess && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                  <div className="text-sm text-green-700">{addCustomerSuccess}</div>
-                </div>
-              )}
-
-              {addCustomerError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <div className="text-sm text-red-700">{addCustomerError}</div>
-                </div>
-              )}
-
-              <form onSubmit={handleAddCustomerSubmit} className="space-y-4">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0  transition-opacity z-40"
+            onClick={closeAddCustomerSlider}
+          ></div>
+          
+          {/* Slider */}
+          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+            isMobile ? 'w-full' : 'w-96'
+          }`}>
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Full Name <RequiredStar />
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={customerFormData.name}
-                    onChange={handleCustomerFormChange}
-                    required
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter customer name"
-                  />
+                  <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
+                  <p className="text-sm text-slate-600">Fill in the customer details</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Mobile Number <RequiredStar />
-                  </label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={customerFormData.mobile}
-                    onChange={handleCustomerFormChange}
-                    required
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter mobile number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email Address <RequiredStar />
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={customerFormData.email}
-                    onChange={handleCustomerFormChange}
-                    required
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter email address"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={customerFormData.company}
-                    onChange={handleCustomerFormChange}
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter company name (optional)"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    GSTIN <RequiredStar />
-                  </label>
-                  <input
-                    type="text"
-                    name="gstin"
-                    value={customerFormData.gstin}
-                    onChange={handleCustomerFormChange}
-                    required
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter GSTIN number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Address <RequiredStar />
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={customerFormData.address}
-                    onChange={handleCustomerFormChange}
-                    required
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter full address"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      City <RequiredStar />
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={customerFormData.city}
-                      onChange={handleCustomerFormChange}
-                      required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter city"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Pincode <RequiredStar />
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={customerFormData.pincode}
-                      onChange={handleCustomerFormChange}
-                      required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter pincode"
-                    />
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 md:p-6 border-t border-slate-200">
-              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  type="button"
                   onClick={closeAddCustomerSlider}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
-                  disabled={addingCustomer}
+                  className="p-2 hover:bg-slate-100 rounded-md transition-colors"
                 >
-                  Cancel
+                  <X className="h-5 w-5 text-slate-600" />
                 </button>
-                <button
-                  onClick={handleAddCustomerSubmit}
-                  disabled={addingCustomer}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {addingCustomer ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4" />
-                      Add Customer
-                    </>
-                  )}
-                </button>
+              </div>
+
+              {/* Form */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                {addCustomerSuccess && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="text-sm text-green-700">{addCustomerSuccess}</div>
+                  </div>
+                )}
+
+                {addCustomerError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-sm text-red-700">{addCustomerError}</div>
+                  </div>
+                )}
+
+                <form onSubmit={handleAddCustomerSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Full Name <RequiredStar />
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={customerFormData.name}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter customer name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Mobile Number <RequiredStar />
+                    </label>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={customerFormData.mobile}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter mobile number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email Address <RequiredStar />
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={customerFormData.email}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={customerFormData.company}
+                      onChange={handleCustomerFormChange}
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter company name (optional)"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      GSTIN <RequiredStar />
+                    </label>
+                    <input
+                      type="text"
+                      name="gstin"
+                      value={customerFormData.gstin}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter GSTIN number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Address <RequiredStar />
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={customerFormData.address}
+                      onChange={handleCustomerFormChange}
+                      required
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter full address"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        City <RequiredStar />
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={customerFormData.city}
+                        onChange={handleCustomerFormChange}
+                        required
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter city"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Pincode <RequiredStar />
+                      </label>
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={customerFormData.pincode}
+                        onChange={handleCustomerFormChange}
+                        required
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter pincode"
+                      />
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 md:p-6 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={closeAddCustomerSlider}
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
+                    disabled={addingCustomer}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddCustomerSubmit}
+                    disabled={addingCustomer}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {addingCustomer ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" />
+                        Add Customer
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
+      )}
+
+      {/* Add Product Slider */}
+      {showAddProductSlider && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 transition-opacity z-40"
+            onClick={closeAddProductSlider}
+          ></div>
+          
+          {/* Slider */}
+          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+            isMobile ? 'w-full' : 'w-full max-w-2xl'
+          } overflow-y-auto`}>
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 sticky top-0 bg-white">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Add New Product</h2>
+                  <p className="text-sm text-slate-600">Fill in the product details</p>
+                </div>
+                <button
+                  onClick={closeAddProductSlider}
+                  className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <div className="flex-1 p-4 md:p-6">
+                {addProductSuccess && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="text-sm text-green-700">{addProductSuccess}</div>
+                  </div>
+                )}
+
+                {addProductError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-sm text-red-700">{addProductError}</div>
+                  </div>
+                )}
+
+                <form onSubmit={handleAddProductSubmit} className="space-y-6">
+                  {/* Product Image */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Product Image
+                    </label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 transition-colors cursor-pointer bg-slate-50">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="product-image-upload"
+                      />
+                      <label htmlFor="product-image-upload" className="cursor-pointer">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Product preview"
+                              className="w-32 h-32 object-cover rounded-lg mx-auto"
+                            />
+                            <button
+                              type="button"
+                              onClick={removeImage}
+                              className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="py-4">
+                            <div className="mx-auto h-12 w-12 text-slate-400 mb-2">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <p className="font-medium text-slate-600">Click to upload product image</p>
+                            <p className="text-sm text-slate-500 mt-1">PNG, JPG, GIF up to 5MB</p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Product Name <RequiredStar />
+                      </label>
+                      <input
+                        type="text"
+                        name="product_name"
+                        value={productFormData.product_name}
+                        onChange={handleProductFormChange}
+                        required
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter product name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        SKU <RequiredStar />
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="sku"
+                          value={productFormData.sku}
+                          onChange={handleProductFormChange}
+                          required
+                          className="flex-1 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Product SKU"
+                        />
+                        <button
+                          type="button"
+                          onClick={generateSKU}
+                          className="px-3 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors text-sm"
+                        >
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Brand
+                      </label>
+                      <input
+                        type="text"
+                        name="brand"
+                        value={productFormData.brand}
+                        onChange={handleProductFormChange}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Brand name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Barcode
+                      </label>
+                      <input
+                        type="text"
+                        name="barcode"
+                        value={productFormData.barcode}
+                        onChange={handleProductFormChange}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Barcode number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        HSN/SAC Code
+                      </label>
+                      <input
+                        type="text"
+                        name="hsn_sac"
+                        value={productFormData.hsn_sac}
+                        onChange={handleProductFormChange}
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="HSN or SAC code"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Unit <RequiredStar />
+                      </label>
+                      <select
+                        name="unit"
+                        value={productFormData.unit}
+                        onChange={handleProductFormChange}
+                        required
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="pcs">Pieces</option>
+                        <option value="kg">Kilogram</option>
+                        <option value="g">Gram</option>
+                        <option value="l">Litre</option>
+                        <option value="ml">Millilitre</option>
+                        <option value="m">Meter</option>
+                        <option value="cm">Centimeter</option>
+                        <option value="box">Box</option>
+                        <option value="pack">Pack</option>
+                        <option value="set">Set</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Inventory Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Quantity in Stock <RequiredStar />
+                      </label>
+                      <input
+                        type="number"
+                        name="qty"
+                        value={productFormData.qty}
+                        onChange={handleProductFormChange}
+                        required
+                        min="0"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Reorder Level
+                      </label>
+                      <input
+                        type="number"
+                        name="reorder_level"
+                        value={productFormData.reorder_level}
+                        onChange={handleProductFormChange}
+                        min="0"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Pricing Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Purchase Price <RequiredStar />
+                      </label>
+                      <input
+                        type="number"
+                        name="purchase_price"
+                        value={productFormData.purchase_price}
+                        onChange={handleProductFormChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Base Price
+                      </label>
+                      <input
+                        type="number"
+                        name="price"
+                        value={productFormData.price}
+                        onChange={handleProductFormChange}
+                        min="0"
+                        step="0.01"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Discount Percentage
+                      </label>
+                      <input
+                        type="number"
+                        name="discount_percent"
+                        value={productFormData.discount_percent}
+                        onChange={handleProductFormChange}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Tax Percentage
+                      </label>
+                      <input
+                        type="number"
+                        name="tax_percent"
+                        value={productFormData.tax_percent}
+                        onChange={handleProductFormChange}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Sales Price <RequiredStar />
+                      </label>
+                      <input
+                        type="number"
+                        name="sales_price"
+                        value={productFormData.sales_price}
+                        onChange={handleProductFormChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="tax_inclusive"
+                        checked={productFormData.tax_inclusive}
+                        onChange={(e) => setProductFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300"
+                      />
+                      <label className="ml-2 text-sm text-slate-700">
+                        Price includes tax
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={calculateSalesPrice}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      Calculate Sales Price
+                    </button>
+                  </div>
+
+                  {/* Product Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Product Description
+                    </label>
+                    <textarea
+                      name="product_description"
+                      value={productFormData.product_description}
+                      onChange={handleProductFormChange}
+                      rows={3}
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter product description"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Product Status
+                    </label>
+                    <select
+                      name="is_active"
+                      value={productFormData.is_active ? 'true' : 'false'}
+                      onChange={(e) => setProductFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
+                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </form>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 md:p-6 border-t border-slate-200 sticky bottom-0 bg-white">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={closeAddProductSlider}
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
+                    disabled={addingProduct}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddProductSubmit}
+                    disabled={addingProduct}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {addingProduct ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add Product
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
