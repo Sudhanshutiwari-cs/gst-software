@@ -253,9 +253,10 @@ export default function SalesPage() {
     alert('Opening document settings');
   };
 
-  const handlePayment = (invoiceId: number) => {
-    console.log('Processing payment for:', invoiceId);
-    alert(`Processing payment for invoice ${invoiceId}`);
+  const handleEdit = (invoiceId: number) => {
+    console.log('Editing invoice:', invoiceId);
+    // Redirect to the update page with the invoice ID
+    router.push(`/sales/update/${invoiceId}`);
   };
 
   const handleView = (invoice: Invoice) => {
@@ -729,17 +730,16 @@ export default function SalesPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1">
-                            {invoice.payment_status === 'pending' && (
-                              <button
-                                onClick={() => handlePayment(invoice.id)}
-                                className={`rounded p-2 transition-colors duration-200 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
-                                    ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800'
-                                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                  }`}
-                              >
-                                <span className="text-xs font-medium">₹</span>
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleEdit(invoice.id)}
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-blue-400 hover:text-blue-300'
+                                  : 'text-blue-600 hover:text-blue-800'
+                                }`}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="hidden lg:inline ml-1">Edit</span>
+                            </button>
                             <button
                               onClick={() => handleView(invoice)}
                               className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
