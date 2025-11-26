@@ -789,22 +789,37 @@ export default function CreateInvoice() {
     }
   }
 
-  const saveAndPrint = async () => {
-    try {
-      const invoiceData = prepareInvoiceData();
-      const result = await createInvoice(invoiceData);
+ const saveAndPrint = async () => {
+  try {
+    const invoiceData = prepareInvoiceData();
+    const result = await createInvoice(invoiceData);
 
-      if (result?.id) {
-        console.log('Invoice created and ready for print:', result);
+    console.log('Invoice creation response:', result);
 
-        // Redirect to the invoice page
-        router.push(`/sales/invoices/${result.id}`);
+    // Handle different response formats
+    let invoiceId: string | null = null;
 
-        // Trigger print AFTER redirect (optional)
-        // window.print();
-      } else {
-        alert("Failed to save invoice. Missing invoice ID.");
-      }
+    if (result?.data?.id) {
+      invoiceId = result.data.id;
+    } else if (result?.id) {
+      invoiceId = result.id;
+    } else if (result?.data?.invoice_id) {
+      invoiceId = result.data.invoice_id;
+    } else if (result?.invoice_id) {
+      invoiceId = result.invoice_id;
+    }
+
+    if (invoiceId) {
+      console.log('Invoice created successfully with ID:', invoiceId);
+      // Redirect to the invoice page
+      router.push(`/sales/invoices/${invoiceId}`);
+    } else {
+      console.error('Invoice created but no ID found in response:', result);
+      setSaveSuccess('Invoice saved successfully!');
+      // Optionally, you could redirect to a generic invoices page
+      // router.push('/invoices');
+    }
+
 
     } catch (error) {
       console.error('Error saving and printing invoice:', error);
