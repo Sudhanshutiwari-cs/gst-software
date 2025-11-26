@@ -133,11 +133,7 @@ interface AddProductFormData {
   is_active: boolean
 }
 
-interface ApiError {
-  message?: string
-  success?: boolean
-  errors?: Record<string, string[]>
-}
+
 
 // Invoice Data interface for API
 interface InvoiceData {
