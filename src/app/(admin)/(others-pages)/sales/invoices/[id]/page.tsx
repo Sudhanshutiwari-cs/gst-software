@@ -576,8 +576,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
     console.log('Saving invoice changes...')
   }}
   onExport={downloadPDF}
-  isGeneratingPDF={isGeneratingPDF}
-  hasPDFPreview={!!pdfPreviewUrl}
+
   onEdit={() => {}}
   onDuplicate={() => {}}
   onConvert={() => {}}
