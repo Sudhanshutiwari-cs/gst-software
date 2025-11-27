@@ -23,5 +23,19 @@ export const sampleInvoice: Invoice = {
   payment_mode: null,
   utr_number: null,
   created_at: "2025-11-24T16:41:33.000000Z",
-  updated_at: "2025-11-24T16:41:33.000000Z"
+  updated_at: "2025-11-24T16:41:33.000000Z",
+  
+  // Add the missing properties based on the Invoice interface
+  invoice_number: "INV20251124VH48",
+  currency: "USD",
+  issue_date: "2025-11-24",
+  from_name: "Kodekalesh",
+  description: "Payment for MALLOC product",
+  due_date: "2025-12-24",
+  to_email: "amit.sharma@example.com",
+  from_address: "123 Business Street, Mumbai, Maharashtra 400001, India",
+  from_email: "billing@kodekalesh.com",
+  billing_address: "456 Customer Avenue, Delhi, Delhi 110001, India",
+  to_name: "Virender Shaaaaarma",
+  to_address: "456 Customer Avenue, Delhi, Delhi 110001, India"
 }

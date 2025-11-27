@@ -4,9 +4,12 @@ export interface Invoice {
   invoice_id: string;
   invoice_number: string;
   vendor_id: string;
+  currency: string;
   biller_name: string;
+  issue_date: string;
   from_name: string;
   description: string | null;
+  due_date: string;
   billing_to: string;
   to_email: string;
   from_address: string;
