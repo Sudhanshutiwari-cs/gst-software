@@ -341,22 +341,22 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       pdf.setFontSize(10)
       pdf.text(invoice.description || 'Product/Service', 20, yPosition)
       pdf.text((invoice.qty || 1).toString(), 120, yPosition)
-      pdf.text(`$${(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
-      pdf.text(`$${(invoice.grand_total || 0).toFixed(2)}`, 180, yPosition)
+      pdf.text(`$${Number(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
+      pdf.text(`$${Number(invoice.grand_total || 0).toFixed(2)}`, 180, yPosition)
       
       yPosition += 20
       
       // Totals
       pdf.setFontSize(12)
-      pdf.text(`Subtotal: $${(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
+      pdf.text(`Subtotal: $${Number(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
       yPosition += 8
-      pdf.text(`Tax: $${(invoice.gst || 0).toFixed(2)}`, 150, yPosition)
+      pdf.text(`Tax: $${Number(invoice.gst || 0).toFixed(2)}`, 150, yPosition)
       yPosition += 8
-      pdf.text(`Discount: -$${(invoice.discount || 0).toFixed(2)}`, 150, yPosition)
+      pdf.text(`Discount: -$${Number(invoice.discount || 0).toFixed(2)}`, 150, yPosition)
       yPosition += 8
       pdf.setFontSize(14)
       pdf.setFont(undefined, 'bold')
-      pdf.text(`Total: $${(invoice.grand_total || 0).toFixed(2)}`, 150, yPosition)
+      pdf.text(`Total: $${Number(invoice.grand_total || 0).toFixed(2)}`, 150, yPosition)
       
       // Generate PDF blob
       const pdfBlob = pdf.output('blob')
