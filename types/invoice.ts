@@ -2,10 +2,19 @@
 export interface Invoice {
   id: number;
   invoice_id: string;
+  invoice_number: string;
   vendor_id: string;
   biller_name: string;
+  from_name: string;
+  description: string | null;
   billing_to: string;
+  to_email: string;
+  from_address: string;
+  from_email: string;
+  billing_address: string;
   mobile: string | null;
+  to_name: string;
+  to_address: string | null;
   email: string;
   whatsapp_number: string | null;
   product_name: string;
