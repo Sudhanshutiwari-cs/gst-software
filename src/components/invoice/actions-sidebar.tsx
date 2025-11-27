@@ -21,6 +21,8 @@ interface ActionsSidebarProps {
   onAddBankDetails: () => void
   onClose: () => void
   onGoToSales: () => void
+  isGeneratingPDF?: boolean
+  hasPDFPreview?: boolean
 }
 
 export function ActionsSidebar({ 
@@ -37,6 +39,9 @@ export function ActionsSidebar({
   onAddLogo,
   onAddBankDetails,
   onClose,
+  isGeneratingPDF = false,    // Add this
+  hasPDFPreview = false, 
+  
 
 }: ActionsSidebarProps) {
   const router = useRouter()

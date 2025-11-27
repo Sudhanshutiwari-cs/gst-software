@@ -570,16 +570,26 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Right Sidebar - Actions */}
-      <ActionsSidebar 
-        invoice={invoice}
-        onSave={() => {
-          // Implement save logic
-          console.log('Saving invoice changes...')
-        }}
-        onExport={downloadPDF}
-        isGeneratingPDF={isGeneratingPDF}
-        hasPDFPreview={!!pdfPreviewUrl}
-      />
+     <ActionsSidebar 
+  invoice={invoice}
+  onSave={() => {
+    console.log('Saving invoice changes...')
+  }}
+  onExport={downloadPDF}
+  isGeneratingPDF={isGeneratingPDF}
+  hasPDFPreview={!!pdfPreviewUrl}
+  onEdit={() => {}}
+  onDuplicate={() => {}}
+  onConvert={() => {}}
+  onCancel={() => {}}
+  onPrint={() => {}}
+  onEmail={() => {}}
+  onWhatsapp={() => {}}
+  onAddLogo={() => {}}
+  onAddBankDetails={() => {}}
+  onClose={() => {}}
+  onGoToSales={() => {}} // Add this missing prop
+/>
     </div>
   )
 }
