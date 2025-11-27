@@ -110,10 +110,13 @@ export function InvoicePreview({ invoice, template, zoom, onZoomChange }: Invoic
         {template === 'classic' && (
           <div className="classic-template border-2 border-gray-800">
   {/* Header */}
-  <div className="bg-blue-600 text-white py-4 px-6">
-    <h1 className="text-2xl font-bold text-center">INVOICE</h1>
-    <p className="text-blue-100 text-sm text-center">ORIGINAL FOR RECIPIENT</p>
-  </div>
+  <div className="text-black py-4 px-6">
+  <h1 className="text-2xl font-bold text-center">INVOICE</h1>
+  <p className="text-black text-sm text-center">ORIGINAL FOR RECIPIENT</p>
+
+  <hr className="border-t border-black mt-4" />
+</div>
+
 
   {/* Company Details */}
   <div className="p-6 border-b border-gray-300">
