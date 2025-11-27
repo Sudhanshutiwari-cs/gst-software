@@ -37,7 +37,7 @@ export function ActionsSidebar({
   onAddLogo,
   onAddBankDetails,
   onClose,
-  onGoToSales
+
 }: ActionsSidebarProps) {
   const router = useRouter()
 

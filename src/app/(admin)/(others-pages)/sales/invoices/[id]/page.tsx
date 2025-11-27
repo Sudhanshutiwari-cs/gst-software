@@ -198,7 +198,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         logging: false,
         width: clone.scrollWidth,
         height: clone.scrollHeight,
-        onclone: (clonedDoc, element) => {
+        onclone: (clonedDoc) => {
           // Additional cleanup on the cloned document
           const allClonedElements = clonedDoc.querySelectorAll('*')
           allClonedElements.forEach((el: Element) => {
