@@ -3,6 +3,8 @@
 
 import { X, Plus, Mail, Pencil, Download, Printer, Copy, ArrowRightLeft, XCircle, ArrowRight } from "lucide-react"
 import { Invoice } from "../../../types/invoice"
+import { useRouter } from "next/navigation"
+import toast from "react-hot-toast"
 
 interface ActionsSidebarProps {
   invoice: Invoice
@@ -37,6 +39,28 @@ export function ActionsSidebar({
   onClose,
   onGoToSales
 }: ActionsSidebarProps) {
+  const router = useRouter()
+
+  const handleSave = () => {
+    // Show success toast
+    toast.success('Invoice saved successfully!', {
+      duration: 3000,
+      position: 'top-right',
+    })
+    
+    // Call the original onSave handler
+    onSave()
+    
+    // Redirect after a short delay to allow toast to be visible
+    setTimeout(() => {
+      router.push('/sales/invoice')
+    }, 1500)
+  }
+
+  const handleGoToSales = () => {
+    router.push('/sales/invoice')
+  }
+
   return (
     <div className="w-80 border-l border-gray-300 bg-white flex flex-col shadow-lg h-[85vh]">
       {/* Header */}
@@ -171,14 +195,14 @@ export function ActionsSidebar({
       <div className="p-4 border-t border-gray-300 space-y-3 flex-shrink-0">
         <button 
           className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-md transition-colors font-medium"
-          onClick={onSave}
+          onClick={handleSave}
         >
           <Printer className="h-4 w-4 mr-2" />
           Save & Print Invoice
         </button>
         <button 
           className="flex items-center justify-center w-full text-blue-600 hover:text-blue-700 py-2.5 px-4 rounded-md transition-colors font-medium"
-          onClick={onGoToSales}
+          onClick={handleGoToSales}
         >
           Go to Sales
           <ArrowRight className="h-4 w-4 ml-1" />
