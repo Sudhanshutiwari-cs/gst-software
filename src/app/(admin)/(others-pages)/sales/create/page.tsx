@@ -56,12 +56,14 @@ interface Product {
 interface ApiProduct {
   id?: string | number
   product_name?: string
+  tax_percent?: string | number
   name?: string
   is_active?: boolean | string | number
   title?: string
   sale_price?: string | number
   price?: string | number
   cost_price?: string | number
+  hsn_sac?: string
   stock_quantity?: string | number
   stock?: string | number
   quantity?: string | number
@@ -70,10 +72,13 @@ interface ApiProduct {
   tax?: string | number
   gst_rate?: string | number
   hsn_code?: string
+  sales_price?: number | string
   hsn?: string
   hsn_number?: string
   category_name?: string
   category?: string
+  unit?: string
+  qty?: number
   product_category?: string
   description?: string
   product_description?: string
@@ -498,73 +503,82 @@ export default function CreateInvoice() {
 
       // Transform the data to match our Product interface based on the actual API response
       // Transform the data to match our Product interface based on the actual API response
-      const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
-        // Debug each product item
-        console.log('Processing product:', item)
+      // Transform the data to match our Product interface based on the actual API response
+const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
+  // Debug each product item
+  console.log('Processing product:', item)
 
-        // Find price - check multiple possible fields
-        let price = 0
-        if (item.sale_price !== undefined && item.sale_price !== null) {
-          price = parseFloat(item.sale_price.toString())
-        } else if (item.price !== undefined && item.price !== null) {
-          price = parseFloat(item.price.toString())
-        } else if (item.cost_price !== undefined && item.cost_price !== null) {
-          price = parseFloat(item.cost_price.toString())
-        }
+  // Find price - check multiple possible fields
+  let price = 0
+  if (item.sale_price !== undefined && item.sale_price !== null) {
+    price = parseFloat(item.sale_price.toString())
+  } else if (item.sales_price !== undefined && item.sales_price !== null) {
+    price = parseFloat(item.sales_price.toString())
+  } else if (item.price !== undefined && item.price !== null) {
+    price = parseFloat(item.price.toString())
+  } else if (item.cost_price !== undefined && item.cost_price !== null) {
+    price = parseFloat(item.cost_price.toString())
+  }
 
-        // Find stock - check multiple possible fields
-        let stock = 0
-        if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
-          stock = parseInt(item.stock_quantity.toString())
-        } else if (item.stock !== undefined && item.stock !== null) {
-          stock = parseInt(item.stock.toString())
-        } else if (item.quantity !== undefined && item.quantity !== null) {
-          stock = parseInt(item.quantity.toString())
-        }
+  // Find stock - check multiple possible fields
+  let stock = 0
+  if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
+    stock = parseInt(item.stock_quantity.toString())
+  } else if (item.stock !== undefined && item.stock !== null) {
+    stock = parseInt(item.stock.toString())
+  } else if (item.quantity !== undefined && item.quantity !== null) {
+    stock = parseInt(item.quantity.toString())
+  } else if (item.qty !== undefined && item.qty !== null) {
+    stock = parseInt(item.qty.toString())
+  }
 
-        // Find tax rate - check multiple possible fields
-        let taxRate = 0
-        if (item.tax_rate !== undefined && item.tax_rate !== null) {
-          taxRate = parseFloat(item.tax_rate.toString())
-        } else if (item.tax !== undefined && item.tax !== null) {
-          taxRate = parseFloat(item.tax.toString())
-        } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
-          taxRate = parseFloat(item.gst_rate.toString())
-        }
+  // Find tax rate - check multiple possible fields
+  let taxRate = 0
+  if (item.tax_rate !== undefined && item.tax_rate !== null) {
+    taxRate = parseFloat(item.tax_rate.toString())
+  } else if (item.tax !== undefined && item.tax !== null) {
+    taxRate = parseFloat(item.tax.toString())
+  } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
+    taxRate = parseFloat(item.gst_rate.toString())
+  } else if (item.tax_percent !== undefined && item.tax_percent !== null) {
+    taxRate = parseFloat(item.tax_percent.toString())
+  }
 
-        // Find HSN code - check multiple possible fields
-        let hsnCode = ''
-        if (item.hsn_code !== undefined && item.hsn_code !== null) {
-          hsnCode = item.hsn_code
-        } else if (item.hsn !== undefined && item.hsn !== null) {
-          hsnCode = item.hsn
-        } else if (item.hsn_number !== undefined && item.hsn_number !== null) {
-          hsnCode = item.hsn_number
-        }
+  // Find HSN code - check multiple possible fields
+  let hsnCode = ''
+  if (item.hsn_code !== undefined && item.hsn_code !== null) {
+    hsnCode = item.hsn_code
+  } else if (item.hsn !== undefined && item.hsn !== null) {
+    hsnCode = item.hsn
+  } else if (item.hsn_number !== undefined && item.hsn_number !== null) {
+    hsnCode = item.hsn_number
+  } else if (item.hsn_sac !== undefined && item.hsn_sac !== null) {
+    hsnCode = item.hsn_sac
+  }
 
-        // Get active status - check multiple possible fields
-        let is_active = true // Default to true if not specified
-        if (item.is_active !== undefined && item.is_active !== null) {
-          is_active = Boolean(item.is_active)
-        } else if (item.status !== undefined && item.status !== null) {
-          is_active = item.status === 'active' || item.status === '1'
-        }
+  // Get active status - check multiple possible fields
+  let is_active = true // Default to true if not specified
+  if (item.is_active !== undefined && item.is_active !== null) {
+    is_active = Boolean(item.is_active)
+  } else if (item.status !== undefined && item.status !== null) {
+    is_active = item.status === 'active' || item.status === '1'
+  }
 
-        return {
-          id: item.id?.toString() || Math.random().toString(),
-          name: item.product_name || item.name || item.title || 'Unnamed Product',
-          category: item.category_name || item.category || item.product_category || '',
-          price: price,
-          stock: stock,
-          hsnCode: hsnCode,
-          taxRate: taxRate,
-          description: item.description || item.product_description || '',
-          sku: item.sku || item.product_sku || '',
-          product_image: item.product_image || undefined,
-          vendor_id: item.vendor_id || '',
-          is_active: is_active // Add the active status
-        }
-      })
+  return {
+    id: item.id?.toString() || Math.random().toString(),
+    name: item.product_name || item.name || item.title || 'Unnamed Product',
+    category: item.category_name || item.category || item.product_category || '',
+    price: price,
+    stock: stock,
+    hsnCode: hsnCode,
+    taxRate: taxRate,
+    description: item.description || item.product_description || '',
+    sku: item.sku || item.product_sku || '',
+    product_image: item.product_image || undefined,
+    vendor_id: item.vendor_id || '',
+    is_active: is_active // Add the active status
+  }
+})
 
       console.log('Transformed Products:', transformedProducts)
       setProducts(transformedProducts)
