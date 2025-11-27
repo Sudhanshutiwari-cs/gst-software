@@ -355,7 +355,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       pdf.text(`Discount: -$${Number(invoice.discount || 0).toFixed(2)}`, 150, yPosition)
       yPosition += 8
       pdf.setFontSize(14)
-      pdf.setFont(undefined, 'bold')
+      pdf.setFont('', 'bold') // Empty string for default font
       pdf.text(`Total: $${Number(invoice.grand_total || 0).toFixed(2)}`, 150, yPosition)
       
       // Generate PDF blob
