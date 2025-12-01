@@ -34,6 +34,12 @@ interface Customer {
   pincode?: string
 }
 
+// Category interface
+interface Category {
+  id: number
+  name: string
+}
+
 // Product interface based on your API response
 interface Product {
   id: string
@@ -42,14 +48,12 @@ interface Product {
   price: number
   stock?: number
   hsnCode?: string
-
   taxRate?: number
   description?: string
   sku?: string
   product_image?: string
   vendor_id?: string
-  is_active?: boolean // Add this field
-
+  is_active?: boolean
 }
 
 // Interface for API product response
@@ -123,7 +127,7 @@ interface AddProductFormData {
   product_name: string
   price: number
   barcode: string
-  category_id: number
+  category_id: number // This is required
   brand: string
   hsn_sac: string
   unit: string
@@ -135,10 +139,8 @@ interface AddProductFormData {
   tax_percent: number
   tax_inclusive: boolean
   product_description: string
-  is_active: boolean
+  // is_active removed from form since it's always true
 }
-
-
 
 // Invoice Data interface for API
 interface InvoiceData {
@@ -218,6 +220,8 @@ export default function CreateInvoice() {
 
   // Products State
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<InvoiceItem[]>([])
   const [productSearch, setProductSearch] = useState('')
   const [productQuantity, setProductQuantity] = useState(1)
@@ -236,7 +240,7 @@ export default function CreateInvoice() {
     product_name: '',
     price: 0,
     barcode: '',
-    category_id: 0,
+    category_id: 1, // Default to first category
     brand: '',
     hsn_sac: '',
     unit: 'pcs',
@@ -248,7 +252,6 @@ export default function CreateInvoice() {
     tax_percent: 0,
     tax_inclusive: false,
     product_description: '',
-    is_active: true,
   })
   const [productImage, setProductImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -393,6 +396,53 @@ export default function CreateInvoice() {
     }
   }
 
+  // API function to fetch categories
+  const fetchCategories = async () => {
+    setLoadingCategories(true)
+    try {
+      const token = getAuthToken()
+
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/categories', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch categories: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Categories API Response:', data)
+
+      // Handle different response formats
+      if (data.success && data.data) {
+        setCategories(data.data)
+      } else if (Array.isArray(data)) {
+        setCategories(data)
+      } else if (data.data && Array.isArray(data.data)) {
+        setCategories(data.data)
+      } else if (data.categories && Array.isArray(data.categories)) {
+        setCategories(data.categories)
+      } else {
+        // If no categories API, create a default category
+        setCategories([{ id: 1, name: 'General' }])
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      // Create a default category if API fails
+      setCategories([{ id: 1, name: 'General' }])
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
   // API function to add customer
   const addCustomer = async (formData: AddCustomerFormData) => {
     setAddingCustomer(true)
@@ -502,83 +552,81 @@ export default function CreateInvoice() {
       }
 
       // Transform the data to match our Product interface based on the actual API response
-      // Transform the data to match our Product interface based on the actual API response
-      // Transform the data to match our Product interface based on the actual API response
-const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
-  // Debug each product item
-  console.log('Processing product:', item)
+      const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
+        // Debug each product item
+        console.log('Processing product:', item)
 
-  // Find price - check multiple possible fields
-  let price = 0
-  if (item.sale_price !== undefined && item.sale_price !== null) {
-    price = parseFloat(item.sale_price.toString())
-  } else if (item.sales_price !== undefined && item.sales_price !== null) {
-    price = parseFloat(item.sales_price.toString())
-  } else if (item.price !== undefined && item.price !== null) {
-    price = parseFloat(item.price.toString())
-  } else if (item.cost_price !== undefined && item.cost_price !== null) {
-    price = parseFloat(item.cost_price.toString())
-  }
+        // Find price - check multiple possible fields
+        let price = 0
+        if (item.sale_price !== undefined && item.sale_price !== null) {
+          price = parseFloat(item.sale_price.toString())
+        } else if (item.sales_price !== undefined && item.sales_price !== null) {
+          price = parseFloat(item.sales_price.toString())
+        } else if (item.price !== undefined && item.price !== null) {
+          price = parseFloat(item.price.toString())
+        } else if (item.cost_price !== undefined && item.cost_price !== null) {
+          price = parseFloat(item.cost_price.toString())
+        }
 
-  // Find stock - check multiple possible fields
-  let stock = 0
-  if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
-    stock = parseInt(item.stock_quantity.toString())
-  } else if (item.stock !== undefined && item.stock !== null) {
-    stock = parseInt(item.stock.toString())
-  } else if (item.quantity !== undefined && item.quantity !== null) {
-    stock = parseInt(item.quantity.toString())
-  } else if (item.qty !== undefined && item.qty !== null) {
-    stock = parseInt(item.qty.toString())
-  }
+        // Find stock - check multiple possible fields
+        let stock = 0
+        if (item.stock_quantity !== undefined && item.stock_quantity !== null) {
+          stock = parseInt(item.stock_quantity.toString())
+        } else if (item.stock !== undefined && item.stock !== null) {
+          stock = parseInt(item.stock.toString())
+        } else if (item.quantity !== undefined && item.quantity !== null) {
+          stock = parseInt(item.quantity.toString())
+        } else if (item.qty !== undefined && item.qty !== null) {
+          stock = parseInt(item.qty.toString())
+        }
 
-  // Find tax rate - check multiple possible fields
-  let taxRate = 0
-  if (item.tax_rate !== undefined && item.tax_rate !== null) {
-    taxRate = parseFloat(item.tax_rate.toString())
-  } else if (item.tax !== undefined && item.tax !== null) {
-    taxRate = parseFloat(item.tax.toString())
-  } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
-    taxRate = parseFloat(item.gst_rate.toString())
-  } else if (item.tax_percent !== undefined && item.tax_percent !== null) {
-    taxRate = parseFloat(item.tax_percent.toString())
-  }
+        // Find tax rate - check multiple possible fields
+        let taxRate = 0
+        if (item.tax_rate !== undefined && item.tax_rate !== null) {
+          taxRate = parseFloat(item.tax_rate.toString())
+        } else if (item.tax !== undefined && item.tax !== null) {
+          taxRate = parseFloat(item.tax.toString())
+        } else if (item.gst_rate !== undefined && item.gst_rate !== null) {
+          taxRate = parseFloat(item.gst_rate.toString())
+        } else if (item.tax_percent !== undefined && item.tax_percent !== null) {
+          taxRate = parseFloat(item.tax_percent.toString())
+        }
 
-  // Find HSN code - check multiple possible fields
-  let hsnCode = ''
-  if (item.hsn_code !== undefined && item.hsn_code !== null) {
-    hsnCode = item.hsn_code
-  } else if (item.hsn !== undefined && item.hsn !== null) {
-    hsnCode = item.hsn
-  } else if (item.hsn_number !== undefined && item.hsn_number !== null) {
-    hsnCode = item.hsn_number
-  } else if (item.hsn_sac !== undefined && item.hsn_sac !== null) {
-    hsnCode = item.hsn_sac
-  }
+        // Find HSN code - check multiple possible fields
+        let hsnCode = ''
+        if (item.hsn_code !== undefined && item.hsn_code !== null) {
+          hsnCode = item.hsn_code
+        } else if (item.hsn !== undefined && item.hsn !== null) {
+          hsnCode = item.hsn
+        } else if (item.hsn_number !== undefined && item.hsn_number !== null) {
+          hsnCode = item.hsn_number
+        } else if (item.hsn_sac !== undefined && item.hsn_sac !== null) {
+          hsnCode = item.hsn_sac
+        }
 
-  // Get active status - check multiple possible fields
-  let is_active = true // Default to true if not specified
-  if (item.is_active !== undefined && item.is_active !== null) {
-    is_active = Boolean(item.is_active)
-  } else if (item.status !== undefined && item.status !== null) {
-    is_active = item.status === 'active' || item.status === '1'
-  }
+        // Get active status - check multiple possible fields
+        let is_active = true // Default to true if not specified
+        if (item.is_active !== undefined && item.is_active !== null) {
+          is_active = Boolean(item.is_active)
+        } else if (item.status !== undefined && item.status !== null) {
+          is_active = item.status === 'active' || item.status === '1'
+        }
 
-  return {
-    id: item.id?.toString() || Math.random().toString(),
-    name: item.product_name || item.name || item.title || 'Unnamed Product',
-    category: item.category_name || item.category || item.product_category || '',
-    price: price,
-    stock: stock,
-    hsnCode: hsnCode,
-    taxRate: taxRate,
-    description: item.description || item.product_description || '',
-    sku: item.sku || item.product_sku || '',
-    product_image: item.product_image || undefined,
-    vendor_id: item.vendor_id || '',
-    is_active: is_active // Add the active status
-  }
-})
+        return {
+          id: item.id?.toString() || Math.random().toString(),
+          name: item.product_name || item.name || item.title || 'Unnamed Product',
+          category: item.category_name || item.category || item.product_category || '',
+          price: price,
+          stock: stock,
+          hsnCode: hsnCode,
+          taxRate: taxRate,
+          description: item.description || item.product_description || '',
+          sku: item.sku || item.product_sku || '',
+          product_image: item.product_image || undefined,
+          vendor_id: item.vendor_id || '',
+          is_active: is_active
+        }
+      })
 
       console.log('Transformed Products:', transformedProducts)
       setProducts(transformedProducts)
@@ -612,11 +660,28 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
         throw new Error('SKU is required')
       }
 
+      if (formData.category_id <= 0) {
+        throw new Error('Please select a category')
+      }
+
+      if (formData.purchase_price <= 0) {
+        throw new Error('Purchase price must be greater than 0')
+      }
+
+      if (formData.sales_price <= 0) {
+        throw new Error('Sales price must be greater than 0')
+      }
+
+      if (formData.qty < 0) {
+        throw new Error('Quantity cannot be negative')
+      }
+
       const formDataToSend = new FormData()
 
+      // Add all form fields
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
-          if (key === 'is_active' || key === 'tax_inclusive') {
+          if (key === 'tax_inclusive') {
             formDataToSend.append(key, value ? '1' : '0')
           } else if (typeof value === 'number') {
             formDataToSend.append(key, value.toString())
@@ -625,6 +690,9 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
           }
         }
       })
+
+      // Always add is_active as '1' for active
+      formDataToSend.append('is_active', '1')
 
       if (imageFile) {
         formDataToSend.append('product_image', imageFile)
@@ -646,7 +714,13 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || `Failed to add product: ${response.status}`)
+        console.error('API Error Response:', data)
+        // Check for specific validation errors
+        if (data.errors) {
+          const errorMessages = Object.values(data.errors).flat().join(', ')
+          throw new Error(`Validation failed: ${errorMessages}`)
+        }
+        throw new Error(data.message || data.error || `Failed to add product: ${response.status}`)
       }
 
       if (data.success) {
@@ -657,7 +731,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
           product_name: '',
           price: 0,
           barcode: '',
-          category_id: 0,
+          category_id: categories.length > 0 ? categories[0].id : 1,
           brand: '',
           hsn_sac: '',
           unit: 'pcs',
@@ -669,7 +743,6 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
           tax_percent: 0,
           tax_inclusive: false,
           product_description: '',
-          is_active: true,
         })
         setProductImage(null)
         setImagePreview(null)
@@ -680,11 +753,16 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
           closeAddProductSlider()
         }, 1500)
       } else {
-        throw new Error(data.message || 'Failed to add product')
+        console.error('API Error:', data)
+        if (data.errors) {
+          const errorMessages = Object.values(data.errors).flat().join(', ')
+          throw new Error(`Validation failed: ${errorMessages}`)
+        }
+        throw new Error(data.message || data.error || 'Failed to add product')
       }
     } catch (error) {
       console.error('Error adding product:', error)
-      setAddProductError(error instanceof Error ? error.message : 'Failed to add product')
+      setAddProductError(error instanceof Error ? error.message : 'Failed to add product. Please check all required fields.')
     } finally {
       setAddingProduct(false)
     }
@@ -799,36 +877,36 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
     }
   }
 
- const saveAndPrint = async () => {
-  try {
-    const invoiceData = prepareInvoiceData();
-    const result = await createInvoice(invoiceData);
+  const saveAndPrint = async () => {
+    try {
+      const invoiceData = prepareInvoiceData();
+      const result = await createInvoice(invoiceData);
 
-    console.log('Invoice creation response:', result);
+      console.log('Invoice creation response:', result);
 
-    // Handle different response formats
-    let invoiceId: string | null = null;
+      // Handle different response formats
+      let invoiceId: string | null = null;
 
-    if (result?.data?.id) {
-      invoiceId = result.data.id;
-    } else if (result?.id) {
-      invoiceId = result.id;
-    } else if (result?.data?.invoice_id) {
-      invoiceId = result.data.invoice_id;
-    } else if (result?.invoice_id) {
-      invoiceId = result.invoice_id;
-    }
+      if (result?.data?.id) {
+        invoiceId = result.data.id;
+      } else if (result?.id) {
+        invoiceId = result.id;
+      } else if (result?.data?.invoice_id) {
+        invoiceId = result.data.invoice_id;
+      } else if (result?.invoice_id) {
+        invoiceId = result.invoice_id;
+      }
 
-    if (invoiceId) {
-      console.log('Invoice created successfully with ID:', invoiceId);
-      // Redirect to the invoice page
-      router.push(`/sales/invoices/${invoiceId}`);
-    } else {
-      console.error('Invoice created but no ID found in response:', result);
-      setSaveSuccess('Invoice saved successfully!');
-      // Optionally, you could redirect to a generic invoices page
-      // router.push('/invoices');
-    }
+      if (invoiceId) {
+        console.log('Invoice created successfully with ID:', invoiceId);
+        // Redirect to the invoice page
+        router.push(`/sales/invoices/${invoiceId}`);
+      } else {
+        console.error('Invoice created but no ID found in response:', result);
+        setSaveSuccess('Invoice saved successfully!');
+        // Optionally, you could redirect to a generic invoices page
+        // router.push('/invoices');
+      }
 
 
     } catch (error) {
@@ -842,6 +920,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
     fetchVendorProfile()
     fetchCustomers()
     fetchProducts()
+    fetchCategories()
   }, [])
 
   // Filter customers based on search
@@ -858,7 +937,6 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
     }
   }, [customerSearch, customers])
 
-  // Filter products based on search
   // Filter products based on search and active status
   useEffect(() => {
     if (productSearch) {
@@ -1038,7 +1116,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
       product_name: '',
       price: 0,
       barcode: '',
-      category_id: 0,
+      category_id: categories.length > 0 ? categories[0].id : 1,
       brand: '',
       hsn_sac: '',
       unit: 'pcs',
@@ -1050,7 +1128,6 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
       tax_percent: 0,
       tax_inclusive: false,
       product_description: '',
-      is_active: true,
     })
     setProductImage(null)
     setImagePreview(null)
@@ -1105,6 +1182,10 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
     fetchProducts()
   }
 
+  const retryFetchCategories = () => {
+    fetchCategories()
+  }
+
   // Mobile sidebar toggle
   const toggleMobileSidebar = () => {
     setShowMobileSidebar(!showMobileSidebar)
@@ -1116,7 +1197,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-2">
             {isMobile && (
@@ -1451,26 +1532,26 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
                         </div>
                       ) : (
                         filteredProducts.map(product => (
-  <div
-    key={product.id}
-    className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-    onClick={() => addProductToBill(product)}
-  >
-    <div className="font-medium text-slate-900 flex items-center gap-2">
-      {product.name}
-      {product.is_active === false && (
-        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Inactive</span>
-      )}
-    </div>
-    <div className="text-xs text-slate-600">
-      {product.sku && `SKU: ${product.sku} • `}
-      ₹{product.price} 
-      {product.stock !== undefined && ` • Stock: ${product.stock}`}
-      {product.hsnCode && ` • HSN: ${product.hsnCode}`}
-      {product.taxRate && ` • Tax: ${product.taxRate}%`}
-    </div>
-  </div>
-))
+                          <div
+                            key={product.id}
+                            className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                            onClick={() => addProductToBill(product)}
+                          >
+                            <div className="font-medium text-slate-900 flex items-center gap-2">
+                              {product.name}
+                              {product.is_active === false && (
+                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Inactive</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-600">
+                              {product.sku && `SKU: ${product.sku} • `}
+                              ₹{product.price}
+                              {product.stock !== undefined && ` • Stock: ${product.stock}`}
+                              {product.hsnCode && ` • HSN: ${product.hsnCode}`}
+                              {product.taxRate && ` • Tax: ${product.taxRate}%`}
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   )}
@@ -1884,7 +1965,8 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0  transition-opacity z-40"
+            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/10
+"
             onClick={closeAddCustomerSlider}
           ></div>
 
@@ -2084,7 +2166,8 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 transition-opacity z-40"
+            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/20
+"
             onClick={closeAddProductSlider}
           ></div>
 
@@ -2208,6 +2291,35 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Category <RequiredStar />
+                      </label>
+                      <select
+                        name="category_id"
+                        value={productFormData.category_id}
+                        onChange={handleProductFormChange}
+                        required
+                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map(category => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                        {categories.length === 0 && (
+                          <option value="1">General</option>
+                        )}
+                      </select>
+                      {loadingCategories && (
+                        <p className="text-xs text-slate-500 mt-1">Loading categories...</p>
+                      )}
+                      {!loadingCategories && categories.length === 0 && (
+                        <p className="text-xs text-slate-500 mt-1">No categories found. Using default category.</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Brand
                       </label>
                       <input
@@ -2319,7 +2431,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
                         value={productFormData.purchase_price}
                         onChange={handleProductFormChange}
                         required
-                        min="0"
+                        min="0.01"
                         step="0.01"
                         className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0.00"
@@ -2386,7 +2498,7 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
                         value={productFormData.sales_price}
                         onChange={handleProductFormChange}
                         required
-                        min="0"
+                        min="0.01"
                         step="0.01"
                         className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0.00"
@@ -2432,20 +2544,27 @@ const transformedProducts: Product[] = productsData.map((item: ApiProduct) => {
                     />
                   </div>
 
-                  {/* Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Product Status
-                    </label>
-                    <select
+                  {/* Status - Always Active (Hidden from user) */}
+                  <div className="hidden">
+                    <input
+                      type="hidden"
                       name="is_active"
-                      value={productFormData.is_active ? 'true' : 'false'}
-                      onChange={(e) => setProductFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
+                      value="true"
+                    />
+                  </div>
+
+                  {/* Optional: Show a message that product will be active */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-blue-700">
+                        This product will be added as <span className="font-semibold">Active</span> and available for sale immediately.
+                      </p>
+                    </div>
                   </div>
                 </form>
               </div>
