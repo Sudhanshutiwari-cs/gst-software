@@ -1666,11 +1666,7 @@ export default function CreateInvoice() {
             )}
 
             {/* Additional Charges */}
-            <div className="mt-6 flex justify-end">
-              <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors">
-                ⚙️ {isMobile ? 'Charges' : 'Additional Charges'}
-              </button>
-            </div>
+            
           </div>
         </div>
 
@@ -1863,101 +1859,7 @@ export default function CreateInvoice() {
       {/* Footer Sections */}
       <div className="space-y-4 px-4 pb-4 md:px-6 md:pb-6">
         {/* Notes & Terms */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          <div className="col-span-1 md:col-span-2 space-y-4">
-            {/* Notes */}
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <button
-                onClick={() => setExpandedNotes(!expandedNotes)}
-                className="mb-3 flex w-full items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <ChevronDown
-                    className={`h-4 w-4 text-slate-600 transition-transform ${!expandedNotes ? '-rotate-90' : ''}`}
-                  />
-                  <h3 className="font-semibold text-slate-900">Notes</h3>
-                  <AlertCircle className="h-4 w-4 text-slate-400" />
-                </div>
-                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                  + New Notes
-                </button>
-              </button>
-
-              {expandedNotes && (
-                <div className="space-y-3">
-                  <textarea
-                    placeholder="Enter your notes, say thanks, or anything else"
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={4}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded bg-purple-100 text-center text-xs font-bold text-purple-600">✨</span>
-                    <span className="text-xs text-slate-600">AI</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Terms & Conditions */}
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <button
-                onClick={() => setExpandedTerms(!expandedTerms)}
-                className="mb-3 flex w-full items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <ChevronRight
-                    className={`h-4 w-4 text-slate-600 transition-transform ${expandedTerms ? 'rotate-90' : ''}`}
-                  />
-                  <h3 className="font-semibold text-slate-900">Terms & Conditions</h3>
-                  <AlertCircle className="h-4 w-4 text-slate-400" />
-                </div>
-                <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                  + New Term
-                </button>
-              </button>
-
-              {expandedTerms && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="ewaybill"
-                        checked={createEWaybill}
-                        onChange={(e) => setCreateEWaybill(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-slate-700">Create E-Waybill</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="einvoice"
-                        checked={createEInvoice}
-                        onChange={(e) => setCreateEInvoice(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-slate-700">Create E-Invoice</span>
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-slate-700">Attach files</h4>
-                    <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors">
-                      📎 {isMobile ? 'Attach Files' : 'Attach Files (Max: 5)'}
-                    </button>
-                  </div>
-
-                  <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                    Use Coupons FT14
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       {/* Add Customer Slider */}
