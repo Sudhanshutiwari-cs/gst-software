@@ -266,7 +266,7 @@ export default function CreateInvoice() {
   const [paymentNotes, setPaymentNotes] = useState('')
   const [paymentAmount, setPaymentAmount] = useState(0)
   const [paymentMode, setPaymentMode] = useState('cash')
-  const [paymentStatus, setPaymentStatus] = useState('pending')
+  const [paymentStatus, setPaymentStatus] = useState('paid')
   const [utrNumber, setUtrNumber] = useState('')
 
   // Notes & Terms
@@ -1765,8 +1765,8 @@ export default function CreateInvoice() {
                       value={paymentStatus}
                       onChange={(e) => setPaymentStatus(e.target.value)}
                     >
-                      <option value="pending">Pending</option>
                       <option value="paid">Paid</option>
+                      <option value="pending">Pending</option>
                       <option value="partial">Partial</option>
                     </select>
                   </div>
