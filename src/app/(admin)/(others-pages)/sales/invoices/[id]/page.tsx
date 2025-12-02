@@ -161,7 +161,21 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       
       console.log("Invoice API Response:", invoiceData)
       
-      // Map API fields to your invoice structure
+      // Parse numeric values
+      const qty = parseInt(invoiceData.qty) || 1
+      const grossAmt = parseFloat(invoiceData.gross_amt) || 0
+      const gstAmt = parseFloat(invoiceData.gst) || 0
+      const discountAmt = parseFloat(invoiceData.discount) || 0
+      const grandTotalAmt = parseFloat(invoiceData.grand_total) || 0
+      const paidAmount = parseFloat(invoiceData.paid_amount) || 0
+      
+      // Calculate derived values
+      const subtotal = grossAmt
+      const tax = gstAmt
+      const adjustments = discountAmt
+      const balanceDue = grandTotalAmt - paidAmount
+      
+      // Map API fields to your invoice structure with all required fields
       const mappedInvoice: Invoice = {
         id: invoiceData.id || invoiceData.invoice_id,
         invoice_number: invoiceData.invoice_id || invoiceData.invoice_number,
@@ -173,12 +187,12 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         mobile: invoiceData.mobile || invoiceData.whatsapp_number || '',
         product_name: invoiceData.product_name || '',
         product_sku: invoiceData.product_sku || '',
-        qty: parseInt(invoiceData.qty) || 1,
+        qty: qty,
         // Convert to strings since Invoice type expects strings
-        gross_amt: parseFloat(invoiceData.gross_amt).toString() || '0',
-        gst: parseFloat(invoiceData.gst).toString() || '0',
-        discount: parseFloat(invoiceData.discount).toString() || '0',
-        grand_total: parseFloat(invoiceData.grand_total).toString() || '0',
+        gross_amt: grossAmt.toString() || '0',
+        gst: gstAmt.toString() || '0',
+        discount: discountAmt.toString() || '0',
+        grand_total: grandTotalAmt.toString() || '0',
         payment_status: invoiceData.payment_status || 'pending',
         created_at: invoiceData.created_at || new Date().toISOString(),
         from_name: '',
@@ -187,7 +201,32 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         to_name: invoiceData.billing_to || '',
         to_address: '',
         to_email: invoiceData.email || '',
-        description: invoiceData.product_name || ''
+        description: invoiceData.product_name || '',
+        
+        // Add missing required fields with default values
+        currency: invoiceData.currency || 'INR',
+        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
+        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        billing_address: invoiceData.billing_address || '',
+        shipping_address: invoiceData.shipping_address || '',
+        notes: invoiceData.notes || '',
+        terms: invoiceData.terms || '',
+        items: invoiceData.items || [
+          {
+            name: invoiceData.product_name || '',
+            description: invoiceData.product_name || '',
+            quantity: qty,
+            price: grossAmt,
+            sku: invoiceData.product_sku || '',
+            total: grossAmt * qty
+          }
+        ],
+        subtotal: subtotal,
+        tax: tax,
+        shipping: 0,
+        adjustments: adjustments,
+        paid_amount: paidAmount,
+        balance_due: balanceDue
       }
       
       setInvoice(mappedInvoice)
@@ -518,7 +557,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                   </div>
                   <div class="flex-between" style="margin-top: 8px;">
                     <span class="font-bold text-sm">Due Date:</span>
-                    <span class="text-sm">${invoiceDate}</span>
+                    <span class="text-sm">${formatDate(invoiceData.due_date) || invoiceDate}</span>
                   </div>
                   <div class="flex-between" style="margin-top: 8px;">
                     <span class="font-bold text-sm">Status:</span>
