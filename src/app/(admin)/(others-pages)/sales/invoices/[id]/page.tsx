@@ -1097,8 +1097,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
             <InvoicePreview 
               invoice={invoice} 
               template={selectedTemplate}
-              zoom={100}
-              onZoomChange={() => {}}
+              // Removed zoom and onZoomChange props to fix TypeScript error
             />
           )}
         </div>
