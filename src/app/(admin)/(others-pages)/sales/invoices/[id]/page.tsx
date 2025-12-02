@@ -4,32 +4,136 @@ import { ActionsSidebar } from "@/components/invoice/actions-sidebar"
 import { InvoicePreview } from "@/components/invoice/invoice-preview"
 import { TemplateSidebar } from "@/components/invoice/template-sidebar"
 import { Invoice } from "../../../../.././../../types/invoice"
-import { useEffect, useState, use } from "react"
+import { useEffect, useState, use, useRef } from "react"
 import { sampleInvoice } from "@/components/data/sampleInvoice"
 import { jsPDF } from "jspdf"
 import html2canvas from "html2canvas"
 
+interface VendorProfile {
+  id: number
+  business_name: string
+  shop_name: string
+  owner_name: string
+  address_line1: string
+  address_line2: string
+  city: string
+  state: string
+  pincode: string
+  country: string
+  contact_number: string
+  logo_url: string
+  banner_url: string
+  gst_number: string
+}
+
 export default function InvoiceViewer({ params }: { params: Promise<{ id: string }> }) {
-  const [selectedTemplate, setSelectedTemplate] = useState("modern")
-  const [zoom, setZoom] = useState(50)
+  const [selectedTemplate, setSelectedTemplate] = useState("classic")
   const [invoice, setInvoice] = useState<Invoice | null>(null)
+  const [vendor, setVendor] = useState<VendorProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
-  const [activeView, setActiveView] = useState<"live" | "pdf">("live")
+  
+  const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
   // Unwrap the params promise
   const unwrappedParams = use(params)
   const { id } = unwrappedParams
 
-  // Fetch invoice data
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+  }
+
+  // Fetch vendor profile
+  const fetchVendorProfile = async () => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error("No auth token found")
+        return null
+      }
+      
+      const response = await fetch(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        console.error(`Vendor profile fetch failed: ${response.status}`)
+        return null
+      }
+
+      const data = await response.json()
+      const vendorData = data.data || data
+      
+      const vendorProfile: VendorProfile = {
+        id: vendorData.id,
+        business_name: vendorData.business_name || '',
+        shop_name: vendorData.shop_name || '',
+        owner_name: vendorData.owner_name || '',
+        address_line1: vendorData.address_line1 || '',
+        address_line2: vendorData.address_line2 || '',
+        city: vendorData.city || '',
+        state: vendorData.state || '',
+        pincode: vendorData.pincode || '',
+        country: vendorData.country || '',
+        contact_number: vendorData.contact_number || '',
+        logo_url: vendorData.logo_url || '',
+        banner_url: vendorData.banner_url || '',
+        gst_number: vendorData.gst_number || ''
+      }
+      
+      console.log("Vendor profile loaded:", vendorProfile)
+      setVendor(vendorProfile)
+      return vendorProfile
+    } catch (err) {
+      console.error('Error fetching vendor profile:', err)
+      return null
+    }
+  }
+
+  // Test if image loads
+  const testImageLoad = async (url: string): Promise<boolean> => {
+    if (!url) return false
+    
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        console.log(`Image loaded successfully: ${url}`)
+        resolve(true)
+      }
+      img.onerror = () => {
+        console.log(`Failed to load image: ${url}`)
+        resolve(false)
+      }
+      img.src = url
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        console.log(`Image load timeout: ${url}`)
+        resolve(false)
+      }, 5000)
+    })
+  }
+
+  // Fetch invoice data from API
   const fetchInvoice = async (invoiceId: string) => {
     try {
       setLoading(true)
       setError(null)
       
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+      // Fetch vendor profile first
+      await fetchVendorProfile()
+      
+      const token = getAuthToken()
       const response = await fetch(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
         {
@@ -47,14 +151,6 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
 
       const data = await response.json()
       
-      // DEBUG: Log the fetched invoice data
-      console.log("🔍 DEBUG - Fetched Invoice Data:", {
-        invoiceId,
-        rawResponse: data,
-        timestamp: new Date().toISOString(),
-        url: `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`
-      })
-
       // Validate the response data structure
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid invoice data received')
@@ -63,220 +159,539 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       // Extract the actual invoice data from the nested structure
       const invoiceData = data.data || data
       
-      // Ensure payment_status has a default value if missing
-      const validatedInvoice = {
-        ...invoiceData,
-        payment_status: invoiceData.payment_status || 'unknown',
-        created_at: invoiceData.created_at || new Date().toISOString(),
-        // Ensure numeric fields are properly formatted
-        grand_total: parseFloat(invoiceData.grand_total) || 0,
+      console.log("Invoice API Response:", invoiceData)
+      
+      // Map API fields to your invoice structure
+      const mappedInvoice: Invoice = {
+        id: invoiceData.id || invoiceData.invoice_id,
+        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number,
+        invoice_id: invoiceData.invoice_id,
+        vendor_id: invoiceData.vendor_id,
+        biller_name: invoiceData.biller_name || '',
+        billing_to: invoiceData.billing_to || '',
+        email: invoiceData.email || '',
+        mobile: invoiceData.mobile || invoiceData.whatsapp_number || '',
+        product_name: invoiceData.product_name || '',
+        product_sku: invoiceData.product_sku || '',
+        qty: parseInt(invoiceData.qty) || 1,
         gross_amt: parseFloat(invoiceData.gross_amt) || 0,
         gst: parseFloat(invoiceData.gst) || 0,
         discount: parseFloat(invoiceData.discount) || 0,
-        qty: parseInt(invoiceData.qty) || 1
+        grand_total: parseFloat(invoiceData.grand_total) || 0,
+        payment_status: invoiceData.payment_status || 'pending',
+        created_at: invoiceData.created_at || new Date().toISOString(),
+        from_name: '',
+        from_address: '',
+        from_email: '',
+        to_name: invoiceData.billing_to || '',
+        to_address: '',
+        to_email: invoiceData.email || '',
+        description: invoiceData.product_name || ''
       }
       
-      // DEBUG: Log the validated invoice
-      console.log("✅ DEBUG - Validated Invoice:", validatedInvoice)
-      
-      setInvoice(validatedInvoice)
+      setInvoice(mappedInvoice)
+      return mappedInvoice
     } catch (err) {
       console.error('Error fetching invoice:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
       // Fallback to sample data if API fails
       const fallbackInvoice = {
         ...sampleInvoice,
-        payment_status: sampleInvoice.payment_status || 'unknown'
+        payment_status: sampleInvoice.payment_status || 'pending'
       }
       
-      // DEBUG: Log fallback invoice
-      console.log("🔄 DEBUG - Using Fallback Invoice:", fallbackInvoice)
-      
       setInvoice(fallbackInvoice)
+      return fallbackInvoice
     } finally {
       setLoading(false)
-      
-      // DEBUG: Log final state
-      console.log("🏁 DEBUG - Fetch completed:", {
-        loading: false,
-        hasInvoice: !!invoice,
-        error: error
-      })
     }
   }
 
-  // Clean colors from styles to fix oklch issue
-  const cleanStylesForPDF = (element: HTMLElement) => {
-    // Remove problematic CSS classes that might contain oklch
-    element.classList.forEach(className => {
-      if (className.includes('gradient') || className.includes('shadow') || className.includes('bg-')) {
-        element.classList.remove(className)
-      }
-    })
-
-    // Apply safe inline styles
-    element.style.backgroundColor = '#ffffff'
-    element.style.color = '#000000'
-    element.style.borderColor = '#cccccc'
-    element.style.fontFamily = 'Arial, sans-serif'
-    
-    // Process all child elements
-    const allElements = element.querySelectorAll('*')
-    allElements.forEach((el: Element) => {
-      const childEl = el as HTMLElement
-      
-      // Remove problematic classes from children
-      childEl.classList.forEach(className => {
-        if (className.includes('bg-') || className.includes('text-') || className.includes('border-')) {
-          childEl.classList.remove(className)
-        }
-      })
-
-      // Apply safe styles
-      childEl.style.backgroundColor = childEl.tagName === 'BODY' ? '#ffffff' : 'transparent'
-      childEl.style.color = '#000000'
-      childEl.style.borderColor = '#cccccc'
-      
-      // Handle specific element types
-      if (childEl.tagName === 'TABLE') {
-        childEl.style.border = '1px solid #cccccc'
-        childEl.style.borderCollapse = 'collapse'
-      }
-      
-      if (childEl.tagName === 'TH' || childEl.tagName === 'TD') {
-        childEl.style.border = '1px solid #cccccc'
-        childEl.style.padding = '8px'
-      }
-      
-      if (childEl.tagName === 'H1' || childEl.tagName === 'H2' || childEl.tagName === 'H3') {
-        childEl.style.color = '#000000'
-        childEl.style.fontWeight = 'bold'
-      }
-    })
-  }
-
-  // Generate PDF preview with color fix
-  const generatePDFPreview = async (): Promise<string | null> => {
-    if (!invoice) return null
-
+  // Specialized PDF generation for classic template with API data
+  const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
       setIsGeneratingPDF(true)
-      setError(null)
       
-      // Get the invoice preview element
-      const invoiceElement = document.getElementById('invoice-preview-content')
-      if (!invoiceElement) {
-        throw new Error('Invoice preview element not found')
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          const date = new Date(dateString)
+          return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }).replace(/ /g, ' ')
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
+        }
+      }
+      
+      // Format currency
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount)
+      }
+      
+      // Number to words function
+      const numberToWords = (num: number): string => {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 
+                     'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 
+                     'Eighteen', 'Nineteen']
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+        
+        if (num === 0) return 'Zero'
+        
+        let words = ''
+        
+        if (num >= 10000000) {
+          words += numberToWords(Math.floor(num / 10000000)) + ' Crore '
+          num %= 10000000
+        }
+        
+        if (num >= 100000) {
+          words += numberToWords(Math.floor(num / 100000)) + ' Lakh '
+          num %= 100000
+        }
+        
+        if (num >= 1000) {
+          words += numberToWords(Math.floor(num / 1000)) + ' Thousand '
+          num %= 1000
+        }
+        
+        if (num >= 100) {
+          words += numberToWords(Math.floor(num / 100)) + ' Hundred '
+          num %= 100
+        }
+        
+        if (num > 0) {
+          if (words !== '') words += 'and '
+          
+          if (num < 20) {
+            words += ones[num]
+          } else {
+            words += tens[Math.floor(num / 10)]
+            if (num % 10 > 0) {
+              words += ' ' + ones[num % 10]
+            }
+          }
+        }
+        
+        return words.trim() + ' Rupees Only.'
       }
 
-      // Create a deep clone of the element
-      const clone = invoiceElement.cloneNode(true) as HTMLElement
+      // Use vendor data for company info
+      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company'
+      const vendorAddress = vendor?.address_line1 ? 
+        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}` 
+        : '123 Business St, City, State, PIN'
+      const vendorPhone = vendor?.contact_number || '+91 9856314765'
       
-      // Apply PDF-safe styles and positioning
-      clone.style.position = 'fixed'
-      clone.style.left = '0'
-      clone.style.top = '0'
-      clone.style.width = '210mm'
-      clone.style.minHeight = '297mm'
-      clone.style.transform = 'scale(1)'
-      clone.style.transformOrigin = 'top left'
-      clone.style.zIndex = '9999'
-      clone.style.backgroundColor = '#ffffff'
+      // Test logo URL
+      const logoUrl = vendor?.logo_url || 'https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png'
+      const logoLoads = await testImageLoad(logoUrl)
+      console.log(`Logo URL loads: ${logoLoads}`)
       
-      // Clean all styles to remove oklch colors
-      cleanStylesForPDF(clone)
-      
-      // Add to document
-      document.body.appendChild(clone)
+      // Invoice data
+      const invoiceDate = formatDate(invoiceData.created_at)
+      const totalAmount = formatCurrency(invoiceData.grand_total)
+      const discountAmount = formatCurrency(invoiceData.discount)
+      const gstAmount = formatCurrency(invoiceData.gst)
+      const grossAmount = formatCurrency(invoiceData.gross_amt)
+      const amountInWords = numberToWords(invoiceData.grand_total)
+      const originalPrice = invoiceData.gross_amt + invoiceData.discount
 
-      // Use html2canvas with safe configuration
-      const canvas = await html2canvas(clone, {
+      // Create a temporary iframe for perfect rendering
+      const iframe = document.createElement('iframe')
+      iframe.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        width: 210mm;
+        height: 297mm;
+        border: none;
+        visibility: hidden;
+      `
+      document.body.appendChild(iframe)
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+      if (!iframeDoc) {
+        throw new Error('Could not create iframe document')
+      }
+
+      // Write the exact HTML structure with API data
+      iframeDoc.open()
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              * { 
+                margin: 0; 
+                padding: 0; 
+                box-sizing: border-box; 
+                font-family: Arial, Helvetica, sans-serif;
+              }
+              body { 
+                width: 210mm; 
+                min-height: 297mm; 
+                padding: 15mm 15mm 5mm 15mm; 
+                background: white; 
+                color: black;
+                line-height: 1.4;
+              }
+              .invoice-container {
+                width: 100%;
+                background: white;
+                border: 1px solid #666;
+                padding: 15px;
+                position: relative;
+                min-height: 260mm;
+              }
+              .border-bottom {
+                border-bottom: 1px solid #666;
+                padding-bottom: 8px;
+                margin-bottom: 8px;
+              }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              .font-bold { font-weight: bold; }
+              .text-sm { font-size: 11px; }
+              .text-base { font-size: 12px; }
+              .text-lg { font-size: 14px; }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                font-size: 11px;
+              }
+              th, td {
+                border: 1px solid #666;
+                padding: 6px 8px;
+                text-align: left;
+                vertical-align: top;
+              }
+              th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+              }
+              .grid-2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin: 15px 0;
+              }
+              .border-all {
+                border: 1px solid #666;
+                padding: 10px;
+              }
+              .flex-between {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .signature-box {
+                margin-top: 20px;
+                text-align: right;
+              }
+              .logo {
+                width: 60px;
+                height: 60px;
+                object-fit: contain;
+                border: 1px solid #ddd;
+              }
+              .logo-placeholder {
+                width: 60px;
+                height: 60px;
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                color: #666;
+              }
+              .status-paid { color: green; }
+              .status-pending { color: orange; }
+              .status-unpaid { color: red; }
+              .footer-section {
+                margin-top: 30px;
+                border-top: 1px solid #666;
+                padding-top: 15px;
+                font-size: 10px;
+                line-height: 1.3;
+              }
+              .footer-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-top: 10px;
+              }
+              .footer-title {
+                font-weight: bold;
+                margin-bottom: 5px;
+                font-size: 11px;
+              }
+              .bank-details {
+                font-size: 10px;
+                line-height: 1.4;
+              }
+              .terms-conditions {
+                font-size: 9px;
+                line-height: 1.2;
+              }
+              .final-signature {
+                margin-top: 20px;
+                text-align: right;
+                border-top: 1px solid #000;
+                padding-top: 10px;
+              }
+              .page-break {
+                page-break-inside: avoid;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-container">
+              <!-- Invoice Title -->
+              <div class="border-bottom text-center">
+                <h1 class="text-lg font-bold" style="color: #1e40af; letter-spacing: 2px;">TAX INVOICE</h1>
+              </div>
+
+              <!-- Header Section -->
+              <div class="grid-2" style="border: 1px solid #666; margin-top: 15px;">
+                <!-- Left Box -->
+                <div style="border-right: 1px solid #666; padding: 10px;">
+                  <!-- Logo and Details -->
+                  <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
+                    ${logoLoads ? 
+                      `<img src="${logoUrl}" 
+                           alt="Vendor Logo" 
+                           class="logo"
+                           crossorigin="anonymous">` 
+                      : 
+                      `<div class="logo-placeholder">LOGO</div>`
+                    }
+                    <div>
+                      <h2 class="font-bold text-base">${vendorName}</h2>
+                      <p class="text-sm">${vendorAddress}</p>
+                      <p class="text-sm">Mobile: ${vendorPhone}</p>
+                      ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
+                    </div>
+                  </div>
+                  
+                  <div style="border-top: 1px solid #666; margin: 10px 0; padding-top: 10px;">
+                    <p class="font-bold text-sm">Customer Details:</p>
+                    <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
+                    ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
+                    ${invoiceData.email ? `<p class="text-sm">${invoiceData.email}</p>` : ''}
+                  </div>
+                </div>
+
+                <!-- Right Box -->
+                <div style="padding: 10px;">
+                  <div class="flex-between border-bottom">
+                    <span class="font-bold text-sm">Invoice #:</span>
+                    <span class="text-sm">${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}</span>
+                  </div>
+                  <div class="flex-between border-bottom" style="margin-top: 8px;">
+                    <span class="font-bold text-sm">Invoice Date:</span>
+                    <span class="text-sm">${invoiceDate}</span>
+                  </div>
+                  <div class="flex-between" style="margin-top: 8px;">
+                    <span class="font-bold text-sm">Due Date:</span>
+                    <span class="text-sm">${invoiceDate}</span>
+                  </div>
+                  <div class="flex-between" style="margin-top: 8px;">
+                    <span class="font-bold text-sm">Status:</span>
+                    <span class="text-sm status-${invoiceData.payment_status}">
+                      ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Items Table -->
+              <table style="margin-top: 20px;" class="page-break">
+                <thead>
+                  <tr>
+                    <th style="width: 30px;">#</th>
+                    <th>Item</th>
+                    <th style="width: 80px;">HSN/SAC</th>
+                    <th style="width: 100px;">Rate / Item</th>
+                    <th style="width: 70px;">Qty</th>
+                    <th style="width: 100px;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>${invoiceData.product_name || 'Product/Service'}</td>
+                    <td>${invoiceData.product_sku || 'N/A'}</td>
+                    <td>
+                      ₹${grossAmount}<br>
+                      ${invoiceData.discount > 0 ? 
+                        `₹${formatCurrency(originalPrice)} (Discount: ₹${formatCurrency(invoiceData.discount)})` 
+                        : ''}
+                    </td>
+                    <td>${invoiceData.qty} ${invoiceData.qty > 1 ? 'PCS' : 'PC'}</td>
+                    <td>₹${totalAmount}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p class="text-sm" style="margin-top: 8px;">
+                Total Items / Qty : <b>1 / ${invoiceData.qty}</b>
+              </p>
+
+              <!-- Totals Box -->
+              <div class="border-all page-break" style="margin-top: 15px;">
+                <div class="flex-between border-bottom">
+                  <span class="font-bold text-sm">Subtotal</span>
+                  <span class="text-sm">₹${grossAmount}</span>
+                </div>
+                ${invoiceData.gst > 0 ? `
+                <div class="flex-between border-bottom" style="margin-top: 8px;">
+                  <span class="font-bold text-sm">GST</span>
+                  <span class="text-sm">₹${gstAmount}</span>
+                </div>
+                ` : ''}
+                ${invoiceData.discount > 0 ? `
+                <div class="flex-between border-bottom" style="margin-top: 8px;">
+                  <span class="font-bold text-sm">Total Discount</span>
+                  <span class="text-sm">-₹${discountAmount}</span>
+                </div>
+                ` : ''}
+                
+                <p class="text-sm" style="margin-top: 15px;">
+                  <b>Total amount (in words):</b> ${amountInWords}
+                </p>
+                
+                <div class="flex-between" style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #000;">
+                  <span class="font-bold text-lg">Amount Payable:</span>
+                  <span class="font-bold text-lg">₹${totalAmount}</span>
+                </div>
+              </div>
+
+              <!-- Signature Box -->
+              <div class="signature-box page-break">
+                <p class="font-bold text-base">For ${vendorName}</p>
+                <div style="height: 50px; margin: 10px 0; display: flex; justify-content: flex-end;">
+                  <div style="width: 150px; border-bottom: 1px solid #000; height: 50px;"></div>
+                </div>
+                <p class="text-sm">Authorized Signatory</p>
+              </div>
+
+              <!-- Footer Section with Terms & Conditions and Bank Details -->
+              <div class="footer-section page-break">
+                <div class="footer-grid">
+                  <!-- Terms and Conditions -->
+                  <div>
+                    <div class="footer-title">Terms and Conditions</div>
+                    <div class="terms-conditions">
+                      <p><b>E & O.E</b></p>
+                      <p>1. Goods once sold will not be taken back.</p>
+                      <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
+                      <p>3. Subject to 'Delhi' Jurisdiction only.</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Bank Details -->
+                  <div>
+                    <div class="footer-title">Bank Details</div>
+                    <div class="bank-details">
+                      <p><b>Account Number:</b> 234000991111899</p>
+                      <p><b>Bank:</b> ICICI</p>
+                      <p><b>IFSC:</b> ICICI560000078</p>
+                      <p><b>Branch:</b> Meerut</p>
+                      <p><b>Name:</b> Kamal</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Final Signature -->
+                <div class="final-signature">
+                  <p class="font-bold text-base">For ${vendorName}</p>
+                  <div style="height: 40px; margin: 5px 0;"></div>
+                  <p class="text-sm">S</p>
+                </div>
+              </div>
+
+              <!-- Footer Note -->
+              <p class="text-center text-sm" style="margin-top: 10px; color: #666; font-size: 9px;">
+                Generated by Manhem Digital Solutions | Visit manhemdigitalsolutions.com
+              </p>
+            </div>
+          </body>
+        </html>
+      `)
+      iframeDoc.close()
+
+      // Wait for iframe to render and images to load
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // Generate PDF from iframe
+      const canvas = await html2canvas(iframeDoc.body, {
         scale: 2,
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         backgroundColor: '#ffffff',
+        width: 210 * 3.78,
+        height: 297 * 3.78,
+        windowWidth: 210 * 3.78,
+        windowHeight: 297 * 3.78,
+        useCORS: true,
         logging: false,
-        width: clone.scrollWidth,
-        height: clone.scrollHeight,
-        onclone: (clonedDoc) => {
-          // Additional cleanup on the cloned documents
-          const allClonedElements = clonedDoc.querySelectorAll('*')
-          allClonedElements.forEach((el: Element) => {
-            const htmlEl = el as HTMLElement
-            
-            // Force safe colors
-            const computedStyle = window.getComputedStyle(htmlEl)
-            
-            // Check and replace oklch colors
-            if (computedStyle.color.includes('oklch')) {
-              htmlEl.style.color = '#000000'
+        onclone: (clonedDoc, element) => {
+          // Force images to load
+          const images = element.getElementsByTagName('img')
+          Array.from(images).forEach(img => {
+            if (!img.complete) {
+              img.crossOrigin = 'anonymous'
             }
-            if (computedStyle.backgroundColor.includes('oklch')) {
-              htmlEl.style.backgroundColor = htmlEl.tagName === 'BODY' ? '#ffffff' : 'transparent'
-            }
-            if (computedStyle.borderColor.includes('oklch')) {
-              htmlEl.style.borderColor = '#cccccc'
-            }
-            
-            // Remove any remaining problematic classes
-            const classList = Array.from(htmlEl.classList)
-            classList.forEach(className => {
-              if (className.includes('oklch') || className.includes('gradient')) {
-                htmlEl.classList.remove(className)
-              }
-            })
           })
         }
       })
 
-      // Clean up the clone
-      document.body.removeChild(clone)
+      // Clean up
+      document.body.removeChild(iframe)
 
       // Create PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true
       })
 
       const imgData = canvas.toDataURL('image/png', 1.0)
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width
 
-      // Add image to PDF
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
       
-      // Generate PDF blob for preview
       const pdfBlob = pdf.output('blob')
       const pdfUrl = URL.createObjectURL(pdfBlob)
       
-      setPdfPreviewUrl(pdfUrl)
-      setActiveView('pdf')
-      
-      console.log("✅ PDF generated successfully")
+      console.log("PDF generated successfully")
       return pdfUrl
-      
+
     } catch (err) {
-      console.error('Error generating PDF preview:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setError(`Failed to generate PDF preview: ${errorMessage}`)
-      
-      // Fallback: Create a simple text-based PDF
-      try {
-        return await generateSimplePDF()
-      } catch (fallbackErr) {
-        console.error('Fallback PDF generation also failed:', fallbackErr)
-        return null
-      }
+      console.error('Error generating classic template PDF:', err)
+      return await generateSimplePDF(invoiceData)
     } finally {
       setIsGeneratingPDF(false)
     }
   }
 
-  // Fallback PDF generation without html2canvas
-  const generateSimplePDF = async (): Promise<string | null> => {
-    if (!invoice) return null
-
+  // Simple fallback PDF
+  const generateSimplePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -284,89 +699,150 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         format: 'a4'
       })
 
-      // Add simple text content
-      let yPosition = 20
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          return new Date(dateString).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
+        }
+      }
+
+      // Use vendor data
+      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company'
+      const vendorAddress = vendor?.address_line1 ? 
+        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}` 
+        : '123 Business St, City'
+
+      // Simple PDF with API data
+      let y = 20
       
-      // Header
-      pdf.setFontSize(20)
+      pdf.setFontSize(16)
+      pdf.setTextColor(30, 64, 175)
+      pdf.text('TAX INVOICE', 105, y, { align: 'center' })
+      
+      y += 10
+      pdf.setFontSize(10)
       pdf.setTextColor(0, 0, 0)
-      pdf.text('INVOICE', 20, yPosition)
+      pdf.text(`Invoice #: ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}`, 20, y)
+      pdf.text(`Date: ${formatDate(invoiceData.created_at)}`, 150, y)
       
-      yPosition += 10
+      y += 15
       pdf.setFontSize(12)
-      pdf.text(`Invoice #: ${invoice.invoice_number || 'N/A'}`, 20, yPosition)
-      
-      yPosition += 8
-      pdf.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, 20, yPosition)
-      
-      yPosition += 15
-      
-      // From/To sections
-      pdf.setFontSize(14)
-      pdf.text('From:', 20, yPosition)
+      pdf.text('From:', 20, y)
       pdf.setFontSize(10)
-      yPosition += 7
-      pdf.text(invoice.from_name || 'Your Company', 20, yPosition)
-      yPosition += 5
-      pdf.text(invoice.from_address || '123 Business St', 20, yPosition)
-      yPosition += 5
-      pdf.text(invoice.from_email || 'email@company.com', 20, yPosition)
+      y += 7
+      pdf.text(vendorName, 20, y)
+      y += 5
+      pdf.text(vendorAddress, 20, y)
+      y += 5
+      pdf.text(vendor?.contact_number || '+91 XXXXX XXXXX', 20, y)
       
-      yPosition += 10
-      pdf.setFontSize(14)
-      pdf.text('To:', 20, yPosition)
-      pdf.setFontSize(10)
-      yPosition += 7
-      pdf.text(invoice.to_name || 'Client Name', 20, yPosition)
-      yPosition += 5
-      pdf.text(invoice.to_address || '123 Client St', 20, yPosition)
-      yPosition += 5
-      pdf.text(invoice.to_email || 'client@email.com', 20, yPosition)
-      
-      yPosition += 15
-      
-      // Items table header
+      y += 10
       pdf.setFontSize(12)
-      pdf.text('Description', 20, yPosition)
-      pdf.text('Qty', 120, yPosition)
-      pdf.text('Price', 150, yPosition)
-      pdf.text('Amount', 180, yPosition)
-      
-      yPosition += 8
-      pdf.line(20, yPosition, 190, yPosition)
-      
-      yPosition += 10
-      
-      // Item row
+      pdf.text('To:', 20, y)
       pdf.setFontSize(10)
-      pdf.text(invoice.description || 'Product/Service', 20, yPosition)
-      pdf.text((invoice.qty || 1).toString(), 120, yPosition)
-      pdf.text(`$${Number(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
-      pdf.text(`$${Number(invoice.grand_total || 0).toFixed(2)}`, 180, yPosition)
+      y += 7
+      pdf.text(invoiceData.billing_to || 'Customer Name', 20, y)
+      y += 5
+      pdf.text(invoiceData.email || 'N/A', 20, y)
+      y += 5
+      pdf.text(`Ph: ${invoiceData.mobile || 'N/A'}`, 20, y)
       
-      yPosition += 20
+      y += 15
       
-      // Totals
+      // Table header
+      pdf.setFontSize(11)
+      pdf.text('#', 20, y)
+      pdf.text('Item', 30, y)
+      pdf.text('SKU', 120, y)
+      pdf.text('Qty', 150, y)
+      pdf.text('Amount', 180, y)
+      
+      y += 8
+      pdf.line(20, y, 190, y)
+      
+      y += 10
+      pdf.setFontSize(10)
+      pdf.text('1', 20, y)
+      pdf.text(invoiceData.product_name || 'Product/Service', 30, y)
+      pdf.text(invoiceData.product_sku || 'N/A', 120, y)
+      pdf.text(invoiceData.qty.toString(), 150, y)
+      pdf.text(`₹${invoiceData.grand_total.toFixed(2)}`, 180, y)
+      
+      y += 20
+      pdf.text(`Total Items / Qty : 1 / ${invoiceData.qty}`, 20, y)
+      
+      y += 15
+      pdf.text(`Subtotal: ₹${invoiceData.gross_amt.toFixed(2)}`, 150, y)
+      y += 8
+      if (invoiceData.gst > 0) {
+        pdf.text(`GST: ₹${invoiceData.gst.toFixed(2)}`, 150, y)
+        y += 8
+      }
+      if (invoiceData.discount > 0) {
+        pdf.text(`Discount: -₹${invoiceData.discount.toFixed(2)}`, 150, y)
+        y += 8
+      }
       pdf.setFontSize(12)
-      pdf.text(`Subtotal: $${Number(invoice.gross_amt || 0).toFixed(2)}`, 150, yPosition)
-      yPosition += 8
-      pdf.text(`Tax: $${Number(invoice.gst || 0).toFixed(2)}`, 150, yPosition)
-      yPosition += 8
-      pdf.text(`Discount: -$${Number(invoice.discount || 0).toFixed(2)}`, 150, yPosition)
-      yPosition += 8
-      pdf.setFontSize(14)
-      pdf.setFont('', 'bold') // Empty string for default font
-      pdf.text(`Total: $${Number(invoice.grand_total || 0).toFixed(2)}`, 150, yPosition)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(`Amount Payable: ₹${invoiceData.grand_total.toFixed(2)}`, 150, y)
       
-      // Generate PDF blob
+      y += 25
+      
+      // Footer with Terms and Conditions
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Terms and Conditions', 20, y)
+      
+      y += 7
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text('E & O.E', 20, y)
+      
+      y += 5
+      pdf.text('1. Goods once sold will not be taken back.', 20, y)
+      
+      y += 4
+      pdf.text(`2. Interest @ 18% p.a. will be charged if the payment for ${vendorName}`, 20, y)
+      y += 4
+      pdf.text('   is not made within the stipulated time.', 20, y)
+      
+      y += 4
+      pdf.text('3. Subject to Delhi Jurisdiction only.', 20, y)
+      
+      y += 10
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Bank Details:', 20, y)
+      
+      y += 6
+      pdf.setFont('helvetica', 'normal')
+      pdf.text('Account Number: 234000991111899', 20, y)
+      y += 4
+      pdf.text('Bank: ICICI', 20, y)
+      y += 4
+      pdf.text('IFSC: ICICI560000078', 20, y)
+      y += 4
+      pdf.text('Branch: Meerut', 20, y)
+      y += 4
+      pdf.text('Name: Kamal', 20, y)
+      
+      y += 15
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(`For ${vendorName}`, 150, y)
+      y += 15
+      pdf.text('S', 150, y)
+      
       const pdfBlob = pdf.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      
-      setPdfPreviewUrl(pdfUrl)
-      setActiveView('pdf')
-      
-      console.log("✅ Simple PDF generated as fallback")
-      return pdfUrl
+      return URL.createObjectURL(pdfBlob)
       
     } catch (err) {
       console.error('Error generating simple PDF:', err)
@@ -376,38 +852,41 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
 
   // Download PDF
   const downloadPDF = async () => {
+    if (!invoice) return
+
     let pdfUrl = pdfPreviewUrl
 
-    // Generate PDF if not already generated
     if (!pdfUrl) {
-      pdfUrl = await generatePDFPreview()
+      pdfUrl = await generateClassicTemplatePDF(invoice)
       if (!pdfUrl) {
         setError('Failed to generate PDF for download')
         return
       }
     }
 
-    // Trigger download
     const link = document.createElement('a')
     link.href = pdfUrl
-    link.download = `invoice-${invoice?.id || invoice?.invoice_number || 'unknown'}.pdf`
+    link.download = `invoice-${invoice.invoice_number || invoice.invoice_id || invoice.id || 'unknown'}.pdf`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
-  // Switch to live preview
-  const switchToLivePreview = () => {
-    setActiveView('live')
-  }
-
-  // Clear PDF preview when template or invoice changes
+  // Generate PDF automatically when invoice data is loaded
   useEffect(() => {
-    if (pdfPreviewUrl) {
-      URL.revokeObjectURL(pdfPreviewUrl)
-      setPdfPreviewUrl(null)
+    const generateAndShowPDF = async () => {
+      if (invoice && !pdfPreviewUrl && !isGeneratingPDF) {
+        console.log("Generating PDF with invoice data:", invoice)
+        console.log("Vendor data:", vendor)
+        const pdfUrl = await generateClassicTemplatePDF(invoice)
+        if (pdfUrl) {
+          setPdfPreviewUrl(pdfUrl)
+        }
+      }
     }
-  }, [selectedTemplate, invoice])
+
+    generateAndShowPDF()
+  }, [invoice, vendor])
 
   // Clean up URLs on unmount
   useEffect(() => {
@@ -418,25 +897,20 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
     }
   }, [pdfPreviewUrl])
 
+  // Fetch invoice data on component mount
   useEffect(() => {
     if (id) {
-      console.log("🚀 DEBUG - Starting invoice fetch for ID:", id)
       fetchInvoice(id)
     }
   }, [id])
 
-  // Debug effect to log when invoice state changes
-  useEffect(() => {
-    if (invoice) {
-      console.log("📄 DEBUG - Invoice state updated:", invoice)
-    }
-  }, [invoice])
-
-  // Add additional loading check to ensure invoice is ready
-  if (loading || !invoice) {
+  if (loading) {
     return (
       <div className="flex h-screen bg-background items-center justify-center">
-        <div className="text-lg">Loading invoice...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-lg">Loading invoice data...</div>
+        </div>
       </div>
     )
   }
@@ -444,62 +918,63 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   if (error && !invoice) {
     return (
       <div className="flex h-screen bg-background items-center justify-center">
-        <div className="text-lg text-red-500">Error: {error}</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-lg text-red-500">Error: {error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
 
+  // Only show PDF preview (no HTML preview option)
   return (
     <div className="flex h-screen bg-background">
-      {/* Left Sidebar - Template Selection */}
+      {/* Left Sidebar - Template Selection (optional) */}
       <TemplateSidebar 
         selectedTemplate={selectedTemplate} 
         onSelectTemplate={setSelectedTemplate} 
       />
 
-      {/* Center - Invoice Preview */}
+      {/* Center - Only PDF Preview */}
       <div className="flex-1 flex flex-col">
-        {/* Preview Controls */}
+        {/* PDF Controls */}
         <div className="flex justify-between items-center p-4 border-b bg-white">
-          <div className="flex gap-2">
-            <button
-              onClick={switchToLivePreview}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                activeView === 'live' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Live Preview
-            </button>
-            <button
-              onClick={() => generatePDFPreview()}
-              disabled={isGeneratingPDF}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                activeView === 'pdf' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isGeneratingPDF ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating PDF...
-                </>
-              ) : (
-                'PDF Preview'
-              )}
-            </button>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600">
+              <span className="font-semibold">Invoice: {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
+              <span className="ml-4">Vendor: {vendor?.shop_name || invoice?.biller_name || 'My Company'}</span>
+              <span className="ml-4">Status: 
+                <span className={`ml-1 font-semibold ${
+                  invoice?.payment_status === 'paid' ? 'text-green-600' : 
+                  invoice?.payment_status === 'pending' ? 'text-yellow-600' : 
+                  'text-red-600'
+                }`}>
+                  {invoice?.payment_status?.toUpperCase() || 'PENDING'}
+                </span>
+              </span>
+            </div>
           </div>
 
-          {activeView === 'pdf' && pdfPreviewUrl && (
-            <button
-              onClick={downloadPDF}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-            >
-              Download PDF
-            </button>
-          )}
+          <div className="flex gap-2">
+            {isGeneratingPDF ? (
+              <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Generating PDF...
+              </button>
+            ) : (
+              <button
+                onClick={downloadPDF}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Download PDF
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Error Display */}
@@ -517,52 +992,40 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        {/* Preview Content */}
+        {/* PDF Preview Only */}
         <div className="flex-1 overflow-auto bg-gray-100 p-4">
-          {activeView === 'pdf' && pdfPreviewUrl ? (
+          {pdfPreviewUrl ? (
             // PDF Preview
             <div className="h-full flex items-center justify-center">
-              <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">PDF Preview</h2>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={switchToLivePreview}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
-                    >
-                      Back to Live Preview
-                    </button>
-                    <button
-                      onClick={downloadPDF}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                    >
-                      Download PDF
-                    </button>
+              <div className="bg-white rounded-lg shadow-lg p-4 max-w-4xl w-full h-full">
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                    <iframe
+                      src={pdfPreviewUrl}
+                      className="w-full h-full min-h-[600px]"
+                      title="PDF Preview"
+                    />
                   </div>
-                </div>
-                <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
-                  <iframe
-                    src={pdfPreviewUrl}
-                    className="w-full h-[600px]"
-                    title="PDF Preview"
-                  />
-                </div>
-                <div className="mt-4 text-center text-sm text-gray-600">
-                  This is a preview of how your PDF will look when downloaded.
-                  {pdfPreviewUrl.includes('blob') && " (Fallback PDF - Some styling may be simplified)"}
+                  <div className="mt-4 text-center text-sm text-gray-600">
+                    <p>Invoice #{invoice?.invoice_number || invoice?.invoice_id} | Generated from API data</p>
+                    <p className="text-xs mt-1">Includes Terms & Conditions and Bank Details</p>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            // Live Preview
+            // Loading or error state for PDF
             <div className="h-full flex items-center justify-center">
-              <div id="invoice-preview-content">
-                <InvoicePreview 
-                  invoice={invoice} 
-                  template={selectedTemplate}
-                  zoom={zoom} 
-                  onZoomChange={setZoom}
-                />
+              <div className="flex flex-col items-center gap-4">
+                {isGeneratingPDF ? (
+                  <>
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="text-lg">Generating PDF...</div>
+                    <div className="text-sm text-gray-500">Loading vendor logo and invoice data</div>
+                  </>
+                ) : (
+                  <div className="text-lg text-gray-500">Preparing PDF preview...</div>
+                )}
               </div>
             </div>
           )}
@@ -570,25 +1033,38 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Right Sidebar - Actions */}
-     <ActionsSidebar 
-  invoice={invoice}
-  onSave={() => {
-    console.log('Saving invoice changes...')
-  }}
-  onExport={downloadPDF}
+      {invoice && (
+        <ActionsSidebar 
+          invoice={invoice}
+          onSave={() => console.log('Saving invoice changes...')}
+          onExport={downloadPDF}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
+          onConvert={() => {}}
+          onCancel={() => {}}
+          onPrint={() => {}}
+          onEmail={() => {}}
+          onWhatsapp={() => {}}
+          onAddLogo={() => {}}
+          onAddBankDetails={() => {}}
+          onClose={() => {}}
+          onGoToSales={() => {}}
+        />
+      )}
 
-  onEdit={() => {}}
-  onDuplicate={() => {}}
-  onConvert={() => {}}
-  onCancel={() => {}}
-  onPrint={() => {}}
-  onEmail={() => {}}
-  onWhatsapp={() => {}}
-  onAddLogo={() => {}}
-  onAddBankDetails={() => {}}
-  onClose={() => {}}
-  onGoToSales={() => {}} // Add this missing prop
-/>
+      {/* Hidden HTML preview for PDF generation (not shown to user) */}
+      <div style={{ display: 'none' }}>
+        <div ref={invoicePreviewRef}>
+          {invoice && (
+            <InvoicePreview 
+              invoice={invoice} 
+              template={selectedTemplate}
+              zoom={100}
+              onZoomChange={() => {}}
+            />
+          )}
+        </div>
+      </div>
     </div>
   )
 }

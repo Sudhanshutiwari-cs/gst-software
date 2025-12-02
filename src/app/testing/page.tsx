@@ -81,35 +81,35 @@ export default function InvoicePage() {
                         {/* Left Box (Vendor + Customer with dividing line) */}
                         <div className="p-4 border-r border-gray-400 text-sm">
 
-  {/* Logo + Vendor Details Row */}
-  <div className="flex items-start gap-4">
+                            {/* Logo + Vendor Details Row */}
+                            <div className="flex items-start gap-4">
 
-    {/* Vendor Logo */}
-    <img
-      src="https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png"   // keep logo inside /public/
-      alt="Vendor Logo"
-      className="h-14 w-14 object-contain"
-    />
+                                {/* Vendor Logo */}
+                                <img
+                                    src="https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png"   // keep logo inside /public/
+                                    alt="Vendor Logo"
+                                    className="h-14 w-14 object-contain"
+                                />
 
-    {/* Vendor Details */}
-    <div>
-      <h2 className="font-bold">Shyam CMYK</h2>
-      <p>Tatmil market , Ghantaghar</p>
-      <p>Kanpur City, UTTAR PRADESH, 208015</p>
-      <p>Mobile: +91 9856314765</p>
-    </div>
+                                {/* Vendor Details */}
+                                <div>
+                                    <h2 className="font-bold">Shyam CMYK</h2>
+                                    <p>Tatmil market , Ghantaghar</p>
+                                    <p>Kanpur City, UTTAR PRADESH, 208015</p>
+                                    <p>Mobile: +91 9856314765</p>
+                                </div>
 
-  </div>
+                            </div>
 
-  {/* Divider Line */}
-  <div className="border-t border-gray-400 my-3"></div>
+                            {/* Divider Line */}
+                            <div className="border-t border-gray-400 my-3"></div>
 
-  {/* Customer Section */}
-  <p className="font-semibold">Customer Details:</p>
-  <p>Sudhanshu Tiwari</p>
-  <p>Ph: 9140048553</p>
-  <p>tiwarisudhanshu861@gmail.com</p>
-</div>
+                            {/* Customer Section */}
+                            <p className="font-semibold">Customer Details:</p>
+                            <p>Sudhanshu Tiwari</p>
+                            <p>Ph: 9140048553</p>
+                            <p>tiwarisudhanshu861@gmail.com</p>
+                        </div>
 
 
                         {/* Right Box */}
