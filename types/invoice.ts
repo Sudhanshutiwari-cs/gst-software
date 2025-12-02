@@ -21,6 +21,8 @@ export interface Invoice {
   email: string;
   whatsapp_number: string | null;
   product_name: string;
+  terms : string | null;
+  notes: string | null;
   product_id: number;
   product_sku: string;
   qty: number;
@@ -34,4 +36,5 @@ export interface Invoice {
   utr_number: string | null;
   created_at: string;
   updated_at: string;
+  shipping_address: string | null;
 }

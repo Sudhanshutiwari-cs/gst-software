@@ -167,66 +167,46 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       const gstAmt = parseFloat(invoiceData.gst) || 0
       const discountAmt = parseFloat(invoiceData.discount) || 0
       const grandTotalAmt = parseFloat(invoiceData.grand_total) || 0
-      const paidAmount = parseFloat(invoiceData.paid_amount) || 0
-      
-      // Calculate derived values
-      const subtotal = grossAmt
-      const tax = gstAmt
-      const adjustments = discountAmt
-      const balanceDue = grandTotalAmt - paidAmount
       
       // Map API fields to your invoice structure with all required fields
       const mappedInvoice: Invoice = {
-        id: invoiceData.id || invoiceData.invoice_id,
-        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number,
-        invoice_id: invoiceData.invoice_id,
-        vendor_id: invoiceData.vendor_id,
+        id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
+        invoice_id: invoiceData.invoice_id || '',
+        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
+        vendor_id: invoiceData.vendor_id?.toString() || '',
+        currency: invoiceData.currency || 'INR',
         biller_name: invoiceData.biller_name || '',
+        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
+        from_name: '',
+        description: invoiceData.product_name || null,
+        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         billing_to: invoiceData.billing_to || '',
+        to_email: invoiceData.email || '',
+        from_address: '',
+        from_email: '',
+        billing_address: invoiceData.billing_address || '',
+        mobile: invoiceData.mobile || null,
+        to_name: invoiceData.billing_to || '',
+        to_address: invoiceData.shipping_address || null,
         email: invoiceData.email || '',
-        mobile: invoiceData.mobile || invoiceData.whatsapp_number || '',
+        whatsapp_number: invoiceData.whatsapp_number || null,
         product_name: invoiceData.product_name || '',
+        terms: invoiceData.terms || null,
+        notes: invoiceData.notes || null,
+        product_id: parseInt(invoiceData.product_id) || 0,
         product_sku: invoiceData.product_sku || '',
         qty: qty,
-        // Convert to strings since Invoice type expects strings
         gross_amt: grossAmt.toString() || '0',
         gst: gstAmt.toString() || '0',
+        tax_inclusive: invoiceData.tax_inclusive || 0,
         discount: discountAmt.toString() || '0',
         grand_total: grandTotalAmt.toString() || '0',
         payment_status: invoiceData.payment_status || 'pending',
+        payment_mode: invoiceData.payment_mode || null,
+        utr_number: invoiceData.utr_number || null,
         created_at: invoiceData.created_at || new Date().toISOString(),
-        from_name: '',
-        from_address: '',
-        from_email: '',
-        to_name: invoiceData.billing_to || '',
-        to_address: '',
-        to_email: invoiceData.email || '',
-        description: invoiceData.product_name || '',
-        
-        // Add missing required fields with default values
-        currency: invoiceData.currency || 'INR',
-        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
-        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-        billing_address: invoiceData.billing_address || '',
-        shipping_address: invoiceData.shipping_address || '',
-        notes: invoiceData.notes || '',
-        terms: invoiceData.terms || '',
-        items: invoiceData.items || [
-          {
-            name: invoiceData.product_name || '',
-            description: invoiceData.product_name || '',
-            quantity: qty,
-            price: grossAmt,
-            sku: invoiceData.product_sku || '',
-            total: grossAmt * qty
-          }
-        ],
-        subtotal: subtotal,
-        tax: tax,
-        shipping: 0,
-        adjustments: adjustments,
-        paid_amount: paidAmount,
-        balance_due: balanceDue
+        updated_at: invoiceData.updated_at || new Date().toISOString(),
+        shipping_address: invoiceData.shipping_address || null
       }
       
       setInvoice(mappedInvoice)
@@ -349,7 +329,8 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       console.log(`Logo URL loads: ${logoLoads}`)
       
       // Invoice data
-      const invoiceDate = formatDate(invoiceData.created_at)
+      const invoiceDate = formatDate(invoiceData.issue_date)
+      const dueDate = formatDate(invoiceData.due_date)
       const totalAmount = formatCurrency(grandTotalNum)
       const discountAmount = formatCurrency(discountNum)
       const gstAmount = formatCurrency(gstNum)
@@ -557,7 +538,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                   </div>
                   <div class="flex-between" style="margin-top: 8px;">
                     <span class="font-bold text-sm">Due Date:</span>
-                    <span class="text-sm">${formatDate(invoiceData.due_date) || invoiceDate}</span>
+                    <span class="text-sm">${dueDate}</span>
                   </div>
                   <div class="flex-between" style="margin-top: 8px;">
                     <span class="font-bold text-sm">Status:</span>
@@ -790,7 +771,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       pdf.setFontSize(10)
       pdf.setTextColor(0, 0, 0)
       pdf.text(`Invoice #: ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}`, 20, y)
-      pdf.text(`Date: ${formatDate(invoiceData.created_at)}`, 150, y)
+      pdf.text(`Date: ${formatDate(invoiceData.issue_date)}`, 150, y)
       
       y += 15
       pdf.setFontSize(12)
