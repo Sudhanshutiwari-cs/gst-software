@@ -678,7 +678,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         height: 297 * 3.78,
         windowWidth: 210 * 3.78,
         windowHeight: 297 * 3.78,
-        useCORS: true,
+        
         logging: false,
         onclone: (clonedDoc, element) => {
           // Force images to load
