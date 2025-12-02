@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle, X, UserPlus, Loader2, Menu } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 // Vendor Profile interface
@@ -256,10 +256,6 @@ export default function CreateInvoice() {
   const [productImage, setProductImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
-  // Section Expansion State
-  const [expandedNotes, setExpandedNotes] = useState(true)
-  const [expandedTerms, setExpandedTerms] = useState(false)
-
   // Payment State
   const [isRoundedOff, setIsRoundedOff] = useState(true)
   const [selectedBank, setSelectedBank] = useState('')
@@ -268,11 +264,6 @@ export default function CreateInvoice() {
   const [paymentMode, setPaymentMode] = useState('cash')
   const [paymentStatus, setPaymentStatus] = useState('paid')
   const [utrNumber, setUtrNumber] = useState('')
-
-  // Notes & Terms
-  const [notes, setNotes] = useState('')
-  const [createEWaybill, setCreateEWaybill] = useState(false)
-  const [createEInvoice, setCreateEInvoice] = useState(false)
 
   // Loading states for API calls
   const [savingInvoice, setSavingInvoice] = useState(false)
@@ -306,7 +297,7 @@ export default function CreateInvoice() {
   }
 
   // API function to fetch vendor profile
-  const fetchVendorProfile = async () => {
+  const fetchVendorProfile = useCallback(async () => {
     setLoadingProfile(true)
     setProfileError('')
 
@@ -349,10 +340,10 @@ export default function CreateInvoice() {
     } finally {
       setLoadingProfile(false)
     }
-  }
+  }, [])
 
   // API function to fetch customers
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     setLoadingCustomers(true)
     setCustomerError('')
 
@@ -394,10 +385,10 @@ export default function CreateInvoice() {
     } finally {
       setLoadingCustomers(false)
     }
-  }
+  }, [])
 
   // API function to fetch categories
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoadingCategories(true)
     try {
       const token = getAuthToken()
@@ -441,7 +432,7 @@ export default function CreateInvoice() {
     } finally {
       setLoadingCategories(false)
     }
-  }
+  }, [])
 
   // API function to add customer
   const addCustomer = async (formData: AddCustomerFormData) => {
@@ -510,7 +501,7 @@ export default function CreateInvoice() {
   }
 
   // API function to fetch products
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
     setProductError('')
 
@@ -637,7 +628,7 @@ export default function CreateInvoice() {
     } finally {
       setLoadingProducts(false)
     }
-  }
+  }, [])
 
   // API function to add product
   const addProduct = async (formData: AddProductFormData, imageFile: File | null) => {
@@ -921,7 +912,7 @@ export default function CreateInvoice() {
     fetchCustomers()
     fetchProducts()
     fetchCategories()
-  }, [])
+  }, [fetchVendorProfile, fetchCustomers, fetchProducts, fetchCategories])
 
   // Filter customers based on search
   useEffect(() => {
@@ -1180,10 +1171,6 @@ export default function CreateInvoice() {
 
   const retryFetchProducts = () => {
     fetchProducts()
-  }
-
-  const retryFetchCategories = () => {
-    fetchCategories()
   }
 
   // Mobile sidebar toggle
