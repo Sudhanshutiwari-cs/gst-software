@@ -174,10 +174,11 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         product_name: invoiceData.product_name || '',
         product_sku: invoiceData.product_sku || '',
         qty: parseInt(invoiceData.qty) || 1,
-        gross_amt: parseFloat(invoiceData.gross_amt) || 0,
-        gst: parseFloat(invoiceData.gst) || 0,
-        discount: parseFloat(invoiceData.discount) || 0,
-        grand_total: parseFloat(invoiceData.grand_total) || 0,
+        // Convert to strings since Invoice type expects strings
+        gross_amt: parseFloat(invoiceData.gross_amt).toString() || '0',
+        gst: parseFloat(invoiceData.gst).toString() || '0',
+        discount: parseFloat(invoiceData.discount).toString() || '0',
+        grand_total: parseFloat(invoiceData.grand_total).toString() || '0',
         payment_status: invoiceData.payment_status || 'pending',
         created_at: invoiceData.created_at || new Date().toISOString(),
         from_name: '',
@@ -207,10 +208,21 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
     }
   }
 
+  // Helper function to parse invoice string values to numbers for calculations
+  const parseInvoiceNumber = (value: string): number => {
+    return parseFloat(value) || 0
+  }
+
   // Specialized PDF generation for classic template with API data
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
       setIsGeneratingPDF(true)
+      
+      // Parse string values to numbers for calculations
+      const grossAmtNum = parseInvoiceNumber(invoiceData.gross_amt)
+      const gstNum = parseInvoiceNumber(invoiceData.gst)
+      const discountNum = parseInvoiceNumber(invoiceData.discount)
+      const grandTotalNum = parseInvoiceNumber(invoiceData.grand_total)
       
       // Format date
       const formatDate = (dateString: string) => {
@@ -299,12 +311,12 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       
       // Invoice data
       const invoiceDate = formatDate(invoiceData.created_at)
-      const totalAmount = formatCurrency(invoiceData.grand_total)
-      const discountAmount = formatCurrency(invoiceData.discount)
-      const gstAmount = formatCurrency(invoiceData.gst)
-      const grossAmount = formatCurrency(invoiceData.gross_amt)
-      const amountInWords = numberToWords(invoiceData.grand_total)
-      const originalPrice = invoiceData.gross_amt + invoiceData.discount
+      const totalAmount = formatCurrency(grandTotalNum)
+      const discountAmount = formatCurrency(discountNum)
+      const gstAmount = formatCurrency(gstNum)
+      const grossAmount = formatCurrency(grossAmtNum)
+      const amountInWords = numberToWords(grandTotalNum)
+      const originalPrice = grossAmtNum + discountNum
 
       // Create a temporary iframe for perfect rendering
       const iframe = document.createElement('iframe')
@@ -536,8 +548,8 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                     <td>${invoiceData.product_sku || 'N/A'}</td>
                     <td>
                       ₹${grossAmount}<br>
-                      ${invoiceData.discount > 0 ? 
-                        `₹${formatCurrency(originalPrice)} (Discount: ₹${formatCurrency(invoiceData.discount)})` 
+                      ${discountNum > 0 ? 
+                        `₹${formatCurrency(originalPrice)} (Discount: ₹${formatCurrency(discountNum)})` 
                         : ''}
                     </td>
                     <td>${invoiceData.qty} ${invoiceData.qty > 1 ? 'PCS' : 'PC'}</td>
@@ -556,13 +568,13 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                   <span class="font-bold text-sm">Subtotal</span>
                   <span class="text-sm">₹${grossAmount}</span>
                 </div>
-                ${invoiceData.gst > 0 ? `
+                ${gstNum > 0 ? `
                 <div class="flex-between border-bottom" style="margin-top: 8px;">
                   <span class="font-bold text-sm">GST</span>
                   <span class="text-sm">₹${gstAmount}</span>
                 </div>
                 ` : ''}
-                ${invoiceData.discount > 0 ? `
+                ${discountNum > 0 ? `
                 <div class="flex-between border-bottom" style="margin-top: 8px;">
                   <span class="font-bold text-sm">Total Discount</span>
                   <span class="text-sm">-₹${discountAmount}</span>
@@ -699,6 +711,12 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         format: 'a4'
       })
 
+      // Parse string values to numbers for calculations
+      const grossAmtNum = parseInvoiceNumber(invoiceData.gross_amt)
+      const gstNum = parseInvoiceNumber(invoiceData.gst)
+      const discountNum = parseInvoiceNumber(invoiceData.discount)
+      const grandTotalNum = parseInvoiceNumber(invoiceData.grand_total)
+      
       // Format date
       const formatDate = (dateString: string) => {
         try {
@@ -776,25 +794,25 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       pdf.text(invoiceData.product_name || 'Product/Service', 30, y)
       pdf.text(invoiceData.product_sku || 'N/A', 120, y)
       pdf.text(invoiceData.qty.toString(), 150, y)
-      pdf.text(`₹${invoiceData.grand_total.toFixed(2)}`, 180, y)
+      pdf.text(`₹${grandTotalNum.toFixed(2)}`, 180, y)
       
       y += 20
       pdf.text(`Total Items / Qty : 1 / ${invoiceData.qty}`, 20, y)
       
       y += 15
-      pdf.text(`Subtotal: ₹${invoiceData.gross_amt.toFixed(2)}`, 150, y)
+      pdf.text(`Subtotal: ₹${grossAmtNum.toFixed(2)}`, 150, y)
       y += 8
-      if (invoiceData.gst > 0) {
-        pdf.text(`GST: ₹${invoiceData.gst.toFixed(2)}`, 150, y)
+      if (gstNum > 0) {
+        pdf.text(`GST: ₹${gstNum.toFixed(2)}`, 150, y)
         y += 8
       }
-      if (invoiceData.discount > 0) {
-        pdf.text(`Discount: -₹${invoiceData.discount.toFixed(2)}`, 150, y)
+      if (discountNum > 0) {
+        pdf.text(`Discount: -₹${discountNum.toFixed(2)}`, 150, y)
         y += 8
       }
       pdf.setFontSize(12)
       pdf.setFont('helvetica', 'bold')
-      pdf.text(`Amount Payable: ₹${invoiceData.grand_total.toFixed(2)}`, 150, y)
+      pdf.text(`Amount Payable: ₹${grandTotalNum.toFixed(2)}`, 150, y)
       
       y += 25
       
