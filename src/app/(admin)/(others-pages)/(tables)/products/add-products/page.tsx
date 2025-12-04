@@ -1122,28 +1122,33 @@ export default function AddProductsPage() {
 
                   {/* Tax Percentage */}
                   <div>
-                    <label className={labelClass}>
-                      Tax Percentage
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        name="tax_percent"
-                        value={formData.tax_percent}
-                        onChange={handleInputChange}
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        className={`${inputClass} pr-12`}
-                        placeholder="0.00"
-                      />
-                      <div className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        <span>%</span>
-                      </div>
-                    </div>
-                  </div>
+  <label className={labelClass}>
+    Tax Percentage
+  </label>
+  <div className="relative">
+    <select
+      name="tax_percent"
+      value={formData.tax_percent}
+      onChange={handleInputChange}
+      className={`${inputClass} appearance-none pr-10`}
+    >
+      <option value="18">18%</option>
+      <option value="27">27%</option>
+      <option value="9">9%</option>
+      <option value="5">5%</option>
+      <option value="0">0%</option>
+    </select>
+
+    <div
+      className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
+        theme === "dark" ? "text-gray-400" : "text-gray-500"
+      }`}
+    >
+      <span>%</span>
+    </div>
+  </div>
+</div>
+
 
                   {/* Tax Inclusive */}
                   <div className="flex items-center">

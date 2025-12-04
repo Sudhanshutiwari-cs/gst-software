@@ -382,7 +382,6 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                 width: 100%;
                 background: white;
                 border: 1px solid #666;
-                padding: 15px;
                 position: relative;
                 min-height: 260mm;
               }
@@ -421,7 +420,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
               }
               .border-all {
                 border: 1px solid #666;
-                padding: 10px;
+                padding-bottom: 10px;
               }
               .flex-between {
                 display: flex;
@@ -518,7 +517,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                     </div>
                   </div>
                   
-                  <div style="border-top: 1px solid #666; margin: 10px 0; padding-top: 10px;">
+                  <div style="border-top: 1px solid #666;margin: 0 -10px; padding-top: 10px;">
                     <p class="font-bold text-sm">Customer Details:</p>
                     <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
                     ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
@@ -527,7 +526,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                 </div>
 
                 <!-- Right Box -->
-                <div style="padding: 10px;">
+                <div style="">
                   <div class="flex-between border-bottom">
                     <span class="font-bold text-sm">Invoice #:</span>
                     <span class="text-sm">${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}</span>
@@ -621,31 +620,35 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
               </div>
 
               <!-- Footer Section with Terms & Conditions and Bank Details -->
-              <div class="footer-section page-break">
-                <div class="footer-grid">
-                  <!-- Terms and Conditions -->
-                  <div>
-                    <div class="footer-title">Terms and Conditions</div>
-                    <div class="terms-conditions">
-                      <p><b>E & O.E</b></p>
-                      <p>1. Goods once sold will not be taken back.</p>
-                      <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
-                      <p>3. Subject to 'Delhi' Jurisdiction only.</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Bank Details -->
-                  <div>
-                    <div class="footer-title">Bank Details</div>
-                    <div class="bank-details">
-                      <p><b>Account Number:</b> 234000991111899</p>
-                      <p><b>Bank:</b> ICICI</p>
-                      <p><b>IFSC:</b> ICICI560000078</p>
-                      <p><b>Branch:</b> Meerut</p>
-                      <p><b>Name:</b> Kamal</p>
-                    </div>
-                  </div>
-                </div>
+              <div class="footer-section style="border-right:1px solid #666;" page-break">
+                <div class="footer-grid" 
+     style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+  <!-- Terms and Conditions -->
+  <div style="border-right: 1px solid #666; padding-right: 15px;">
+    <div class="footer-title">Terms and Conditions</div>
+    <div class="terms-conditions">
+      <p><b>E & O.E</b></p>
+      <p>1. Goods once sold will not be taken back.</p>
+      <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
+      <p>3. Subject to 'Delhi' Jurisdiction only.</p>
+    </div>
+  </div>
+
+  <!-- Bank Details -->
+  <div style="padding-left: 15px;">
+    <div class="footer-title">Bank Details</div>
+    <div class="bank-details">
+      <p><b>Account Number:</b> 234000991111899</p>
+      <p><b>Bank:</b> ICICI</p>
+      <p><b>IFSC:</b> ICICI560000078</p>
+      <p><b>Branch:</b> Meerut</p>
+      <p><b>Name:</b> Kamal</p>
+    </div>
+  </div>
+
+</div>
+
                 
                 <!-- Final Signature -->
                 <div class="final-signature">

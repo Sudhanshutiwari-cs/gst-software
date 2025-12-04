@@ -88,7 +88,7 @@ export default function SalesPage() {
       setError(null);
 
       // Get JWT token from localStorage or your auth context
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('jwtToken');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
 
       if (!token) {
         throw new Error('Authentication required. Please log in.');
