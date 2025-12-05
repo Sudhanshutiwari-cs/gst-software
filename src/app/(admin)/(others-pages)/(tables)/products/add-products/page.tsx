@@ -70,12 +70,12 @@ export default function AddProductsPage() {
     product_description: '',
     is_active: true,
   });
-  
+
   const [addCategoryFormData, setAddCategoryFormData] = useState<AddCategoryFormData>({
     name: '',
     description: ''
   });
-  
+
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
   const [productImage, setProductImage] = useState<File | null>(null);
@@ -189,7 +189,7 @@ export default function AddProductsPage() {
       try {
         const payload = JSON.parse(atob(tokenParts[1]));
         const currentTime = Date.now() / 1000;
-        
+
         if (payload.exp && payload.exp < currentTime) {
           setTokenValid(false);
           setError('Your session has expired. Please log in again.');
@@ -263,7 +263,7 @@ export default function AddProductsPage() {
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!addCategoryFormData.name.trim()) {
       setError('Category name is required');
       return;
@@ -297,10 +297,10 @@ export default function AddProductsPage() {
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Category added successfully!' });
         setShowAddCategoryModal(false);
-        
+
         // Refresh categories list
         await fetchCategories();
-        
+
         // Set the newly created category as selected
         if (response.data.category && response.data.category.id) {
           setFormData(prev => ({ ...prev, category_id: response.data.category.id }));
@@ -311,11 +311,11 @@ export default function AddProductsPage() {
     } catch (error: unknown) {
       console.error('Error adding category:', error);
       const axiosError = error as AxiosError<ApiError>;
-      
+
       if (axiosError.response?.status === 422) {
         const responseData = axiosError.response.data as ApiError;
         const validationErrors = responseData?.errors;
-        
+
         if (validationErrors && typeof validationErrors === 'object') {
           const errorMessages = Object.values(validationErrors).flat().join(', ');
           setError(`Validation failed: ${errorMessages}`);
@@ -347,12 +347,12 @@ export default function AddProductsPage() {
   // Rest of your existing functions (handleInputChange, handleImageChange, etc.)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' 
+      [name]: type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
-        : type === 'number' 
+        : type === 'number'
           ? parseFloat(value) || 0
           : value
     }));
@@ -373,7 +373,7 @@ export default function AddProductsPage() {
       }
 
       setProductImage(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -397,25 +397,25 @@ export default function AddProductsPage() {
 
   const calculateSalesPrice = () => {
     const { purchase_price, discount_percent, tax_percent, tax_inclusive } = formData;
-    
+
     if (purchase_price > 0) {
       let calculatedPrice = purchase_price;
-      
+
       if (discount_percent > 0) {
         calculatedPrice = purchase_price * (1 - discount_percent / 100);
       }
-      
+
       if (!tax_inclusive && tax_percent > 0) {
         calculatedPrice = calculatedPrice * (1 + tax_percent / 100);
       }
-      
+
       setFormData(prev => ({ ...prev, sales_price: parseFloat(calculatedPrice.toFixed(2)) }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!(await checkTokenValidity())) {
       setError('Your session has expired. Please log in again.');
       return;
@@ -443,7 +443,7 @@ export default function AddProductsPage() {
 
     try {
       const formDataToSend = new FormData();
-      
+
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           if (key === 'is_active' || key === 'tax_inclusive') {
@@ -455,7 +455,7 @@ export default function AddProductsPage() {
           }
         }
       });
-      
+
       if (productImage) {
         formDataToSend.append('product_image', productImage);
       }
@@ -509,11 +509,11 @@ export default function AddProductsPage() {
     } catch (error: unknown) {
       console.error('Error adding product:', error);
       const axiosError = error as AxiosError<ApiError>;
-      
+
       if (axiosError.response?.status === 422) {
         const responseData = axiosError.response.data as ApiError;
         const validationErrors = responseData?.errors;
-        
+
         if (validationErrors && typeof validationErrors === 'object') {
           const errorMessages = Object.values(validationErrors).flat().join(', ');
           setError(`Validation failed: ${errorMessages}`);
@@ -540,7 +540,7 @@ export default function AddProductsPage() {
   };
 
   // Theme-based styling classes
-  const containerClass = theme === 'dark' 
+  const containerClass = theme === 'dark'
     ? "min-h-screen bg-gray-900 p-6"
     : "min-h-screen bg-gray-50 p-6";
 
@@ -645,11 +645,10 @@ export default function AddProductsPage() {
               <h2 className={titleClass}>Session Expired</h2>
             </div>
             <div className="p-6 text-center">
-              <div className={`mb-4 p-3 rounded-md border ${
-                theme === 'dark' 
+              <div className={`mb-4 p-3 rounded-md border ${theme === 'dark'
                   ? 'bg-yellow-900/30 text-yellow-200 border-yellow-800/50'
                   : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-              }`}>
+                }`}>
                 ⚠️ Your session has expired. Please log in again to continue.
               </div>
               <button
@@ -680,7 +679,7 @@ export default function AddProductsPage() {
                 onClick={() => window.history.back()}
                 className={buttonSecondaryClass}
               >
-                Back 
+                Back
               </button>
             </div>
           </div>
@@ -698,9 +697,8 @@ export default function AddProductsPage() {
                 {error.includes('expired') && (
                   <button
                     onClick={handleLogout}
-                    className={`text-sm font-medium underline hover:opacity-80 ${
-                      theme === 'dark' ? 'text-red-300' : 'text-red-600'
-                    }`}
+                    className={`text-sm font-medium underline hover:opacity-80 ${theme === 'dark' ? 'text-red-300' : 'text-red-600'
+                      }`}
                   >
                     Login Again
                   </button>
@@ -720,12 +718,11 @@ export default function AddProductsPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Product Image Section */}
               <div className={sectionBorderClass}>
-                <h3 className={`text-xl font-semibold mb-6 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   Product Image
                 </h3>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Image Upload */}
                   <div>
@@ -762,14 +759,12 @@ export default function AddProductsPage() {
                           </div>
                         ) : (
                           <div className="py-8">
-                            <svg className={`mx-auto h-12 w-12 ${
-                              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`mx-auto h-12 w-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <div className={`mt-4 ${
-                              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                            }`}>
+                            <div className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                              }`}>
                               <p className="font-medium">Click to upload product image</p>
                               <p className="text-sm mt-1">PNG, JPG, GIF up to 5MB</p>
                             </div>
@@ -780,13 +775,11 @@ export default function AddProductsPage() {
                   </div>
 
                   {/* Image Help Text */}
-                  <div className={`flex items-center ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
+                  <div className={`flex items-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                     <div>
-                      <h4 className={`text-lg font-medium mb-2 ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
-                      }`}>
+                      <h4 className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>
                         Image Guidelines
                       </h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
@@ -803,12 +796,11 @@ export default function AddProductsPage() {
 
               {/* Basic Information Section */}
               <div className={sectionBorderClass}>
-                <h3 className={`text-xl font-semibold mb-6 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   Basic Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Product Name */}
                   <div className="lg:col-span-2">
@@ -897,9 +889,8 @@ export default function AddProductsPage() {
                       </button>
                     </div>
                     {categories.length === 0 && !categoriesLoading && (
-                      <p className={`text-sm mt-1 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         No categories available. Click &quot;Add&quot; to create one.
                       </p>
                     )}
@@ -979,12 +970,11 @@ export default function AddProductsPage() {
 
               {/* Inventory Information Section */}
               <div className={sectionBorderClass}>
-                <h3 className={`text-xl font-semibold mb-6 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   Inventory Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Quantity */}
                   <div>
@@ -1039,12 +1029,11 @@ export default function AddProductsPage() {
 
               {/* Pricing Information Section */}
               <div className={sectionBorderClass}>
-                <h3 className={`text-xl font-semibold mb-6 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   Pricing Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {/* Purchase Price */}
                   <div>
@@ -1052,9 +1041,8 @@ export default function AddProductsPage() {
                       Purchase Price *
                     </label>
                     <div className="relative">
-                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         <span>₹</span>
                       </div>
                       <input
@@ -1077,9 +1065,8 @@ export default function AddProductsPage() {
                       Base Price
                     </label>
                     <div className="relative">
-                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         <span>₹</span>
                       </div>
                       <input
@@ -1112,9 +1099,8 @@ export default function AddProductsPage() {
                         className={`${inputClass} pr-12`}
                         placeholder="0.00"
                       />
-                      <div className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <div className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         <span>%</span>
                       </div>
                     </div>
@@ -1122,32 +1108,31 @@ export default function AddProductsPage() {
 
                   {/* Tax Percentage */}
                   <div>
-  <label className={labelClass}>
-    Tax Percentage
-  </label>
-  <div className="relative">
-    <select
-      name="tax_percent"
-      value={formData.tax_percent}
-      onChange={handleInputChange}
-      className={`${inputClass} appearance-none pr-10`}
-    >
-      <option value="18">18%</option>
-      <option value="27">27%</option>
-      <option value="9">9%</option>
-      <option value="5">5%</option>
-      <option value="0">0%</option>
-    </select>
+                    <label className={labelClass}>
+                      GST Percentage
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="tax_percent"
+                        value={formData.tax_percent}
+                        onChange={handleInputChange}
+                        className={`${inputClass} appearance-none pr-10`}
+                      >
+                        <option value="18">18%</option>
+                        <option value="27">27%</option>
+                        <option value="9">9%</option>
+                        <option value="5">5%</option>
+                        <option value="0">0%</option>
+                      </select>
 
-    <div
-      className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${
-        theme === "dark" ? "text-gray-400" : "text-gray-500"
-      }`}
-    >
-      <span>%</span>
-    </div>
-  </div>
-</div>
+                      <div
+                        className={`absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        <span>%</span>
+                      </div>
+                    </div>
+                  </div>
 
 
                   {/* Tax Inclusive */}
@@ -1157,13 +1142,11 @@ export default function AddProductsPage() {
                       name="tax_inclusive"
                       checked={formData.tax_inclusive}
                       onChange={(e) => setFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
-                      className={`h-5 w-5 text-indigo-600 focus:ring-indigo-500 rounded ${
-                        theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'
-                      }`}
+                      className={`h-5 w-5 text-indigo-600 focus:ring-indigo-500 rounded ${theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'
+                        }`}
                     />
-                    <label className={`ml-3 text-sm font-medium ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <label className={`ml-3 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
                       Price includes tax
                     </label>
                   </div>
@@ -1174,9 +1157,8 @@ export default function AddProductsPage() {
                       Sales Price *
                     </label>
                     <div className="relative">
-                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                         <span>₹</span>
                       </div>
                       <input
@@ -1208,68 +1190,59 @@ export default function AddProductsPage() {
                 {/* Profit Analysis */}
                 {formData.purchase_price > 0 && formData.sales_price > 0 && (
                   <div className={profitCardClass}>
-                    <h4 className={`text-lg font-semibold mb-4 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
-                    }`}>
+                    <h4 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
                       Profit Analysis
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center">
-                        <p className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                           Profit Amount
                         </p>
-                        <p className={`text-lg font-semibold ${
-                          formData.sales_price > formData.purchase_price 
-                            ? 'text-green-400' 
-                            : formData.sales_price < formData.purchase_price 
-                            ? 'text-red-400' 
-                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}>
+                        <p className={`text-lg font-semibold ${formData.sales_price > formData.purchase_price
+                            ? 'text-green-400'
+                            : formData.sales_price < formData.purchase_price
+                              ? 'text-red-400'
+                              : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
                           ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                           Profit Margin
                         </p>
-                        <p className={`text-lg font-semibold ${
-                          formData.sales_price > formData.purchase_price 
-                            ? 'text-green-400' 
-                            : formData.sales_price < formData.purchase_price 
-                            ? 'text-red-400' 
-                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}>
-                          {formData.purchase_price > 0 
+                        <p className={`text-lg font-semibold ${formData.sales_price > formData.purchase_price
+                            ? 'text-green-400'
+                            : formData.sales_price < formData.purchase_price
+                              ? 'text-red-400'
+                              : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
+                          {formData.purchase_price > 0
                             ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
                             : '0%'
                           }
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                           Stock Value
                         </p>
-                        <p className={`text-lg font-semibold ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
+                        <p className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
                           ₹{(formData.qty * formData.purchase_price).toFixed(2)}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                           Potential Revenue
                         </p>
-                        <p className={`text-lg font-semibold ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
+                        <p className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>
                           ₹{(formData.qty * formData.sales_price).toFixed(2)}
                         </p>
                       </div>
@@ -1317,7 +1290,7 @@ export default function AddProductsPage() {
             <div className={modalHeaderClass}>
               <h3 className={modalTitleClass}>Add New Category</h3>
             </div>
-            
+
             <form onSubmit={handleAddCategory} className="p-6 space-y-4">
               <div>
                 <label className={labelClass}>

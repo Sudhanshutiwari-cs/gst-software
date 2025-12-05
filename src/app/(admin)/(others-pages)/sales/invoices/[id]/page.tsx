@@ -501,14 +501,14 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
                 <div style="border-right: 1px solid #666; padding: 10px;">
                   <!-- Logo and Details -->
                   <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-                    ${logoLoads ? 
-                      `<img src="${logoUrl}" 
-                           alt="Vendor Logo" 
-                           class="logo"
-                           crossorigin="anonymous">` 
-                      : 
-                      `<div class="logo-placeholder">LOGO</div>`
-                    }
+                   ${vendor?.logo_url
+  ? `<img src="${vendor.logo_url}" 
+           alt="Vendor Logo" 
+           class="logo"
+           crossorigin="anonymous">`
+  : `<div class="logo-placeholder">LOGO</div>`
+}
+
                     <div>
                       <h2 class="font-bold text-base">${vendorName}</h2>
                       <p class="text-sm">${vendorAddress}</p>
