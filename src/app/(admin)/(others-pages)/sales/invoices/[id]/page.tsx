@@ -34,6 +34,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   const [error, setError] = useState<string | null>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+  const [logoBase64, setLogoBase64] = useState<string | null>(null)
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
@@ -93,10 +94,64 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
 
       console.log("Vendor profile loaded:", vendorProfile)
       setVendor(vendorProfile)
+      
+      // Load logo as base64 to avoid CORS issues
+      if (vendorProfile.logo_url) {
+        await loadImageAsBase64(vendorProfile.logo_url)
+      }
+      
       return vendorProfile
     } catch (err) {
       console.error('Error fetching vendor profile:', err)
       return null
+    }
+  }
+
+  // Load image as base64 to avoid CORS issues in PDF generation
+  const loadImageAsBase64 = async (url: string): Promise<void> => {
+    try {
+      console.log("Attempting to load logo from:", url);
+      
+      // Create a proxy URL to avoid CORS issues
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      
+      const response = await fetch(proxyUrl, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'image/*',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          console.log("Logo loaded successfully as base64");
+          setLogoBase64(base64String);
+          resolve();
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error loading image as base64:', error);
+      
+      // Fallback: try direct fetch with no-cors mode
+      try {
+        const response = await fetch(url, { mode: 'no-cors' });
+        // If no-cors succeeds but we can't read the response, use a placeholder
+        console.log("Using placeholder logo due to CORS restrictions");
+        setLogoBase64(null);
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        setLogoBase64(null);
+      }
     }
   }
 
@@ -115,7 +170,12 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         console.log(`Failed to load image: ${url}`)
         resolve(false)
       }
-      img.src = url
+      
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();
+      const separator = url.includes('?') ? '&' : '?';
+      img.src = `${url}${separator}t=${timestamp}`;
+      
       // Timeout after 5 seconds
       setTimeout(() => {
         console.log(`Image load timeout: ${url}`)
@@ -130,7 +190,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       setLoading(true)
       setError(null)
 
-      // Fetch vendor profile first
+      // Fetch vendor profile first (it will also load the logo)
       await fetchVendorProfile()
 
       const token = getAuthToken()
@@ -231,7 +291,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
   }
-
+  
   // Specialized PDF generation for classic template with API data
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
@@ -323,10 +383,9 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         : '123 Business St, City, State, PIN'
       const vendorPhone = vendor?.contact_number || '+91 9856314765'
 
-      // Test logo URL
-      const logoUrl = vendor?.logo_url || 'https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png'
-      const logoLoads = await testImageLoad(logoUrl)
-      console.log(`Logo URL loads: ${logoLoads}`)
+      // Use base64 logo if available, otherwise use original URL
+      const logoDisplay = logoBase64 || vendor?.logo_url || 'https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png'
+      console.log("Using logo:", logoDisplay ? "Available" : "Not available")
 
       // Invoice data
       const invoiceDate = formatDate(invoiceData.issue_date)
@@ -569,13 +628,12 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         <div style="border-right: 1px solid #666; padding: 10px;">
           <!-- Logo and Details -->
           <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-            ${vendor?.logo_url
-          ? `<img src="${vendor.logo_url}" 
+        <img src="/images/logo.jpg" 
                  alt="Vendor Logo" 
                  class="logo"
-                 crossorigin="anonymous">`
-          : `<div class="logo-placeholder">LOGO</div>`
-        }
+                 crossorigin="anonymous">
+          
+        
 
             <div>
               <h2 class="font-bold text-base">${vendorName}</h2>
@@ -742,9 +800,25 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       iframeDoc.close()
 
       // Wait for iframe to render and images to load
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Generate PDF from iframe
+      // Check if images are loaded in the iframe
+      const images = iframeDoc.images;
+      let allImagesLoaded = true;
+      
+      for (let i = 0; i < images.length; i++) {
+        if (!images[i].complete) {
+          allImagesLoaded = false;
+          console.log(`Image ${i} not yet loaded`);
+        }
+      }
+
+      if (!allImagesLoaded) {
+        console.log("Waiting additional time for images to load...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Generate PDF from iframe with improved settings
       const canvas = await html2canvas(iframeDoc.body, {
         scale: 2,
         useCORS: true,
@@ -754,21 +828,23 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         height: 297 * 3.78,
         windowWidth: 210 * 3.78,
         windowHeight: 297 * 3.78,
-
-        logging: false,
+        logging: true,
+        imageTimeout: 10000,
         onclone: (clonedDoc, element) => {
-          // Force images to load
-          const images = element.getElementsByTagName('img')
+          // Ensure all images have crossOrigin attribute
+          const images = element.getElementsByTagName('img');
           Array.from(images).forEach(img => {
-            if (!img.complete) {
-              img.crossOrigin = 'anonymous'
+            img.setAttribute('crossOrigin', 'anonymous');
+            // Force reload if base64 is used
+            if (img.src.startsWith('data:image')) {
+              console.log("Using base64 image in clone");
             }
-          })
+          });
         }
-      })
+      });
 
       // Clean up
-      document.body.removeChild(iframe)
+      document.body.removeChild(iframe);
 
       // Create PDF
       const pdf = new jsPDF({
@@ -776,25 +852,26 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         unit: 'mm',
         format: 'a4',
         compress: true
-      })
+      });
 
-      const imgData = canvas.toDataURL('image/png', 1.0)
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      const pdfBlob = pdf.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfBlob)
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      console.log("PDF generated successfully")
-      return pdfUrl
+      console.log("PDF generated successfully");
+      return pdfUrl;
 
     } catch (err) {
-      console.error('Error generating classic template PDF:', err)
-      return await generateSimplePDF(invoiceData)
+      console.error('Error generating classic template PDF:', err);
+      // Fallback: generate PDF without logo
+      return await generateSimplePDF(invoiceData);
     } finally {
-      setIsGeneratingPDF(false)
+      setIsGeneratingPDF(false);
     }
   }
 
@@ -963,6 +1040,9 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       return null
     }
   }
+  
+  console.log("Vendor logo URL:", vendor?.logo_url)
+  console.log("Logo base64 available:", logoBase64 ? "Yes" : "No")
 
   // Download PDF
   const downloadPDF = async () => {
@@ -1000,7 +1080,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
     }
 
     generateAndShowPDF()
-  }, [invoice, vendor])
+  }, [invoice, vendor, logoBase64])
 
   // Clean up URLs on unmount
   useEffect(() => {
@@ -1172,7 +1252,6 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
             <InvoicePreview
               invoice={invoice}
               template={selectedTemplate}
-            // Removed zoom and onZoomChange props to fix TypeScript error
             />
           )}
         </div>
