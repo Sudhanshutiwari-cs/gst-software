@@ -417,7 +417,6 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        
         margin: 15px 0;
       }
       .border-all {
@@ -456,18 +455,17 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       
       /* Footer Styles */
       .footer-fixed {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-top: 2px solid #666;
-  background: white;
-  padding: 0;               /* REMOVE padding */
-  height: 115px;           /* Clean fixed height */
-  display: flex;
-  align-items: stretch;    /* Make children same height */
-}
-
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 2px solid #666;
+        background: white;
+        padding: 0;
+        height: 115px;
+        display: flex;
+        align-items: stretch;
+      }
       .footer-title {
         font-weight: bold;
         margin-bottom: 5px;
@@ -491,23 +489,66 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       .page-break {
         page-break-inside: avoid;
       }
-  .footer-columns {
-  display: flex;
-  width: 100%;
-  height: 100%;
-}
-
-.terms-column {
-  flex: 1;
-  border-right: 1px solid #666;
-  padding: 10px 15px 10px 10px;
-}
-
-.bank-column {
-  flex: 1;
-  padding: 10px 10px 10px 15px;
-}
-
+      .footer-columns {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+      .terms-column {
+        flex: 1;
+        border-right: 1px solid #666;
+        padding: 10px 15px 10px 10px;
+      }
+      .bank-column {
+        flex: 1;
+        padding: 10px 10px 10px 15px;
+      }
+      
+      /* Bank & Signature Section Styles */
+      .bank-signature-section {
+        margin: 20px 0 25px 0;
+        border: 1px solid #666;
+        padding: 0;
+        background-color: #fff;
+        page-break-inside: avoid;
+        display: flex;
+      }
+      .bank-details-column {
+        flex: 1;
+        border-right: 1px solid #666;
+        padding: 15px;
+      }
+      .signature-column {
+        flex: 1;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .thank-you-note {
+        font-size: 10px;
+        line-height: 1.4;
+        color: #1e40af;
+        text-align: center;
+        padding: 10px;
+        font-style: italic;
+        border: 1px dashed #1e40af;
+        background-color: #f0f8ff;
+        margin-bottom: 10px;
+      }
+      .signature-space {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      .signature-line {
+        width: 100%;
+        border-top: 1px solid #000;
+        margin-top: 20px;
+        padding-top: 5px;
+        text-align: center;
+      }
       
       /* Remove old footer styles */
       .footer-section {
@@ -518,7 +559,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   <body>
     <div class="invoice-container">
       <!-- Invoice Title -->
-      <div class=" text-center">
+      <div class="text-center">
         <h1 class="text-lg font-bold" style="color: #1e40af; letter-spacing: 2px;">TAX INVOICE</h1>
       </div>
 
@@ -641,18 +682,38 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      <!-- Signature Box -->
-      <div class="signature-box page-break">
-        <p class="font-bold text-base">For ${vendorName}</p>
-        <div style="height: 50px; margin: 10px 0; display: flex; justify-content: flex-end;">
-          <div style="width: 150px; border-bottom: 1px solid #000; height: 50px;"></div>
+      <!-- Bank Details & Authorized Signatory Section (NEW) -->
+      <div class="bank-signature-section page-break">
+        <!-- Left Column: Bank Details -->
+        <div class="bank-details-column">
+          <div class="footer-title">Bank Details</div>
+          <div class="bank-details">
+            <p><b>Account Number:</b> 234000991111899</p>
+            <p><b>Bank:</b> ICICI</p>
+            <p><b>IFSC:</b> ICICI560000078</p>
+            <p><b>Branch:</b> Meerut</p>
+            <p><b>Account Name:</b> Kamal</p>
+          </div>
         </div>
-        <p class="text-sm">Authorized Signatory</p>
+        
+        <!-- Right Column: Signature -->
+        <div class="signature-column">
+          <!-- Thank You Note -->
+          
+          
+          <!-- Signature Space -->
+          <div class="signature-space">
+            <div class="signature-line">
+              <p class="text-sm font-bold">For ${vendorName}</p>
+              <p class="text-sm">Authorized Signatory</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Fixed Footer Section with Terms & Conditions and Bank Details -->
+      <!-- Fixed Footer Section with Terms & Conditions -->
       <div class="footer-fixed page-break">
-        <!-- Two-column layout for Terms & Bank Details -->
+        <!-- Two-column layout for Terms & Conditions -->
         <div class="footer-columns">
           <!-- Terms and Conditions -->
           <div class="terms-column">
@@ -665,16 +726,11 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          <!-- Bank Details -->
-          <div class="bank-column">
-            <div class="footer-title">Bank Details</div>
-            <div class="bank-details">
-              <p><b>Account Number:</b> 234000991111899</p>
-              <p><b>Bank:</b> ICICI</p>
-              <p><b>IFSC:</b> ICICI560000078</p>
-              <p><b>Branch:</b> Meerut</p>
-              <p><b>Name:</b> Kamal</p>
-            </div>
+          <!-- Empty column for alignment (can be used for additional info if needed) -->
+          <div class="bank-column" style="background-color: #f9f9f9;">
+           <div class="thank-you-note">
+            Thank you for your business! We appreciate your trust in us and look forward to serving you again.
+          </div>
           </div>
         </div>
       </div>
