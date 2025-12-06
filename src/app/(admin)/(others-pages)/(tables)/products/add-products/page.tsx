@@ -646,8 +646,8 @@ export default function AddProductsPage() {
             </div>
             <div className="p-6 text-center">
               <div className={`mb-4 p-3 rounded-md border ${theme === 'dark'
-                  ? 'bg-yellow-900/30 text-yellow-200 border-yellow-800/50'
-                  : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                ? 'bg-yellow-900/30 text-yellow-200 border-yellow-800/50'
+                : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                 }`}>
                 ⚠️ Your session has expired. Please log in again to continue.
               </div>
@@ -1118,11 +1118,11 @@ export default function AddProductsPage() {
                         onChange={handleInputChange}
                         className={`${inputClass} appearance-none pr-10`}
                       >
-                        <option value="18">18%</option>
-                        <option value="27">27%</option>
-                        <option value="9">9%</option>
-                        <option value="5">5%</option>
-                        <option value="0">0%</option>
+                        <option value="0">0% (CGST 0% + SGST 0%)</option>
+                        <option value="5">5% (CGST 2.5% + SGST 2.5%)</option>
+                        <option value="12">12% (CGST 6% + SGST 6%)</option>
+                        <option value="18">18% (CGST 9% + SGST 9%)</option>
+                        <option value="28">28% (CGST 14% + SGST 14%)</option>
                       </select>
 
                       <div
@@ -1201,10 +1201,10 @@ export default function AddProductsPage() {
                           Profit Amount
                         </p>
                         <p className={`text-lg font-semibold ${formData.sales_price > formData.purchase_price
-                            ? 'text-green-400'
-                            : formData.sales_price < formData.purchase_price
-                              ? 'text-red-400'
-                              : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                          ? 'text-green-400'
+                          : formData.sales_price < formData.purchase_price
+                            ? 'text-red-400'
+                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                           }`}>
                           ₹{(formData.sales_price - formData.purchase_price).toFixed(2)}
                         </p>
@@ -1215,10 +1215,10 @@ export default function AddProductsPage() {
                           Profit Margin
                         </p>
                         <p className={`text-lg font-semibold ${formData.sales_price > formData.purchase_price
-                            ? 'text-green-400'
-                            : formData.sales_price < formData.purchase_price
-                              ? 'text-red-400'
-                              : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                          ? 'text-green-400'
+                          : formData.sales_price < formData.purchase_price
+                            ? 'text-red-400'
+                            : theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                           }`}>
                           {formData.purchase_price > 0
                             ? `${(((formData.sales_price - formData.purchase_price) / formData.purchase_price) * 100).toFixed(1)}%`
