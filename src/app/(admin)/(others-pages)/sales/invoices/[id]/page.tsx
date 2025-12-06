@@ -728,7 +728,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
 
           <!-- Empty column for alignment (can be used for additional info if needed) -->
           <div class="bank-column" style="background-color: #f9f9f9;">
-           <div class="thank-you-note">
+             <div class="thank-you-note">
             Thank you for your business! We appreciate your trust in us and look forward to serving you again.
           </div>
           </div>
