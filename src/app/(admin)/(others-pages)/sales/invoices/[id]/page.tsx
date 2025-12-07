@@ -144,7 +144,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       
       // Fallback: try direct fetch with no-cors mode
       try {
-        const response = await fetch(url, { mode: 'no-cors' });
+    
         // If no-cors succeeds but we can't read the response, use a placeholder
         console.log("Using placeholder logo due to CORS restrictions");
         setLogoBase64(null);
