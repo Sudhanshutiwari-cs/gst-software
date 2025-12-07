@@ -156,33 +156,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   }
 
   // Test if image loads
-  const testImageLoad = async (url: string): Promise<boolean> => {
-    if (!url) return false
-
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        console.log(`Image loaded successfully: ${url}`)
-        resolve(true)
-      }
-      img.onerror = () => {
-        console.log(`Failed to load image: ${url}`)
-        resolve(false)
-      }
-      
-      // Add timestamp to prevent caching issues
-      const timestamp = new Date().getTime();
-      const separator = url.includes('?') ? '&' : '?';
-      img.src = `${url}${separator}t=${timestamp}`;
-      
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        console.log(`Image load timeout: ${url}`)
-        resolve(false)
-      }, 5000)
-    })
-  }
+  
 
   // Fetch invoice data from API
   const fetchInvoice = async (invoiceId: string) => {
