@@ -35,6 +35,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [logoBase64, setLogoBase64] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
@@ -92,71 +93,123 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         gst_number: vendorData.gst_number || ''
       }
 
-      console.log("Vendor profile loaded:", vendorProfile)
+      console.log("✅ Vendor profile loaded:", vendorProfile)
       setVendor(vendorProfile)
       
-      // Load logo as base64 to avoid CORS issues
+      // Load logo via server proxy - don't await, let it happen in background
       if (vendorProfile.logo_url) {
-        await loadImageAsBase64(vendorProfile.logo_url)
+        console.log("🔄 Starting logo load via server proxy...")
+        loadImageAsBase64(vendorProfile.logo_url).catch(err => {
+          console.warn("Logo loading warning:", err)
+        })
       }
       
       return vendorProfile
     } catch (err) {
-      console.error('Error fetching vendor profile:', err)
+      console.error('❌ Error fetching vendor profile:', err)
       return null
     }
   }
 
-  // Load image as base64 to avoid CORS issues in PDF generation
+  // Load image via server-side proxy
   const loadImageAsBase64 = async (url: string): Promise<void> => {
     try {
-      console.log("Attempting to load logo from:", url);
+      setLogoError(null)
+      console.log("🔄 Loading vendor logo via server proxy...")
       
-      // Create a proxy URL to avoid CORS issues
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      if (!url || url.trim() === '') {
+        console.log("No logo URL provided")
+        setLogoBase64(null)
+        return
+      }
+
+      // Make sure URL is absolute
+      let imageUrl = url
+      if (imageUrl.startsWith('/')) {
+        imageUrl = `https://manhemdigitalsolutions.com${imageUrl}`
+      }
       
-      const response = await fetch(proxyUrl, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'image/*',
-        },
-      });
+      console.log("Absolute URL for proxy:", imageUrl)
+
+      // Use our server-side API route
+      const encodedUrl = encodeURIComponent(imageUrl)
+      const proxyUrl = `/api/vendor/logo?url=${encodedUrl}`
+      
+      console.log("📤 Calling proxy:", proxyUrl)
+      
+      const response = await fetch(proxyUrl)
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status}`);
+        const errorText = await response.text()
+        console.error(`❌ Proxy fetch failed: ${response.status}`, errorText)
+        setLogoBase64(null)
+        setLogoError(`Proxy failed: ${response.status}`)
+        return
       }
-      
-      const blob = await response.blob();
-      
+
+      const blob = await response.blob()
+      console.log("✅ Proxy response - blob size:", blob.size, "type:", blob.type)
+
+      if (blob.size === 0) {
+        console.error("❌ Empty blob received from proxy")
+        setLogoBase64(null)
+        setLogoError("Empty image received")
+        return
+      }
+
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onloadend = () => {
-          const base64String = reader.result as string;
-          console.log("Logo loaded successfully as base64");
-          setLogoBase64(base64String);
-          resolve();
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+          const base64String = reader.result as string
+          console.log("✅ Base64 conversion successful, length:", base64String.length)
+          setLogoBase64(base64String)
+          resolve()
+        }
+        reader.onerror = (error) => {
+          console.error("❌ FileReader error:", error)
+          setLogoBase64(null)
+          setLogoError("Failed to convert image")
+          reject(error)
+        }
+        reader.readAsDataURL(blob)
+      })
+
     } catch (error) {
-      console.error('Error loading image as base64:', error);
-      
-      // Fallback: try direct fetch with no-cors mode
-      try {
-    
-        // If no-cors succeeds but we can't read the response, use a placeholder
-        console.log("Using placeholder logo due to CORS restrictions");
-        setLogoBase64(null);
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-        setLogoBase64(null);
-      }
+      console.error('🔥 Error loading image via proxy:', error)
+      setLogoBase64(null)
+      setLogoError("Network error loading logo")
     }
   }
 
-  // Test if image loads
-  
+  // Test the logo proxy
+  const testLogoProxy = async () => {
+    if (!vendor?.logo_url) return false
+    
+    console.log("🧪 Testing logo proxy...")
+    
+    try {
+      const encodedUrl = encodeURIComponent(vendor.logo_url)
+      const proxyUrl = `/api/vendor/logo?url=${encodedUrl}`
+      
+      console.log("Testing proxy URL:", proxyUrl)
+      
+      const response = await fetch(proxyUrl)
+      console.log("Proxy response status:", response.status)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        console.log("✅ Proxy test successful - blob size:", blob.size, "type:", blob.type)
+        return true
+      } else {
+        const errorText = await response.text()
+        console.error("❌ Proxy test failed:", response.status, errorText)
+        return false
+      }
+    } catch (error) {
+      console.error("🔥 Proxy test error:", error)
+      return false
+    }
+  }
 
   // Fetch invoice data from API
   const fetchInvoice = async (invoiceId: string) => {
@@ -164,7 +217,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       setLoading(true)
       setError(null)
 
-      // Fetch vendor profile first (it will also load the logo)
+      // Fetch vendor profile first
       await fetchVendorProfile()
 
       const token = getAuthToken()
@@ -193,7 +246,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       // Extract the actual invoice data from the nested structure
       const invoiceData = data.data || data
 
-      console.log("Invoice API Response:", invoiceData)
+      console.log("✅ Invoice API Response:", invoiceData)
 
       // Parse numeric values
       const qty = parseInt(invoiceData.qty) || 1
@@ -246,7 +299,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       setInvoice(mappedInvoice)
       return mappedInvoice
     } catch (err) {
-      console.error('Error fetching invoice:', err)
+      console.error('❌ Error fetching invoice:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
       // Fallback to sample data if API fails
       const fallbackInvoice = {
@@ -357,9 +410,56 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         : '123 Business St, City, State, PIN'
       const vendorPhone = vendor?.contact_number || '+91 9856314765'
 
-      // Use base64 logo if available, otherwise use original URL
-      const logoDisplay = logoBase64 || vendor?.logo_url || 'https://manhemdigitalsolutions.com/pos-admin/storage/app/public/vendor-logos/vepQupycfoL4Q2hANrVQKuvI8xiFhtZSo8RuqLgq.png'
-      console.log("Using logo:", logoDisplay ? "Available" : "Not available")
+      console.log("=== PDF LOGO DEBUG ===")
+      console.log("logoBase64 available:", logoBase64 ? "Yes" : "No")
+      console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'))
+      console.log("logoBase64 length:", logoBase64?.length)
+      console.log("Vendor logo URL:", vendor?.logo_url)
+
+      // Helper function to create a placeholder logo
+      const createPlaceholderLogo = () => {
+        const initial = (vendorName || 'V').charAt(0).toUpperCase()
+        const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444']
+        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0
+        const color = colors[colorIndex]
+        
+        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
+          <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+            ${initial}
+          </text>
+        </svg>`
+        
+        return `data:image/svg+xml;base64,${btoa(svg)}`
+      }
+
+      // Get direct URL with cache busting
+      const getDirectLogoUrl = (url: string): string => {
+        const timestamp = new Date().getTime()
+        return `${url}?t=${timestamp}`
+      }
+
+      // Determine which logo to use
+      let logoSrc = ''
+      let useBase64 = false
+      let useProxy = false
+
+      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+        // Use the base64 we already have
+        logoSrc = logoBase64
+        useBase64 = true
+        console.log("✅ Using existing base64 logo")
+      } else if (vendor?.logo_url) {
+        // Use server proxy for the vendor URL
+        const encodedUrl = encodeURIComponent(vendor.logo_url)
+        logoSrc = `/api/vendor/logo?url=${encodedUrl}`
+        useProxy = true
+        console.log("⚠️ Using server proxy for vendor logo")
+      } else {
+        // Create placeholder
+        logoSrc = createPlaceholderLogo()
+        console.log("❌ No logo available, using placeholder")
+      }
 
       // Invoice data
       const invoiceDate = formatDate(invoiceData.issue_date)
@@ -370,6 +470,40 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       const grossAmount = formatCurrency(grossAmtNum)
       const amountInWords = numberToWords(grandTotalNum)
       const originalPrice = grossAmtNum + discountNum
+
+      // Create the logo HTML with fallback
+      let logoHTML = ''
+      
+      if (useBase64) {
+        logoHTML = `<img src="${logoSrc}" 
+                        alt="Vendor Logo" 
+                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;"
+                        crossorigin="anonymous">`
+      } else if (useProxy) {
+        const directUrl = getDirectLogoUrl(vendor!.logo_url)
+        const placeholder = createPlaceholderLogo()
+        
+        logoHTML = `<img src="${logoSrc}" 
+                        alt="Vendor Logo" 
+                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;"
+                        crossorigin="anonymous"
+                        onerror="
+                          this.onerror=null;
+                          console.log('Proxy failed, trying direct URL');
+                          this.src='${directUrl}';
+                          this.onerror=function() {
+                            console.log('Direct URL also failed, using placeholder');
+                            this.src='${placeholder}';
+                            this.onerror=null;
+                          }
+                        ">`
+      } else {
+        logoHTML = `<img src="${logoSrc}" 
+                        alt="Vendor Logo" 
+                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;">`
+      }
+
+      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder")
 
       // Create a temporary iframe for perfect rendering
       const iframe = document.createElement('iframe')
@@ -470,6 +604,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         height: 60px;
         object-fit: contain;
         border: 1px solid #ddd;
+        border-radius: 4px;
       }
       .logo-placeholder {
         width: 60px;
@@ -479,8 +614,10 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 24px;
+        font-weight: bold;
         color: #666;
+        border-radius: 4px;
       }
       .status-paid { color: green; }
       .status-pending { color: orange; }
@@ -602,13 +739,8 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         <div style="border-right: 1px solid #666; padding: 10px;">
           <!-- Logo and Details -->
           <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-        <img src="/images/logo.jpg" 
-                 alt="Vendor Logo" 
-                 class="logo"
-                 crossorigin="anonymous">
+            ${logoHTML}
           
-        
-
             <div>
               <h2 class="font-bold text-base">${vendorName}</h2>
               <p class="text-sm">${vendorAddress}</p>
@@ -774,7 +906,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       iframeDoc.close()
 
       // Wait for iframe to render and images to load
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise(resolve => setTimeout(resolve, 3000))
 
       // Check if images are loaded in the iframe
       const images = iframeDoc.images;
@@ -783,13 +915,13 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       for (let i = 0; i < images.length; i++) {
         if (!images[i].complete) {
           allImagesLoaded = false;
-          console.log(`Image ${i} not yet loaded`);
+          console.log(`Image ${i} not yet loaded:`, images[i].src);
         }
       }
 
       if (!allImagesLoaded) {
         console.log("Waiting additional time for images to load...");
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
       // Generate PDF from iframe with improved settings
@@ -803,15 +935,25 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
         windowWidth: 210 * 3.78,
         windowHeight: 297 * 3.78,
         logging: true,
-        imageTimeout: 10000,
+        imageTimeout: 15000,
         onclone: (clonedDoc, element) => {
           // Ensure all images have crossOrigin attribute
           const images = element.getElementsByTagName('img');
           Array.from(images).forEach(img => {
             img.setAttribute('crossOrigin', 'anonymous');
-            // Force reload if base64 is used
-            if (img.src.startsWith('data:image')) {
-              console.log("Using base64 image in clone");
+            
+            // If image is from our proxy, add enhanced error handling
+            if (img.src.includes('/api/vendor/logo')) {
+              console.log('🔗 Found proxy image, adding enhanced error handler');
+              
+              const initial = (vendorName || 'V').charAt(0).toUpperCase();
+              const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
+              
+              img.onerror = function() {
+                console.log('❌ Proxy image failed in clone');
+                this.src = placeholderSvg;
+                this.onerror = null;
+              };
             }
           });
         }
@@ -837,11 +979,11 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      console.log("PDF generated successfully");
+      console.log("✅ PDF generated successfully");
       return pdfUrl;
 
     } catch (err) {
-      console.error('Error generating classic template PDF:', err);
+      console.error('❌ Error generating classic template PDF:', err);
       // Fallback: generate PDF without logo
       return await generateSimplePDF(invoiceData);
     } finally {
@@ -1016,7 +1158,11 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   }
   
   console.log("Vendor logo URL:", vendor?.logo_url)
-  console.log("Logo base64 available:", logoBase64 ? "Yes" : "No")
+  console.log("Logo state:", logoBase64 ? 
+    (logoBase64.startsWith('data:image/') ? 
+      `Valid base64 (${logoBase64.length} chars)` : 
+      "Invalid base64 (not data URL)") : 
+    "No logo loaded")
 
   // Download PDF
   const downloadPDF = async () => {
@@ -1043,9 +1189,16 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   // Generate PDF automatically when invoice data is loaded
   useEffect(() => {
     const generateAndShowPDF = async () => {
-      if (invoice && !pdfPreviewUrl && !isGeneratingPDF) {
-        console.log("Generating PDF with invoice data:", invoice)
-        console.log("Vendor data:", vendor)
+      // Wait for invoice, vendor, and check if logo is loaded
+      if (invoice && vendor && !pdfPreviewUrl && !isGeneratingPDF) {
+        console.log("🔄 Starting PDF generation...")
+        console.log("Invoice:", invoice.invoice_number)
+        console.log("Vendor:", vendor.shop_name)
+        console.log("Logo base64 loaded:", logoBase64 ? "Yes" : "No")
+        
+        // Small delay to ensure logo is loaded
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
         const pdfUrl = await generateClassicTemplatePDF(invoice)
         if (pdfUrl) {
           setPdfPreviewUrl(pdfUrl)
@@ -1054,7 +1207,14 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
     }
 
     generateAndShowPDF()
-  }, [invoice, vendor, logoBase64])
+  }, [invoice, vendor, logoBase64, pdfPreviewUrl, isGeneratingPDF])
+
+  // Test proxy when vendor loads
+  useEffect(() => {
+    if (vendor?.logo_url) {
+      testLogoProxy()
+    }
+  }, [vendor?.logo_url])
 
   // Clean up URLs on unmount
   useEffect(() => {
@@ -1152,6 +1312,21 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
               <button
                 onClick={() => setError(null)}
                 className="text-red-500 hover:text-red-700"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Logo Error Display */}
+        {logoError && (
+          <div className="mx-4 mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-yellow-700 text-sm">Logo: {logoError}</span>
+              <button
+                onClick={() => setLogoError(null)}
+                className="text-yellow-500 hover:text-yellow-700"
               >
                 ×
               </button>
