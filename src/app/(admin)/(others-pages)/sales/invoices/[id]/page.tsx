@@ -26,8 +26,12 @@ interface VendorProfile {
   gst_number: string
 }
 
-export default function InvoiceViewer({ params }: { params: { id: string } })
-{
+// Solution: Accept params as a Promise
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default function InvoiceViewer({ params }: PageProps) {
   const [selectedTemplate, setSelectedTemplate] = useState("classic")
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [vendor, setVendor] = useState<VendorProfile | null>(null)
@@ -37,11 +41,24 @@ export default function InvoiceViewer({ params }: { params: { id: string } })
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [logoBase64, setLogoBase64] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [invoiceId, setInvoiceId] = useState<string | null>(null) // Add state for ID
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
-  // Unwrap the params promise
-const { id } = params
+  // Resolve params promise when component mounts
+  useEffect(() => {
+    const resolveParams = async () => {
+      try {
+        const resolvedParams = await params
+        setInvoiceId(resolvedParams.id)
+      } catch (error) {
+        console.error("Error resolving params:", error)
+        setError("Failed to load invoice ID")
+      }
+    }
+    
+    resolveParams()
+  }, [params])
 
   // Get auth token
   const getAuthToken = () => {
@@ -1225,12 +1242,16 @@ const { id } = params
     }
   }, [pdfPreviewUrl])
 
-  // Fetch invoice data on component mount
+  // Fetch invoice data when invoiceId is available
   useEffect(() => {
-    if (id) {
-      fetchInvoice(id)
+    const fetchData = async () => {
+      if (invoiceId) {
+        await fetchInvoice(invoiceId)
+      }
     }
-  }, [id])
+    
+    fetchData()
+  }, [invoiceId])
 
   if (loading) {
     return (
