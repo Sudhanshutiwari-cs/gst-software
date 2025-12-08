@@ -26,7 +26,8 @@ interface VendorProfile {
   gst_number: string
 }
 
-export default function InvoiceViewer({ params }: { params: Promise<{ id: string }> }) {
+export default function InvoiceViewer({ params }: { params: { id: string } })
+{
   const [selectedTemplate, setSelectedTemplate] = useState("classic")
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [vendor, setVendor] = useState<VendorProfile | null>(null)
@@ -40,8 +41,7 @@ export default function InvoiceViewer({ params }: { params: Promise<{ id: string
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
   // Unwrap the params promise
-  const unwrappedParams = use(params)
-  const { id } = unwrappedParams
+const { id } = params
 
   // Get auth token
   const getAuthToken = () => {
