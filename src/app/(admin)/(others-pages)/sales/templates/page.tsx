@@ -375,22 +375,7 @@ export default function TemplatesPage() {
   };
 
   // Duplicate template (creates local copy)
-  const handleDuplicateTemplate = async (template: Template) => {
-    try {
-      // Create a new template with similar data
-     
-      
-      // Remove ID so it creates as new
-    
-      
-      // Note: You'll need a CREATE API endpoint to save this
-      // For now, just show success message
-      setSuccessMessage('Template duplicated (Note: Create API needed to save)');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to duplicate template';
-      setError(errorMessage);
-    }
-  };
+
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -655,7 +640,7 @@ export default function TemplatesPage() {
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDuplicateTemplate(template)}
+                     
                       className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                       title="Duplicate"
                     >
