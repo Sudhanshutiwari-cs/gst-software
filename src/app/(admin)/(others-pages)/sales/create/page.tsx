@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu } from 'lucide-react'
+import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu, Sun, Moon, Monitor } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 // Vendor Profile interface
@@ -184,6 +184,10 @@ export default function CreateInvoice() {
   const [invoiceType, setInvoiceType] = useState('regular')
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+  
+  // Theme State
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
   // Vendor Profile State
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null)
@@ -271,6 +275,53 @@ export default function CreateInvoice() {
   const [saveSuccess, setSaveSuccess] = useState('')
 
   const router = useRouter();
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('invoice-theme') as 'light' | 'dark' | 'system' | null
+    if (savedTheme) {
+      setTheme(savedTheme)
+    }
+  }, [])
+
+  // Resolve theme based on system preference
+  useEffect(() => {
+    const updateResolvedTheme = () => {
+      if (theme === 'system') {
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        setResolvedTheme(systemDark ? 'dark' : 'light')
+      } else {
+        setResolvedTheme(theme)
+      }
+    }
+
+    updateResolvedTheme()
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemThemeChange = () => {
+      if (theme === 'system') {
+        updateResolvedTheme()
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange)
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
+  }, [theme])
+
+  // Update body class when resolved theme changes
+  useEffect(() => {
+    document.body.classList.remove('light-theme', 'dark-theme')
+    document.body.classList.add(`${resolvedTheme}-theme`)
+    
+    // Update data-theme attribute for CSS custom properties
+    document.documentElement.setAttribute('data-theme', resolvedTheme)
+  }, [resolvedTheme])
+
+  const toggleTheme = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme)
+    localStorage.setItem('invoice-theme', newTheme)
+  }
 
   // Check mobile screen size
   useEffect(() => {
@@ -1182,26 +1233,26 @@ export default function CreateInvoice() {
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
-      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+      <div className="sticky top-0 z-30 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="flex items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-2">
             {isMobile && (
               <button
                 onClick={toggleMobileSidebar}
-                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-md transition-colors"
               >
-                <Menu className="h-4 w-4 text-slate-600" />
+                <Menu className="h-4 w-4 text-slate-600 dark:text-gray-400" />
               </button>
             )}
-            <ChevronDown className="h-4 w-4 text-slate-600" />
-            <h1 className="text-lg font-semibold text-slate-900">Create Invoice</h1>
-            <span className="hidden sm:inline text-sm text-slate-600">
+            <ChevronDown className="h-4 w-4 text-slate-600 dark:text-gray-400" />
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Create Invoice</h1>
+            <span className="hidden sm:inline text-sm text-slate-600 dark:text-gray-400">
               {loadingProfile ? (
                 'Loading...'
               ) : profileError ? (
-                <span className="text-red-600">Error loading profile</span>
+                <span className="text-red-600 dark:text-red-400">Error loading profile</span>
               ) : vendorProfile ? (
                 vendorProfile.shop_name || 'Vendor Shop'
               ) : (
@@ -1209,28 +1260,83 @@ export default function CreateInvoice() {
               )}
             </span>
           </div>
+          
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-4">
-              <span className="text-xs font-medium text-slate-600">INV-</span>
+            {/* Theme Toggle */}
+            <div className="relative group">
+              <button
+                onClick={() => {
+                  const themes: ('light' | 'dark' | 'system')[] = ['light', 'dark', 'system']
+                  const currentIndex = themes.indexOf(theme)
+                  const nextTheme = themes[(currentIndex + 1) % themes.length]
+                  toggleTheme(nextTheme)
+                }}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg flex items-center gap-2 dark:text-gray-300"
+                title={`Theme: ${theme} (${resolvedTheme})`}
+              >
+                {theme === 'light' && <Sun size={18} />}
+                {theme === 'dark' && <Moon size={18} />}
+                {theme === 'system' && <Monitor size={18} />}
+                <span className="text-xs hidden sm:inline">
+                  {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}
+                </span>
+              </button>
+              
+              {/* Theme dropdown for desktop */}
+              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="py-1">
+                  <button
+                    onClick={() => toggleTheme('light')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-gray-700 ${
+                      theme === 'light' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Sun size={16} />
+                    Light
+                  </button>
+                  <button
+                    onClick={() => toggleTheme('dark')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-gray-700 ${
+                      theme === 'dark' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Moon size={16} />
+                    Dark
+                  </button>
+                  <button
+                    onClick={() => toggleTheme('system')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-gray-700 ${
+                      theme === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Monitor size={16} />
+                    System
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 dark:border-gray-800 pl-4">
+              <span className="text-xs font-medium text-slate-600 dark:text-gray-400">INV-</span>
               <input
                 type="text"
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
-                className="w-16 border-0 bg-slate-100 text-center text-sm font-semibold rounded-md px-2 py-1"
+                className="w-16 border-0 bg-slate-100 dark:bg-gray-800 text-center text-sm font-semibold rounded-md px-2 py-1 dark:text-white"
               />
             </div>
             <div className="flex gap-1 md:gap-2">
               <button
                 onClick={saveAsDraft}
                 disabled={savingInvoice}
-                className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 dark:border-gray-700 rounded-md hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 dark:text-gray-300"
               >
                 {savingInvoice ? 'Saving...' : (isMobile ? 'Draft' : 'Save as Draft')}
               </button>
               <button
                 onClick={saveAndPrint}
                 disabled={savingInvoice}
-                className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 dark:border-gray-700 rounded-md hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 dark:text-gray-300"
               >
                 {savingInvoice ? 'Saving...' : (isMobile ? 'Print' : 'Save and Print')}
               </button>
@@ -1251,15 +1357,15 @@ export default function CreateInvoice() {
 
       {/* Save Status Banner */}
       {saveError && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-3 md:px-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm text-red-600">{saveError}</span>
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <span className="text-sm text-red-600 dark:text-red-400">{saveError}</span>
             </div>
             <button
               onClick={() => setSaveError('')}
-              className="text-sm font-medium text-red-700 hover:text-red-800"
+              className="text-sm font-medium text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1268,14 +1374,14 @@ export default function CreateInvoice() {
       )}
 
       {saveSuccess && (
-        <div className="bg-green-50 border-b border-green-200 px-4 py-3 md:px-6">
+        <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-green-600">{saveSuccess}</span>
+              <span className="text-sm text-green-600 dark:text-green-400">{saveSuccess}</span>
             </div>
             <button
               onClick={() => setSaveSuccess('')}
-              className="text-sm font-medium text-green-700 hover:text-green-800"
+              className="text-sm font-medium text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1285,15 +1391,15 @@ export default function CreateInvoice() {
 
       {/* Profile Error Banner */}
       {profileError && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-3 md:px-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm text-red-600">{profileError}</span>
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <span className="text-sm text-red-600 dark:text-red-400">{profileError}</span>
             </div>
             <button
               onClick={retryFetchProfile}
-              className="text-sm font-medium text-red-700 hover:text-red-800 underline"
+              className="text-sm font-medium text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
             >
               Retry
             </button>
@@ -1307,16 +1413,16 @@ export default function CreateInvoice() {
         <div className="col-span-1 md:col-span-2 space-y-4">
           {/* Vendor Info Card */}
           {vendorProfile && (
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold text-slate-900">{vendorProfile.shop_name}</h3>
-                  <p className="text-sm text-slate-600">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">{vendorProfile.shop_name}</h3>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">
                     {vendorProfile.business_type && `${vendorProfile.business_type} • `}
                     {vendorProfile.gst_number && `GST: ${vendorProfile.gst_number}`}
                   </p>
                 </div>
-                <div className="text-left sm:text-right text-sm text-slate-600">
+                <div className="text-left sm:text-right text-sm text-slate-600 dark:text-gray-400">
                   <p>{vendorProfile.name}</p>
                   <p>{vendorProfile.email}</p>
                 </div>
@@ -1325,13 +1431,13 @@ export default function CreateInvoice() {
           )}
 
           {/* Type Selector */}
-          <div className="bg-white p-4 rounded-lg border border-slate-200">
+          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-slate-700">Type</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Type</span>
               <select
                 value={invoiceType}
                 onChange={(e) => setInvoiceType(e.target.value)}
-                className="w-32 border border-slate-300 rounded-md px-3 py-2 text-sm"
+                className="w-32 border border-slate-300 dark:border-gray-700 dark:bg-gray-800 rounded-md px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="regular">Regular</option>
                 <option value="proforma">Proforma</option>
@@ -1340,24 +1446,24 @@ export default function CreateInvoice() {
           </div>
 
           {/* Customer Section */}
-          <div className="bg-white p-4 rounded-lg border border-slate-200">
+          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex items-center gap-2">
-                <ChevronDown className="h-4 w-4 text-slate-600" />
-                <h2 className="font-semibold text-slate-900">Customer details</h2>
-                <AlertCircle className="h-4 w-4 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-slate-600 dark:text-gray-400" />
+                <h2 className="font-semibold text-slate-900 dark:text-white">Customer details</h2>
+                <AlertCircle className="h-4 w-4 text-slate-400 dark:text-gray-600" />
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={retryFetchCustomers}
                   disabled={loadingCustomers}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
                 >
                   {loadingCustomers ? 'Loading...' : 'Refresh'}
                 </button>
                 <button
                   onClick={openAddCustomerSlider}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
                 >
                   <UserPlus className="h-3 w-3" />
                   {isMobile ? 'Add' : 'Add Customer'}
@@ -1366,13 +1472,13 @@ export default function CreateInvoice() {
             </div>
 
             <div className="mb-6 space-y-3">
-              <label className="block text-xs font-medium text-slate-600">
+              <label className="block text-xs font-medium text-slate-600 dark:text-gray-400">
                 Select Customer <RequiredStar />
               </label>
               <div className="relative">
                 <input
                   placeholder="Search your Customers, Company Name, GSTIN, tags..."
-                  className="w-full border border-slate-300 rounded-md px-3 py-2 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 bg-blue-50 dark:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
                   value={customerSearch}
                   onChange={(e) => {
                     setCustomerSearch(e.target.value)
@@ -1382,11 +1488,11 @@ export default function CreateInvoice() {
                 />
 
                 {customerError && (
-                  <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                  <div className="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded-md">
                     {customerError}
                     <button
                       onClick={retryFetchCustomers}
-                      className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                      className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
                     >
                       Retry
                     </button>
@@ -1394,24 +1500,24 @@ export default function CreateInvoice() {
                 )}
 
                 {showCustomerDropdown && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-md shadow-lg max-h-60 overflow-auto">
                     {loadingCustomers ? (
-                      <div className="px-3 py-4 text-center text-sm text-slate-600">
+                      <div className="px-3 py-4 text-center text-sm text-slate-600 dark:text-gray-400">
                         Loading customers...
                       </div>
                     ) : filteredCustomers.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-sm text-slate-600">
+                      <div className="px-3 py-4 text-center text-sm text-slate-600 dark:text-gray-400">
                         {customerSearch ? 'No customers found' : 'No customers available'}
                       </div>
                     ) : (
                       filteredCustomers.map(customer => (
                         <div
                           key={customer.id}
-                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                          className="px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-800 cursor-pointer border-b border-slate-100 dark:border-gray-800 last:border-b-0"
                           onClick={() => selectCustomer(customer)}
                         >
-                          <div className="font-medium text-slate-900">{customer.company || customer.name}</div>
-                          <div className="text-xs text-slate-600">
+                          <div className="font-medium text-slate-900 dark:text-white">{customer.company || customer.name}</div>
+                          <div className="text-xs text-slate-600 dark:text-gray-400">
                             {customer.name}
                             {customer.gstin && ` • ${customer.gstin}`}
                           </div>
@@ -1425,7 +1531,7 @@ export default function CreateInvoice() {
 
             <div className="space-y-4">
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
                   Custom Headers
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -1433,7 +1539,7 @@ export default function CreateInvoice() {
                     (header) => (
                       <button
                         key={header}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-1 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         + {isMobile ? header.split(' ')[0] : header}
                       </button>
@@ -1445,23 +1551,23 @@ export default function CreateInvoice() {
           </div>
 
           {/* Products Section */}
-          <div className="bg-white p-4 md:p-6 rounded-lg border border-slate-200">
+          <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-gray-800">
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-slate-900">Products & Services</h2>
-                <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">?</span>
+                <h2 className="font-semibold text-slate-900 dark:text-white">Products & Services</h2>
+                <span className="rounded bg-slate-100 dark:bg-gray-800 px-2 py-1 text-xs text-slate-600 dark:text-gray-400">?</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={retryFetchProducts}
                   disabled={loadingProducts}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
                 >
                   {loadingProducts ? 'Loading...' : 'Refresh'}
                 </button>
                 <button
                   onClick={openAddProductSlider}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                 >
                   {isMobile ? '+ Add' : '+ Add Product'}
                 </button>
@@ -1470,8 +1576,8 @@ export default function CreateInvoice() {
 
             {/* Debug Info */}
             {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="text-xs text-yellow-800">
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                <div className="text-xs text-yellow-800 dark:text-yellow-400">
                   <strong>Debug Info:</strong> {products.length} products loaded,
                   {filteredProducts.length} filtered,
                   {selectedProducts.length} in bill
@@ -1482,11 +1588,11 @@ export default function CreateInvoice() {
             {/* Search Bar */}
             <div className="mb-6 flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <div className="mb-2 text-xs font-medium text-slate-600">All Categories</div>
+                <div className="mb-2 text-xs font-medium text-slate-600 dark:text-gray-400">All Categories</div>
                 <div className="relative">
                   <input
                     placeholder="Search or scan barcode for existing products"
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                     value={productSearch}
                     onChange={(e) => {
                       setProductSearch(e.target.value)
@@ -1496,11 +1602,11 @@ export default function CreateInvoice() {
                   />
 
                   {productError && (
-                    <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                    <div className="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded-md">
                       {productError}
                       <button
                         onClick={retryFetchProducts}
-                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                        className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
                       >
                         Retry
                       </button>
@@ -1508,29 +1614,29 @@ export default function CreateInvoice() {
                   )}
 
                   {showProductDropdown && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-md shadow-lg max-h-60 overflow-auto">
                       {loadingProducts ? (
-                        <div className="px-3 py-4 text-center text-sm text-slate-600">
+                        <div className="px-3 py-4 text-center text-sm text-slate-600 dark:text-gray-400">
                           Loading products...
                         </div>
                       ) : filteredProducts.length === 0 ? (
-                        <div className="px-3 py-4 text-center text-sm text-slate-600">
+                        <div className="px-3 py-4 text-center text-sm text-slate-600 dark:text-gray-400">
                           {productSearch ? 'No products found' : 'No products available'}
                         </div>
                       ) : (
                         filteredProducts.map(product => (
                           <div
                             key={product.id}
-                            className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                            className="px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-800 cursor-pointer border-b border-slate-100 dark:border-gray-800 last:border-b-0"
                             onClick={() => addProductToBill(product)}
                           >
-                            <div className="font-medium text-slate-900 flex items-center gap-2">
+                            <div className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                               {product.name}
                               {product.is_active === false && (
-                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Inactive</span>
+                                <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 px-2 py-1 rounded">Inactive</span>
                               )}
                             </div>
-                            <div className="text-xs text-slate-600">
+                            <div className="text-xs text-slate-600 dark:text-gray-400">
                               {product.sku && `SKU: ${product.sku} • `}
                               ₹{product.price}
                               {product.stock !== undefined && ` • Stock: ${product.stock}`}
@@ -1545,7 +1651,7 @@ export default function CreateInvoice() {
                 </div>
               </div>
               <div className="w-full sm:w-20">
-                <div className="mb-2 text-xs font-medium text-slate-600">
+                <div className="mb-2 text-xs font-medium text-slate-600 dark:text-gray-400">
                   Qty <RequiredStar />
                 </div>
                 <input
@@ -1554,7 +1660,7 @@ export default function CreateInvoice() {
                   min="1"
                   value={productQuantity}
                   onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                 />
               </div>
             </div>
@@ -1573,17 +1679,17 @@ export default function CreateInvoice() {
                 <Plus className="h-4 w-4" />
                 Add to Bill
               </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors">
+              <button className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-300 dark:border-gray-700 rounded-md hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300">
                 ⚡ {isMobile ? 'AI Create' : 'Create with AI'}
-                <span className="rounded bg-blue-100 px-1 text-xs font-medium text-blue-600">BETA</span>
+                <span className="rounded bg-blue-100 dark:bg-blue-900/30 px-1 text-xs font-medium text-blue-600 dark:text-blue-400">BETA</span>
               </button>
             </div>
 
             {/* Products Table */}
             {selectedProducts.length > 0 ? (
               <>
-                <div className="mb-4 border-b border-slate-200 pb-3">
-                  <div className="grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-slate-700">
+                <div className="mb-4 border-b border-slate-200 dark:border-gray-800 pb-3">
+                  <div className="grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-slate-700 dark:text-gray-300">
                     <div className="col-span-6 md:col-span-5">Product</div>
                     <div className="col-span-3 md:col-span-2">Qty</div>
                     <div className="col-span-2 md:col-span-2">Price</div>
@@ -1593,10 +1699,10 @@ export default function CreateInvoice() {
                 </div>
 
                 {selectedProducts.map((item) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-4 py-3 border-b border-slate-100 last:border-b-0">
+                  <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-4 py-3 border-b border-slate-100 dark:border-gray-800 last:border-b-0">
                     <div className="col-span-6 md:col-span-5">
-                      <div className="font-medium text-slate-900 text-sm">{item.product.name}</div>
-                      <div className="text-xs text-slate-600">
+                      <div className="font-medium text-slate-900 dark:text-white text-sm">{item.product.name}</div>
+                      <div className="text-xs text-slate-600 dark:text-gray-400">
                         {item.product.sku && `SKU: ${item.product.sku}`}
                         {item.product.sku && item.product.hsnCode && ' • '}
                         {item.product.hsnCode && `HSN: ${item.product.hsnCode}`}
@@ -1611,15 +1717,15 @@ export default function CreateInvoice() {
                         min="1"
                         value={item.quantity}
                         onChange={(e) => updateProductQuantity(item.id, parseInt(e.target.value) || 1)}
-                        className="w-full border border-slate-300 rounded-md px-2 py-1 text-sm"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-2 py-1 text-sm dark:bg-gray-800 dark:text-white"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-2 text-slate-900 text-sm">₹{item.unitPrice.toFixed(2)}</div>
-                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 text-sm">₹{item.total.toFixed(2)}</div>
+                    <div className="col-span-2 md:col-span-2 text-slate-900 dark:text-white text-sm">₹{item.unitPrice.toFixed(2)}</div>
+                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 dark:text-white text-sm">₹{item.total.toFixed(2)}</div>
                     <div className="col-span-1 text-right">
                       <button
                         onClick={() => removeProduct(item.id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -1630,8 +1736,8 @@ export default function CreateInvoice() {
             ) : (
               /* Empty State */
               <div className="flex flex-col items-center justify-center py-8 md:py-16 text-center">
-                <div className="mb-4 h-12 w-12 md:h-16 md:w-16 rounded-lg bg-slate-100"></div>
-                <p className="mb-4 text-sm text-slate-600 px-4">
+                <div className="mb-4 h-12 w-12 md:h-16 md:w-16 rounded-lg bg-slate-100 dark:bg-gray-800"></div>
+                <p className="mb-4 text-sm text-slate-600 dark:text-gray-400 px-4">
                   {loadingProducts
                     ? 'Loading products...'
                     : filteredProducts.length === 0 && productSearch
@@ -1666,38 +1772,38 @@ export default function CreateInvoice() {
           {(showMobileSidebar || !isMobile) && (
             <>
               {/* Summary Card */}
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700">Taxable Amount</span>
-                    <span className="font-semibold text-slate-900">₹ {taxableAmount.toFixed(2)}</span>
+                    <span className="text-slate-700 dark:text-gray-300">Taxable Amount</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹ {taxableAmount.toFixed(2)}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700">Total Tax</span>
-                    <span className="font-semibold text-slate-900">₹ {totalTax.toFixed(2)}</span>
+                    <span className="text-slate-700 dark:text-gray-300">Total Tax</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹ {totalTax.toFixed(2)}</span>
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-700">Round Off</span>
+                    <span className="text-sm text-slate-700 dark:text-gray-300">Round Off</span>
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={isRoundedOff}
                         onChange={(e) => setIsRoundedOff(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-slate-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
                       />
                       <span className="h-5 w-9 rounded-full bg-blue-500"></span>
-                      <span className="text-xs font-medium text-slate-600">{roundOff.toFixed(2)}</span>
+                      <span className="text-xs font-medium text-slate-600 dark:text-gray-400">{roundOff.toFixed(2)}</span>
                     </label>
                   </div>
 
-                  <div className="border-t border-green-200 pt-3">
+                  <div className="border-t border-green-200 dark:border-green-800 pt-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="font-semibold text-slate-900">Total Amount</span>
-                      <span className="text-lg font-bold text-slate-900">₹ {roundedAmount.toFixed(2)}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">Total Amount</span>
+                      <span className="text-lg font-bold text-slate-900 dark:text-white">₹ {roundedAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
                       <span>Total Discount</span>
                       <span>₹ 0.00</span>
                     </div>
@@ -1706,15 +1812,15 @@ export default function CreateInvoice() {
               </div>
 
               {/* Bank Selection */}
-              <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900">Select Bank</h3>
-                  <AlertCircle className="h-4 w-4 text-slate-400" />
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Select Bank</h3>
+                  <AlertCircle className="h-4 w-4 text-slate-400 dark:text-gray-600" />
                 </div>
                 <select
                   value={selectedBank}
                   onChange={(e) => setSelectedBank(e.target.value)}
-                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">Select Bank</option>
                   {mockBanks.map(bank => (
@@ -1723,21 +1829,21 @@ export default function CreateInvoice() {
                     </option>
                   ))}
                 </select>
-                <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors mt-3">
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors mt-3">
                   🏦 {isMobile ? 'Add Bank' : 'Add Bank to Invoice (Optional)'}
                 </button>
               </div>
 
               {/* Payment Details */}
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <h3 className="font-semibold text-slate-900">Payment Details</h3>
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                <h3 className="font-semibold text-slate-900 dark:text-white">Payment Details</h3>
                 <div className="space-y-3 mt-3">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">
                       Payment Status <RequiredStar />
                     </label>
                     <select
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       value={paymentStatus}
                       onChange={(e) => setPaymentStatus(e.target.value)}
                     >
@@ -1748,21 +1854,21 @@ export default function CreateInvoice() {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">UTR Number</label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">UTR Number</label>
                     <input
                       type="text"
                       placeholder="Enter UTR number if available"
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       value={utrNumber}
                       onChange={(e) => setUtrNumber(e.target.value)}
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">Notes</label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">Notes</label>
                     <textarea
                       placeholder="Advance received, UTR number etc..."
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       rows={3}
                       value={paymentNotes}
                       onChange={(e) => setPaymentNotes(e.target.value)}
@@ -1771,21 +1877,21 @@ export default function CreateInvoice() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-700">Amount</label>
+                      <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">Amount</label>
                       <input
                         type="number"
                         placeholder="0"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">
                         Payment Mode <RequiredStar />
                       </label>
                       <select
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         value={paymentMode}
                         onChange={(e) => setPaymentMode(e.target.value)}
                       >
@@ -1796,28 +1902,28 @@ export default function CreateInvoice() {
                     </div>
                   </div>
 
-                  <button className="text-xs font-medium text-slate-700 hover:text-slate-900">
+                  <button className="text-xs font-medium text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
                     💚 Split Payment
                   </button>
                 </div>
               </div>
 
               {/* Signature */}
-              <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900">Select Signature</h3>
-                  <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Select Signature</h3>
+                  <button className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
                     + Add New
                   </button>
                 </div>
 
-                <select className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
                   <option value="none">No Signature</option>
                   <option value="sig1">Signature 1</option>
                 </select>
 
-                <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-pink-200 bg-pink-50 mt-3">
-                  <span className="text-sm text-slate-600">Signature on the document</span>
+                <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20 mt-3">
+                  <span className="text-sm text-slate-600 dark:text-gray-400">Signature on the document</span>
                 </div>
               </div>
 
@@ -1825,7 +1931,7 @@ export default function CreateInvoice() {
               {isMobile && showMobileSidebar && (
                 <button
                   onClick={toggleMobileSidebar}
-                  className="w-full py-3 bg-slate-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-3 bg-slate-600 dark:bg-gray-800 text-white rounded-lg font-semibold flex items-center justify-center gap-2 mt-4"
                 >
                   <ChevronDown className="h-4 w-4 rotate-180" />
                   Hide Summary
@@ -1847,46 +1953,45 @@ export default function CreateInvoice() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/10
-"
+            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/10 dark:bg-black/30"
             onClick={closeAddCustomerSlider}
           ></div>
 
           {/* Slider */}
-          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-96'
+          <div className={`fixed right-0 top-0 h-full bg-white dark:bg-gray-900 shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-96'
             }`}>
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-gray-800">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
-                  <p className="text-sm text-slate-600">Fill in the customer details</p>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Add New Customer</h2>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Fill in the customer details</p>
                 </div>
                 <button
                   onClick={closeAddCustomerSlider}
-                  className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                 >
-                  <X className="h-5 w-5 text-slate-600" />
+                  <X className="h-5 w-5 text-slate-600 dark:text-gray-400" />
                 </button>
               </div>
 
               {/* Form */}
               <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {addCustomerSuccess && (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <div className="text-sm text-green-700">{addCustomerSuccess}</div>
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                    <div className="text-sm text-green-700 dark:text-green-400">{addCustomerSuccess}</div>
                   </div>
                 )}
 
                 {addCustomerError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <div className="text-sm text-red-700">{addCustomerError}</div>
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                    <div className="text-sm text-red-700 dark:text-red-400">{addCustomerError}</div>
                   </div>
                 )}
 
                 <form onSubmit={handleAddCustomerSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Full Name <RequiredStar />
                     </label>
                     <input
@@ -1895,13 +2000,13 @@ export default function CreateInvoice() {
                       value={customerFormData.name}
                       onChange={handleCustomerFormChange}
                       required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter customer name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Mobile Number <RequiredStar />
                     </label>
                     <input
@@ -1910,13 +2015,13 @@ export default function CreateInvoice() {
                       value={customerFormData.mobile}
                       onChange={handleCustomerFormChange}
                       required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter mobile number"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Email Address <RequiredStar />
                     </label>
                     <input
@@ -1925,13 +2030,13 @@ export default function CreateInvoice() {
                       value={customerFormData.email}
                       onChange={handleCustomerFormChange}
                       required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter email address"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Company Name
                     </label>
                     <input
@@ -1939,13 +2044,13 @@ export default function CreateInvoice() {
                       name="company"
                       value={customerFormData.company}
                       onChange={handleCustomerFormChange}
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter company name (optional)"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       GSTIN <RequiredStar />
                     </label>
                     <input
@@ -1954,13 +2059,13 @@ export default function CreateInvoice() {
                       value={customerFormData.gstin}
                       onChange={handleCustomerFormChange}
                       required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter GSTIN number"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Address <RequiredStar />
                     </label>
                     <input
@@ -1969,14 +2074,14 @@ export default function CreateInvoice() {
                       value={customerFormData.address}
                       onChange={handleCustomerFormChange}
                       required
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter full address"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         City <RequiredStar />
                       </label>
                       <input
@@ -1985,13 +2090,13 @@ export default function CreateInvoice() {
                         value={customerFormData.city}
                         onChange={handleCustomerFormChange}
                         required
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="Enter city"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Pincode <RequiredStar />
                       </label>
                       <input
@@ -2000,7 +2105,7 @@ export default function CreateInvoice() {
                         value={customerFormData.pincode}
                         onChange={handleCustomerFormChange}
                         required
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="Enter pincode"
                       />
                     </div>
@@ -2009,12 +2114,12 @@ export default function CreateInvoice() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 md:p-6 border-t border-slate-200">
+              <div className="p-4 md:p-6 border-t border-slate-200 dark:border-gray-800">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
                     onClick={closeAddCustomerSlider}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-2 border border-slate-300 dark:border-gray-700 rounded-md text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                     disabled={addingCustomer}
                   >
                     Cancel
@@ -2048,50 +2153,49 @@ export default function CreateInvoice() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/20
-"
+            className="fixed inset-0 transition-opacity z-40 backdrop-blur-sm bg-black/20 dark:bg-black/40"
             onClick={closeAddProductSlider}
           ></div>
 
           {/* Slider */}
-          <div className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-full max-w-2xl'
+          <div className={`fixed right-0 top-0 h-full bg-white dark:bg-gray-900 shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isMobile ? 'w-full' : 'w-full max-w-2xl'
             } overflow-y-auto`}>
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 sticky top-0 bg-white">
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Add New Product</h2>
-                  <p className="text-sm text-slate-600">Fill in the product details</p>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Add New Product</h2>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Fill in the product details</p>
                 </div>
                 <button
                   onClick={closeAddProductSlider}
-                  className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                 >
-                  <X className="h-5 w-5 text-slate-600" />
+                  <X className="h-5 w-5 text-slate-600 dark:text-gray-400" />
                 </button>
               </div>
 
               {/* Form */}
               <div className="flex-1 p-4 md:p-6">
                 {addProductSuccess && (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <div className="text-sm text-green-700">{addProductSuccess}</div>
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                    <div className="text-sm text-green-700 dark:text-green-400">{addProductSuccess}</div>
                   </div>
                 )}
 
                 {addProductError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <div className="text-sm text-red-700">{addProductError}</div>
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                    <div className="text-sm text-red-700 dark:text-red-400">{addProductError}</div>
                   </div>
                 )}
 
                 <form onSubmit={handleAddProductSubmit} className="space-y-6">
                   {/* Product Image */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
                       Product Image
                     </label>
-                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 transition-colors cursor-pointer bg-slate-50">
+                    <div className="border-2 border-dashed border-slate-300 dark:border-gray-700 rounded-lg p-4 text-center hover:border-slate-400 dark:hover:border-gray-600 transition-colors cursor-pointer bg-slate-50 dark:bg-gray-800">
                       <input
                         type="file"
                         accept="image/*"
@@ -2117,13 +2221,13 @@ export default function CreateInvoice() {
                           </div>
                         ) : (
                           <div className="py-4">
-                            <div className="mx-auto h-12 w-12 text-slate-400 mb-2">
+                            <div className="mx-auto h-12 w-12 text-slate-400 dark:text-gray-600 mb-2">
                               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                             </div>
-                            <p className="font-medium text-slate-600">Click to upload product image</p>
-                            <p className="text-sm text-slate-500 mt-1">PNG, JPG, GIF up to 5MB</p>
+                            <p className="font-medium text-slate-600 dark:text-gray-400">Click to upload product image</p>
+                            <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">PNG, JPG, GIF up to 5MB</p>
                           </div>
                         )}
                       </label>
@@ -2133,7 +2237,7 @@ export default function CreateInvoice() {
                   {/* Basic Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Product Name <RequiredStar />
                       </label>
                       <input
@@ -2142,13 +2246,13 @@ export default function CreateInvoice() {
                         value={productFormData.product_name}
                         onChange={handleProductFormChange}
                         required
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="Enter product name"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         SKU <RequiredStar />
                       </label>
                       <div className="flex gap-2">
@@ -2158,13 +2262,13 @@ export default function CreateInvoice() {
                           value={productFormData.sku}
                           onChange={handleProductFormChange}
                           required
-                          className="flex-1 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                           placeholder="Product SKU"
                         />
                         <button
                           type="button"
                           onClick={generateSKU}
-                          className="px-3 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors text-sm"
+                          className="px-3 py-2 border border-slate-300 dark:border-gray-700 rounded-md text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-sm"
                         >
                           Generate
                         </button>
@@ -2172,7 +2276,7 @@ export default function CreateInvoice() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Category <RequiredStar />
                       </label>
                       <select
@@ -2180,7 +2284,7 @@ export default function CreateInvoice() {
                         value={productFormData.category_id}
                         onChange={handleProductFormChange}
                         required
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       >
                         <option value="">Select Category</option>
                         {categories.map(category => (
@@ -2193,15 +2297,15 @@ export default function CreateInvoice() {
                         )}
                       </select>
                       {loadingCategories && (
-                        <p className="text-xs text-slate-500 mt-1">Loading categories...</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">Loading categories...</p>
                       )}
                       {!loadingCategories && categories.length === 0 && (
-                        <p className="text-xs text-slate-500 mt-1">No categories found. Using default category.</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">No categories found. Using default category.</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Brand
                       </label>
                       <input
@@ -2209,13 +2313,13 @@ export default function CreateInvoice() {
                         name="brand"
                         value={productFormData.brand}
                         onChange={handleProductFormChange}
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="Brand name"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Barcode
                       </label>
                       <input
@@ -2223,13 +2327,13 @@ export default function CreateInvoice() {
                         name="barcode"
                         value={productFormData.barcode}
                         onChange={handleProductFormChange}
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="Barcode number"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         HSN/SAC Code
                       </label>
                       <input
@@ -2237,13 +2341,13 @@ export default function CreateInvoice() {
                         name="hsn_sac"
                         value={productFormData.hsn_sac}
                         onChange={handleProductFormChange}
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="HSN or SAC code"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Unit <RequiredStar />
                       </label>
                       <select
@@ -2251,7 +2355,7 @@ export default function CreateInvoice() {
                         value={productFormData.unit}
                         onChange={handleProductFormChange}
                         required
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       >
                         <option value="pcs">Pieces</option>
                         <option value="kg">Kilogram</option>
@@ -2270,7 +2374,7 @@ export default function CreateInvoice() {
                   {/* Inventory Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Quantity in Stock <RequiredStar />
                       </label>
                       <input
@@ -2280,13 +2384,13 @@ export default function CreateInvoice() {
                         onChange={handleProductFormChange}
                         required
                         min="0"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Reorder Level
                       </label>
                       <input
@@ -2295,7 +2399,7 @@ export default function CreateInvoice() {
                         value={productFormData.reorder_level}
                         onChange={handleProductFormChange}
                         min="0"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0"
                       />
                     </div>
@@ -2304,7 +2408,7 @@ export default function CreateInvoice() {
                   {/* Pricing Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Purchase Price <RequiredStar />
                       </label>
                       <input
@@ -2315,13 +2419,13 @@ export default function CreateInvoice() {
                         required
                         min="0.01"
                         step="0.01"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Base Price
                       </label>
                       <input
@@ -2331,13 +2435,13 @@ export default function CreateInvoice() {
                         onChange={handleProductFormChange}
                         min="0"
                         step="0.01"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Discount Percentage
                       </label>
                       <input
@@ -2348,13 +2452,13 @@ export default function CreateInvoice() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Tax Percentage
                       </label>
                       <input
@@ -2365,13 +2469,13 @@ export default function CreateInvoice() {
                         min="0"
                         max="100"
                         step="0.01"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                         Sales Price <RequiredStar />
                       </label>
                       <input
@@ -2382,7 +2486,7 @@ export default function CreateInvoice() {
                         required
                         min="0.01"
                         step="0.01"
-                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
@@ -2393,9 +2497,9 @@ export default function CreateInvoice() {
                         name="tax_inclusive"
                         checked={productFormData.tax_inclusive}
                         onChange={(e) => setProductFormData(prev => ({ ...prev, tax_inclusive: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 dark:border-gray-700 dark:bg-gray-800"
                       />
-                      <label className="ml-2 text-sm text-slate-700">
+                      <label className="ml-2 text-sm text-slate-700 dark:text-gray-300">
                         Price includes tax
                       </label>
                     </div>
@@ -2413,7 +2517,7 @@ export default function CreateInvoice() {
 
                   {/* Product Description */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Product Description
                     </label>
                     <textarea
@@ -2421,7 +2525,7 @@ export default function CreateInvoice() {
                       value={productFormData.product_description}
                       onChange={handleProductFormChange}
                       rows={3}
-                      className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
                       placeholder="Enter product description"
                     />
                   </div>
@@ -2436,14 +2540,14 @@ export default function CreateInvoice() {
                   </div>
 
                   {/* Optional: Show a message that product will be active */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="h-5 w-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <p className="text-sm text-blue-700">
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
                         This product will be added as <span className="font-semibold">Active</span> and available for sale immediately.
                       </p>
                     </div>
@@ -2452,12 +2556,12 @@ export default function CreateInvoice() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 md:p-6 border-t border-slate-200 sticky bottom-0 bg-white">
+              <div className="p-4 md:p-6 border-t border-slate-200 dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
                     onClick={closeAddProductSlider}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-2 border border-slate-300 dark:border-gray-700 rounded-md text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                     disabled={addingProduct}
                   >
                     Cancel
