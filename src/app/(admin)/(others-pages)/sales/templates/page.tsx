@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Edit2, Save, X, Trash2, Eye, Plus, Search, Filter, 
-  CheckCircle, XCircle, FileText, Image as ImageIcon,
+  CheckCircle,  FileText, Image as ImageIcon,
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle
 } from 'lucide-react';
@@ -336,7 +336,7 @@ export default function TemplatesPage() {
       
       // Filter out undefined values
       const cleanData = Object.fromEntries(
-        Object.entries(formData).filter(([_, v]) => v !== undefined)
+        Object.entries(formData).filter(([ v]) => v !== undefined)
       );
       
       // Update via API
@@ -378,10 +378,7 @@ export default function TemplatesPage() {
   const handleDuplicateTemplate = async (template: Template) => {
     try {
       // Create a new template with similar data
-      const duplicatedData = {
-        ...template,
-        name: `${template.name} (Copy)`,
-      };
+     
       
       // Remove ID so it creates as new
     

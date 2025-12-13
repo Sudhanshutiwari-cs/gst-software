@@ -17,11 +17,10 @@ import {
   X,
   FileText,
   ShoppingBag,
-  Share2,
-  CreditCard,
+  
   Image as ImageIcon,
   Banknote,
-  Calendar,
+  
   CheckCircle,
   AlertCircle,
   Clock,
