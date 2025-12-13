@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2 } from 'lucide-react';
+import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ToastContainer } from 'react-toastify';
 
 // Updated interface to match API response
 interface Invoice {
@@ -80,6 +81,21 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Theme toggle function
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Dispatch storage event to sync across tabs
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'theme',
+      newValue: newTheme,
+      oldValue: theme,
+      storageArea: localStorage
+    }));
+  };
 
   // API Integration
   const fetchInvoices = async () => {
@@ -221,16 +237,40 @@ export default function SalesPage() {
       }
     };
 
+    // Listen for custom theme change events
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail.theme as Theme;
+      setTheme(newTheme);
+      applyTheme(newTheme);
+    };
+
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
+
+    // Set up mutation observer to watch for theme class changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+      observer.disconnect();
     };
   }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('theme', theme);
   }, [theme]);
 
   // Fetch invoices on component mount
@@ -356,6 +396,16 @@ export default function SalesPage() {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-background text-gray-900'
       }`}>
+      <ToastContainer 
+        position="bottom-right"
+        theme={theme}
+        toastClassName={() => 
+          `relative flex p-1 min-h-10 rounded-md justify-between overflow-hidden cursor-pointer ${
+            theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
+          }`
+        }
+      />
+      
       {/* Header */}
       <header className={`border-b transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-border bg-card'
         }`}>
@@ -373,8 +423,11 @@ export default function SalesPage() {
               }`} />
           </div>
 
-          {/* Desktop Actions */}
+          {/* Desktop Actions - Including Theme Toggle */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3">
+            {/* Theme Toggle Button */}
+            
+
             <button
               onClick={handleDocumentSettings}
               className={`flex items-center gap-2 px-3 py-2 xl:px-4 xl:py-2 rounded-lg transition-colors duration-200 min-h-[40px] ${theme === 'dark'
@@ -408,8 +461,11 @@ export default function SalesPage() {
             </button>
           </div>
 
-          {/* Tablet Actions */}
+          {/* Tablet Actions - Including Theme Toggle */}
           <div className="hidden md:flex lg:hidden items-center gap-2">
+            {/* Theme Toggle Button */}
+            
+
             <button
               onClick={handleCreateInvoice}
               className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
@@ -430,8 +486,20 @@ export default function SalesPage() {
             </button>
           </div>
 
-          {/* Mobile Actions */}
+          {/* Mobile Actions - Including Theme Toggle */}
           <div className="flex md:hidden items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
+                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                }`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+
             <button
               onClick={handleCreateInvoice}
               className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
@@ -527,8 +595,8 @@ export default function SalesPage() {
               }}
               placeholder="Search invoices, customers, bill numbers..."
               className={`w-full border pl-10 pr-3 py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400'
-                  : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-900'
+                  : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                 }`}
             />
           </div>
@@ -538,8 +606,8 @@ export default function SalesPage() {
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
               className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${theme === 'dark'
-                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600 focus:border-blue-400 focus:ring-2 focus:ring-blue-900'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                 } border`}
             >
               {timeFilterOptions.map(option => (
@@ -559,8 +627,8 @@ export default function SalesPage() {
                 }
               }}
               className={`flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none min-h-[44px] cursor-pointer ${theme === 'dark'
-                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 border-gray-600 focus:border-blue-400 focus:ring-2 focus:ring-blue-900'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                 } border`}
             >
               <option value="">Actions</option>
@@ -572,8 +640,8 @@ export default function SalesPage() {
             </select>
 
             <button className={`rounded-lg border p-3 transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${theme === 'dark'
-                ? 'border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                ? 'border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200 hover:border-blue-400'
+                : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-blue-500'
               }`}>
               <Filter className="h-5 w-5" />
             </button>
@@ -582,7 +650,9 @@ export default function SalesPage() {
 
         {/* Bulk Actions Bar */}
         {selectedInvoices.length > 0 && (
-          <div className={`mb-4 p-3 rounded-lg flex items-center justify-between transition-colors duration-200 ${theme === 'dark' ? 'bg-blue-900 text-blue-100' : 'bg-blue-50 text-blue-700'
+          <div className={`mb-4 p-3 rounded-lg flex items-center justify-between transition-colors duration-200 ${theme === 'dark' 
+              ? 'bg-blue-900/80 text-blue-100 border border-blue-700' 
+              : 'bg-blue-50 text-blue-700 border border-blue-200'
             }`}>
             <span className="text-sm font-medium">
               {selectedInvoices.length} invoice{selectedInvoices.length !== 1 ? 's' : ''} selected
@@ -590,21 +660,30 @@ export default function SalesPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkAction('export')}
-                className="flex items-center gap-2 px-3 py-1 text-sm rounded transition-colors duration-200 hover:bg-blue-200 hover:bg-opacity-30"
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors duration-200 ${theme === 'dark'
+                    ? 'bg-blue-800 hover:bg-blue-700 text-blue-100'
+                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                  }`}
               >
                 <Download className="h-4 w-4" />
                 Export
               </button>
               <button
                 onClick={() => handleBulkAction('bulk_edit')}
-                className="flex items-center gap-2 px-3 py-1 text-sm rounded transition-colors duration-200 hover:bg-blue-200 hover:bg-opacity-30"
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors duration-200 ${theme === 'dark'
+                    ? 'bg-blue-800 hover:bg-blue-700 text-blue-100'
+                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                  }`}
               >
                 <Edit className="h-4 w-4" />
                 Edit
               </button>
               <button
                 onClick={() => handleBulkAction('bulk_delete')}
-                className="flex items-center gap-2 px-3 py-1 text-sm rounded transition-colors duration-200 hover:bg-red-200 hover:bg-opacity-30 text-red-600"
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors duration-200 ${theme === 'dark'
+                    ? 'bg-red-900/50 hover:bg-red-800/70 text-red-200'
+                    : 'bg-red-100 hover:bg-red-200 text-red-600'
+                  }`}
               >
                 <Trash2 className="h-4 w-4" />
                 Delete
@@ -629,9 +708,9 @@ export default function SalesPage() {
                       checked={selectedInvoices.length === paginatedInvoices.length && paginatedInvoices.length > 0}
                       onChange={selectAllInvoices}
                       className={`rounded transition-colors duration-200 cursor-pointer ${theme === 'dark'
-                          ? 'bg-gray-600 border-gray-500 text-blue-400'
-                          : 'bg-white border-gray-300 text-blue-500'
-                        }`}
+                          ? 'bg-gray-600 border-gray-500 text-blue-400 focus:ring-2 focus:ring-blue-900'
+                          : 'bg-white border-gray-300 text-blue-500 focus:ring-2 focus:ring-blue-100'
+                        } focus:ring-offset-0`}
                     />
                   </th>
                   {['Amount', 'Status', 'Mode', 'Invoice #', 'Customer', 'Date', 'Actions'].map((head) => (
@@ -653,7 +732,7 @@ export default function SalesPage() {
 
                     return (
                       <tr key={invoice.id} className={`border-b transition-colors duration-200 ${theme === 'dark'
-                          ? 'border-gray-700 hover:bg-gray-700'
+                          ? 'border-gray-700 hover:bg-gray-700/50'
                           : 'border-gray-200 hover:bg-gray-50'
                         }`}>
                         <td className="px-4 py-3">
@@ -662,9 +741,9 @@ export default function SalesPage() {
                             checked={selectedInvoices.includes(invoice.id)}
                             onChange={() => toggleInvoiceSelection(invoice.id)}
                             className={`rounded transition-colors duration-200 cursor-pointer ${theme === 'dark'
-                                ? 'bg-gray-600 border-gray-500 text-blue-400'
-                                : 'bg-white border-gray-300 text-blue-500'
-                              }`}
+                                ? 'bg-gray-600 border-gray-500 text-blue-400 focus:ring-2 focus:ring-blue-900'
+                                : 'bg-white border-gray-300 text-blue-500 focus:ring-2 focus:ring-blue-100'
+                              } focus:ring-offset-0`}
                           />
                         </td>
                         <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'
@@ -732,9 +811,9 @@ export default function SalesPage() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleEdit(invoice.id)}
-                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
-                                  ? 'text-blue-400 hover:text-blue-300'
-                                  : 'text-blue-600 hover:text-blue-800'
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-900/30'
+                                  : 'text-blue-600 hover:text-blue-800 hover:bg-blue-100'
                                 }`}
                             >
                               <Edit className="h-4 w-4" />
@@ -742,9 +821,9 @@ export default function SalesPage() {
                             </button>
                             <button
                               onClick={() => handleView(invoice)}
-                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
-                                  ? 'text-gray-400 hover:text-white'
-                                  : 'text-gray-600 hover:text-gray-900'
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
                             >
                               <Eye className="h-4 w-4" />
@@ -752,17 +831,17 @@ export default function SalesPage() {
                             </button>
                             <button
                               onClick={() => handleSend(invoice)}
-                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] ${theme === 'dark'
-                                  ? 'text-gray-400 hover:text-white'
-                                  : 'text-gray-600 hover:text-gray-900'
+                              className={`flex items-center gap-1 text-sm transition-colors duration-200 px-2 py-2 rounded hover:bg-opacity-20 min-h-[32px] ${theme === 'dark'
+                                  ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
                             >
                               <Send className="h-4 w-4" />
                               <span className="hidden lg:inline ml-1">Send</span>
                             </button>
-                            <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
-                                ? 'text-gray-400 hover:text-white'
-                                : 'text-gray-600 hover:text-gray-900'
+                            <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
+                                ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                               }`}>
                               <MoreVertical className="h-4 w-4" />
                             </button>
@@ -773,7 +852,7 @@ export default function SalesPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center">
+                    <td colSpan={8} className="px-4 py-12 text-center">
                       <div className={`transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
                         <p className="text-lg font-medium mb-2">No invoices found</p>
@@ -790,7 +869,7 @@ export default function SalesPage() {
         </div>
 
         {/* Summary + Pagination */}
-        <div className={`mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg px-4 py-4 sm:px-6 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
+        <div className={`mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg px-4 py-4 sm:px-6 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
           }`}>
           <div className="flex gap-4 sm:gap-6 lg:gap-8 w-full sm:w-auto justify-between sm:justify-start">
             <div className="text-center sm:text-left">
@@ -830,11 +909,11 @@ export default function SalesPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === 1
+                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === 1
                     ? 'opacity-50 cursor-not-allowed'
                     : theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -848,11 +927,11 @@ export default function SalesPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 hover:bg-gray-400 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === totalPages
+                className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === totalPages
                     ? 'opacity-50 cursor-not-allowed'
                     : theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
               >
                 <ChevronRight className="h-5 w-5" />
@@ -867,8 +946,8 @@ export default function SalesPage() {
                   setCurrentPage(1);
                 }}
                 className={`rounded border px-3 py-2 text-sm transition-colors duration-200 cursor-pointer min-h-[36px] ${theme === 'dark'
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-900'
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-900'
+                    : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                   }`}
               >
                 <option value={5}>5</option>
