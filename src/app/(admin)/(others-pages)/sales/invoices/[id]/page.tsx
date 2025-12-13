@@ -1,6 +1,5 @@
 "use client"
 
-import { ActionsSidebar } from "@/components/invoice/actions-sidebar"
 import { InvoicePreview } from "@/components/invoice/invoice-preview"
 import { TemplateSidebar } from "@/components/invoice/template-sidebar"
 import { Invoice } from "../../../../.././../../types/invoice"
@@ -8,6 +7,27 @@ import { useEffect, useState, useRef } from "react"
 import { sampleInvoice } from "@/components/data/sampleInvoice"
 import { jsPDF } from "jspdf"
 import html2canvas from "html2canvas"
+import {
+  Download,
+  Printer,
+  Mail,
+  MessageSquare,
+  Copy,
+  Edit,
+  X,
+  FileText,
+  ShoppingBag,
+  Share2,
+  CreditCard,
+  Image as ImageIcon,
+  Banknote,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Settings,
+  Thermometer
+} from "lucide-react"
 
 interface VendorProfile {
   id: number
@@ -41,7 +61,9 @@ export default function InvoiceViewer({ params }: PageProps) {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [logoBase64, setLogoBase64] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
-  const [invoiceId, setInvoiceId] = useState<string | null>(null) // Add state for ID
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
+  const [showActionsSidebar, setShowActionsSidebar] = useState(true)
+  const [isPrintingThermal, setIsPrintingThermal] = useState(false)
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
@@ -335,7 +357,238 @@ export default function InvoiceViewer({ params }: PageProps) {
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
   }
-  
+
+  // THERMAL PRINT FUNCTION
+  const printThermalInvoice = async () => {
+    if (!invoice || !vendor) {
+      setError("No invoice data available for thermal printing")
+      return
+    }
+
+    try {
+      setIsPrintingThermal(true)
+
+      // Parse numeric values
+      const grossAmtNum = parseInvoiceNumber(invoice.gross_amt)
+      const gstNum = parseInvoiceNumber(invoice.gst)
+      const discountNum = parseInvoiceNumber(invoice.discount)
+      const grandTotalNum = parseInvoiceNumber(invoice.grand_total)
+
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          const date = new Date(dateString)
+          return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
+        }
+      }
+
+      // Format currency
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount)
+      }
+
+      // Create thermal receipt HTML
+      const thermalHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            @media print {
+              @page { margin: 0; size: 80mm auto; }
+              body { 
+                width: 80mm; 
+                margin: 0; 
+                padding: 2mm; 
+                font-family: 'Courier New', monospace; 
+                font-size: 10px; 
+                line-height: 1.2;
+                color: black;
+              }
+              * { 
+                margin: 0; 
+                padding: 0; 
+                box-sizing: border-box; 
+              }
+              .thermal-container {
+                width: 100%;
+              }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              .text-bold { font-weight: bold; }
+              .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 3px; margin-bottom: 3px; }
+              .border-top { border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+              table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+              th, td { padding: 2px 1px; }
+              .dotted-line { border-bottom: 1px dotted #000; margin: 3px 0; }
+              .separator { text-align: center; margin: 3px 0; }
+            }
+            
+            /* Screen preview styles */
+            body { 
+              width: 80mm; 
+              margin: 0 auto; 
+              padding: 2mm; 
+              font-family: 'Courier New', monospace; 
+              font-size: 10px; 
+              line-height: 1.2;
+              color: black;
+              border: 1px solid #ccc;
+              background: white;
+            }
+            .thermal-container {
+              width: 100%;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-bold { font-weight: bold; }
+            .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 3px; margin-bottom: 3px; }
+            .border-top { border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+            table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+            th, td { padding: 2px 1px; }
+            .dotted-line { border-bottom: 1px dotted #000; margin: 3px 0; }
+            .separator { text-align: center; margin: 3px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="thermal-container">
+            <!-- Header -->
+            <div class="text-center text-bold">
+              <div>${vendor.shop_name}</div>
+              <div style="font-size: 9px;">${vendor.address_line1}</div>
+              ${vendor.address_line2 ? `<div style="font-size: 9px;">${vendor.address_line2}</div>` : ''}
+              <div style="font-size: 9px;">${vendor.city}, ${vendor.state} - ${vendor.pincode}</div>
+              <div style="font-size: 9px;">Ph: ${vendor.contact_number}</div>
+              ${vendor.gst_number ? `<div style="font-size: 8px;">GST: ${vendor.gst_number}</div>` : ''}
+            </div>
+            
+            <div class="separator">-----------------------------</div>
+            
+            <!-- Invoice Info -->
+            <div class="text-center text-bold">TAX INVOICE</div>
+            <div class="border-bottom">
+              <div>Invoice #: ${invoice.invoice_number || invoice.invoice_id || 'N/A'}</div>
+              <div>Date: ${formatDate(invoice.issue_date)}</div>
+              <div>Time: ${new Date().toLocaleTimeString('en-IN', {hour12: false, hour: '2-digit', minute:'2-digit'})}</div>
+            </div>
+            
+            <!-- Customer Info -->
+            <div class="border-bottom">
+              <div class="text-bold">Customer Details:</div>
+              <div>${invoice.billing_to || 'Customer Name'}</div>
+              ${invoice.mobile ? `<div>Ph: ${invoice.mobile}</div>` : ''}
+              ${invoice.email ? `<div>${invoice.email}</div>` : ''}
+            </div>
+            
+            <!-- Items -->
+            <table>
+              <thead>
+                <tr class="border-bottom">
+                  <th style="text-align: left;">Item</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${invoice.product_name || 'Product/Service'}</td>
+                  <td style="text-align: center;">${invoice.qty}</td>
+                  <td style="text-align: right;">₹${formatCurrency(grossAmtNum)}</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="dotted-line"></div>
+            
+            <!-- Totals -->
+            <div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Subtotal:</span>
+                <span>₹${formatCurrency(grossAmtNum)}</span>
+              </div>
+              ${gstNum > 0 ? `
+              <div style="display: flex; justify-content: space-between;">
+                <span>GST:</span>
+                <span>₹${formatCurrency(gstNum)}</span>
+              </div>
+              ` : ''}
+              ${discountNum > 0 ? `
+              <div style="display: flex; justify-content: space-between;">
+                <span>Discount:</span>
+                <span>-₹${formatCurrency(discountNum)}</span>
+              </div>
+              ` : ''}
+              <div class="border-top" style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>TOTAL:</span>
+                <span>₹${formatCurrency(grandTotalNum)}</span>
+              </div>
+            </div>
+            
+            <div class="separator">-----------------------------</div>
+            
+            <!-- Payment Info -->
+            <div style="font-size: 9px;">
+              <div>Payment Status: <span class="text-bold">${invoice.payment_status?.toUpperCase() || 'PENDING'}</span></div>
+              ${invoice.payment_mode ? `<div>Payment Mode: ${invoice.payment_mode}</div>` : ''}
+              ${invoice.utr_number ? `<div>UTR: ${invoice.utr_number}</div>` : ''}
+            </div>
+            
+            <div class="separator">*****************************</div>
+            
+            <!-- Footer -->
+            <div class="text-center" style="font-size: 8px;">
+              <div>Thank you for your business!</div>
+              <div>${vendor.shop_name}</div>
+              <div>Terms: Goods once sold will not be taken back</div>
+              <div style="margin-top: 10px;">*** END OF RECEIPT ***</div>
+            </div>
+          </div>
+          
+          <script>
+            // Auto-print when loaded
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+              }, 500);
+            }
+          </script>
+        </body>
+        </html>
+      `
+
+      // Open thermal receipt in new window for printing
+      const printWindow = window.open('', '_blank', 'width=320,height=500')
+      if (!printWindow) {
+        throw new Error('Popup blocked. Please allow popups for thermal printing.')
+      }
+      
+      printWindow.document.write(thermalHtml)
+      printWindow.document.close()
+
+    } catch (err) {
+      console.error('Error printing thermal receipt:', err)
+      setError(err instanceof Error ? err.message : 'Failed to print thermal receipt')
+    } finally {
+      setIsPrintingThermal(false)
+    }
+  }
+
   // Specialized PDF generation for classic template with API data
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
@@ -1173,13 +1426,6 @@ export default function InvoiceViewer({ params }: PageProps) {
       return null
     }
   }
-  
-  console.log("Vendor logo URL:", vendor?.logo_url)
-  console.log("Logo state:", logoBase64 ? 
-    (logoBase64.startsWith('data:image/') ? 
-      `Valid base64 (${logoBase64.length} chars)` : 
-      "Invalid base64 (not data URL)") : 
-    "No logo loaded")
 
   // Download PDF
   const downloadPDF = async () => {
@@ -1253,6 +1499,193 @@ export default function InvoiceViewer({ params }: PageProps) {
     fetchData()
   }, [invoiceId])
 
+  // INTERNAL ACTIONS SIDEBAR COMPONENT
+  const InternalActionsSidebar = () => {
+    const actionButtons = [
+      {
+        icon: <Download size={18} />,
+        label: "Download PDF",
+        onClick: downloadPDF,
+        variant: "primary" as const,
+        loading: isGeneratingPDF
+      },
+      {
+        icon: <Thermometer size={18} />,
+        label: "Thermal Print",
+        onClick: printThermalInvoice,
+        variant: "secondary" as const,
+        loading: isPrintingThermal
+      },
+      {
+        icon: <Printer size={18} />,
+        label: "Print",
+        onClick: () => window.print(),
+        variant: "secondary" as const
+      },
+      {
+        icon: <Mail size={18} />,
+        label: "Email",
+        onClick: () => alert("Email functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <MessageSquare size={18} />,
+        label: "WhatsApp",
+        onClick: () => alert("WhatsApp functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <Copy size={18} />,
+        label: "Duplicate",
+        onClick: () => alert("Duplicate functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <Edit size={18} />,
+        label: "Edit",
+        onClick: () => alert("Edit functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <FileText size={18} />,
+        label: "Convert to Sale",
+        onClick: () => alert("Convert to Sale functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <ImageIcon size={18} />,
+        label: "Add Logo",
+        onClick: () => alert("Add Logo functionality would be implemented here"),
+        variant: "secondary" as const
+      },
+      {
+        icon: <Banknote size={18} />,
+        label: "Bank Details",
+        onClick: () => alert("Bank Details functionality would be implemented here"),
+        variant: "secondary" as const
+      }
+    ]
+
+    const statusConfig = {
+      'paid': {
+        icon: <CheckCircle size={16} className="text-green-500" />,
+        label: 'Paid',
+        color: 'bg-green-100 text-green-800 border-green-300'
+      },
+      'pending': {
+        icon: <Clock size={16} className="text-yellow-500" />,
+        label: 'Pending',
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+      },
+      'unpaid': {
+        icon: <AlertCircle size={16} className="text-red-500" />,
+        label: 'Unpaid',
+        color: 'bg-red-100 text-red-800 border-red-300'
+      }
+    }
+
+    const status = invoice?.payment_status || 'pending'
+    const currentStatus = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
+
+    return (
+      <div className={`w-80 bg-white border-l border-gray-200 flex flex-col transition-all duration-300 ${showActionsSidebar ? '' : 'hidden'}`}>
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="font-semibold text-lg">Invoice Actions</h3>
+          <button
+            onClick={() => setShowActionsSidebar(false)}
+            className="p-1 hover:bg-gray-100 rounded-lg"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Invoice Info */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-gray-700">Invoice Status</div>
+            <div className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}>
+              {currentStatus.icon}
+              {currentStatus.label}
+            </div>
+          </div>
+          
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Invoice #</span>
+              <span className="font-medium">{invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Customer</span>
+              <span className="font-medium">{invoice?.billing_to || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Amount</span>
+              <span className="font-medium">₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Date</span>
+              <span className="font-medium">
+                {invoice?.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="p-4 border-b border-gray-200">
+          <h4 className="font-medium text-gray-700 mb-3">Quick Actions</h4>
+          <div className="grid grid-cols-2 gap-2">
+            {actionButtons.slice(0, 6).map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                disabled={action.loading}
+                className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors ${action.variant === 'primary' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {action.loading ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  action.icon
+                )}
+                <span className="text-xs font-medium">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* More Actions */}
+        <div className="p-4">
+          <h4 className="font-medium text-gray-700 mb-3">More Actions</h4>
+          <div className="space-y-2">
+            {actionButtons.slice(6).map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="w-full p-3 rounded-lg border border-gray-200 flex items-center gap-3 hover:bg-gray-50 transition-colors text-sm"
+              >
+                {action.icon}
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto p-4 border-t border-gray-200">
+          <button
+            onClick={() => alert("Going to sales page...")}
+            className="w-full p-3 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+          >
+            <ShoppingBag size={16} />
+            Go to Sales
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen bg-background items-center justify-center">
@@ -1280,7 +1713,6 @@ export default function InvoiceViewer({ params }: PageProps) {
     )
   }
 
-  // Only show PDF preview (no HTML preview option)
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - Template Selection (optional) */}
@@ -1291,9 +1723,15 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       {/* Center - Only PDF Preview */}
       <div className="flex-1 flex flex-col">
-        {/* PDF Controls */}
+        {/* Top Bar with Toggle Button */}
         <div className="flex justify-between items-center p-4 border-b bg-white">
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowActionsSidebar(!showActionsSidebar)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Settings size={20} />
+            </button>
             <div className="text-sm text-gray-600">
               <span className="font-semibold">Invoice: {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
               <span className="ml-4">Vendor: {vendor?.shop_name || invoice?.biller_name || 'My Company'}</span>
@@ -1315,12 +1753,27 @@ export default function InvoiceViewer({ params }: PageProps) {
                 Generating PDF...
               </button>
             ) : (
-              <button
-                onClick={downloadPDF}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Download PDF
-              </button>
+              <>
+                <button
+                  onClick={downloadPDF}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                >
+                  <Download size={16} />
+                  Download PDF
+                </button>
+                <button
+                  onClick={printThermalInvoice}
+                  disabled={isPrintingThermal}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPrintingThermal ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Thermometer size={16} />
+                  )}
+                  Thermal Print
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1395,25 +1848,8 @@ export default function InvoiceViewer({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Right Sidebar - Actions */}
-      {invoice && (
-        <ActionsSidebar
-          invoice={invoice}
-          onSave={() => console.log('Saving invoice changes...')}
-          onExport={downloadPDF}
-          onEdit={() => { }}
-          onDuplicate={() => { }}
-          onConvert={() => { }}
-          onCancel={() => { }}
-          onPrint={() => { }}
-          onEmail={() => { }}
-          onWhatsapp={() => { }}
-          onAddLogo={() => { }}
-          onAddBankDetails={() => { }}
-          onClose={() => { }}
-          onGoToSales={() => { }}
-        />
-      )}
+      {/* Internal Right Sidebar - Actions */}
+      <InternalActionsSidebar />
 
       {/* Hidden HTML preview for PDF generation (not shown to user) */}
       <div style={{ display: 'none' }}>
