@@ -17,15 +17,16 @@ import {
   X,
   FileText,
   ShoppingBag,
-  
   Image as ImageIcon,
   Banknote,
-  
   CheckCircle,
   AlertCircle,
   Clock,
   Settings,
-  Thermometer
+  Thermometer,
+  Sun,
+  Moon,
+  Monitor
 } from "lucide-react"
 
 interface VendorProfile {
@@ -63,8 +64,57 @@ export default function InvoiceViewer({ params }: PageProps) {
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [showActionsSidebar, setShowActionsSidebar] = useState(true)
   const [isPrintingThermal, setIsPrintingThermal] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
+
+  // Initialize theme from localStorage and system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('invoice-theme') as 'light' | 'dark' | 'system' | null
+    if (savedTheme) {
+      setTheme(savedTheme)
+    }
+  }, [])
+
+  // Resolve theme based on system preference
+  useEffect(() => {
+    const updateResolvedTheme = () => {
+      if (theme === 'system') {
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        setResolvedTheme(systemDark ? 'dark' : 'light')
+      } else {
+        setResolvedTheme(theme)
+      }
+    }
+
+    updateResolvedTheme()
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemThemeChange = () => {
+      if (theme === 'system') {
+        updateResolvedTheme()
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange)
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
+  }, [theme])
+
+  // Update body class when resolved theme changes
+  useEffect(() => {
+    document.body.classList.remove('light-theme', 'dark-theme')
+    document.body.classList.add(`${resolvedTheme}-theme`)
+    
+    // Update data-theme attribute for CSS custom properties
+    document.documentElement.setAttribute('data-theme', resolvedTheme)
+  }, [resolvedTheme])
+
+  const toggleTheme = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme)
+    localStorage.setItem('invoice-theme', newTheme)
+  }
 
   // Resolve params promise when component mounts
   useEffect(() => {
@@ -1569,17 +1619,17 @@ export default function InvoiceViewer({ params }: PageProps) {
       'paid': {
         icon: <CheckCircle size={16} className="text-green-500" />,
         label: 'Paid',
-        color: 'bg-green-100 text-green-800 border-green-300'
+        color: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
       },
       'pending': {
         icon: <Clock size={16} className="text-yellow-500" />,
         label: 'Pending',
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
       },
       'unpaid': {
         icon: <AlertCircle size={16} className="text-red-500" />,
         label: 'Unpaid',
-        color: 'bg-red-100 text-red-800 border-red-300'
+        color: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
       }
     }
 
@@ -1587,22 +1637,22 @@ export default function InvoiceViewer({ params }: PageProps) {
     const currentStatus = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
 
     return (
-      <div className={`w-80 bg-white border-l border-gray-200 flex flex-col transition-all duration-300 ${showActionsSidebar ? '' : 'hidden'}`}>
+      <div className={`w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 ${showActionsSidebar ? '' : 'hidden'}`}>
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Invoice Actions</h3>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h3 className="font-semibold text-lg dark:text-white">Invoice Actions</h3>
           <button
             onClick={() => setShowActionsSidebar(false)}
-            className="p-1 hover:bg-gray-100 rounded-lg"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg dark:text-gray-300"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Invoice Info */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-medium text-gray-700">Invoice Status</div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Invoice Status</div>
             <div className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}>
               {currentStatus.icon}
               {currentStatus.label}
@@ -1611,20 +1661,20 @@ export default function InvoiceViewer({ params }: PageProps) {
           
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Invoice #</span>
-              <span className="font-medium">{invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
+              <span className="text-gray-600 dark:text-gray-400">Invoice #</span>
+              <span className="font-medium dark:text-white">{invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Customer</span>
-              <span className="font-medium">{invoice?.billing_to || 'N/A'}</span>
+              <span className="text-gray-600 dark:text-gray-400">Customer</span>
+              <span className="font-medium dark:text-white">{invoice?.billing_to || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Amount</span>
-              <span className="font-medium">₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}</span>
+              <span className="text-gray-600 dark:text-gray-400">Amount</span>
+              <span className="font-medium dark:text-white">₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Date</span>
-              <span className="font-medium">
+              <span className="text-gray-600 dark:text-gray-400">Date</span>
+              <span className="font-medium dark:text-white">
                 {invoice?.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}
               </span>
             </div>
@@ -1632,16 +1682,19 @@ export default function InvoiceViewer({ params }: PageProps) {
         </div>
 
         {/* Quick Actions */}
-        <div className="p-4 border-b border-gray-200">
-          <h4 className="font-medium text-gray-700 mb-3">Quick Actions</h4>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-2">
             {actionButtons.slice(0, 6).map((action, index) => (
               <button
                 key={index}
                 onClick={action.onClick}
                 disabled={action.loading}
-                className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors ${action.variant === 'primary' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-700'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-colors ${
+                  action.variant === 'primary' 
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {action.loading ? (
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -1656,13 +1709,13 @@ export default function InvoiceViewer({ params }: PageProps) {
 
         {/* More Actions */}
         <div className="p-4">
-          <h4 className="font-medium text-gray-700 mb-3">More Actions</h4>
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">More Actions</h4>
           <div className="space-y-2">
             {actionButtons.slice(6).map((action, index) => (
               <button
                 key={index}
                 onClick={action.onClick}
-                className="w-full p-3 rounded-lg border border-gray-200 flex items-center gap-3 hover:bg-gray-50 transition-colors text-sm"
+                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm dark:text-gray-300"
               >
                 {action.icon}
                 <span>{action.label}</span>
@@ -1672,10 +1725,10 @@ export default function InvoiceViewer({ params }: PageProps) {
         </div>
 
         {/* Footer */}
-        <div className="mt-auto p-4 border-t border-gray-200">
+        <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-800">
           <button
             onClick={() => alert("Going to sales page...")}
-            className="w-full p-3 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+            className="w-full p-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors dark:text-gray-300"
           >
             <ShoppingBag size={16} />
             Go to Sales
@@ -1687,10 +1740,10 @@ export default function InvoiceViewer({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background items-center justify-center">
+      <div className="flex h-screen bg-background dark:bg-gray-950 items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <div className="text-lg">Loading invoice data...</div>
+          <div className="text-lg dark:text-white">Loading invoice data...</div>
         </div>
       </div>
     )
@@ -1698,12 +1751,12 @@ export default function InvoiceViewer({ params }: PageProps) {
 
   if (error && !invoice) {
     return (
-      <div className="flex h-screen bg-background items-center justify-center">
+      <div className="flex h-screen bg-background dark:bg-gray-950 items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="text-lg text-red-500">Error: {error}</div>
+          <div className="text-lg text-red-500 dark:text-red-400">Error: {error}</div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Retry
           </button>
@@ -1713,7 +1766,7 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background dark:bg-gray-950">
       {/* Left Sidebar - Template Selection (optional) */}
       <TemplateSidebar
         selectedTemplate={selectedTemplate}
@@ -1723,21 +1776,76 @@ export default function InvoiceViewer({ params }: PageProps) {
       {/* Center - Only PDF Preview */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar with Toggle Button */}
-        <div className="flex justify-between items-center p-4 border-b bg-white">
+        <div className="flex justify-between items-center p-4 border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowActionsSidebar(!showActionsSidebar)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg dark:text-gray-300"
             >
               <Settings size={20} />
             </button>
-            <div className="text-sm text-gray-600">
+            
+            {/* Theme Toggle */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const themes: ('light' | 'dark' | 'system')[] = ['light', 'dark', 'system']
+                  const currentIndex = themes.indexOf(theme)
+                  const nextTheme = themes[(currentIndex + 1) % themes.length]
+                  toggleTheme(nextTheme)
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg flex items-center gap-2 dark:text-gray-300"
+                title={`Theme: ${theme} (${resolvedTheme})`}
+              >
+                {theme === 'light' && <Sun size={18} />}
+                {theme === 'dark' && <Moon size={18} />}
+                {theme === 'system' && <Monitor size={18} />}
+                <span className="text-xs hidden sm:inline">
+                  {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}
+                </span>
+              </button>
+              
+              {/* Theme dropdown for desktop */}
+              <div className="absolute left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="py-1">
+                  <button
+                    onClick={() => toggleTheme('light')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      theme === 'light' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Sun size={16} />
+                    Light
+                  </button>
+                  <button
+                    onClick={() => toggleTheme('dark')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      theme === 'dark' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Moon size={16} />
+                    Dark
+                  </button>
+                  <button
+                    onClick={() => toggleTheme('system')}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      theme === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Monitor size={16} />
+                    System
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-semibold">Invoice: {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
               <span className="ml-4">Vendor: {vendor?.shop_name || invoice?.biller_name || 'My Company'}</span>
               <span className="ml-4">Status:
-                <span className={`ml-1 font-semibold ${invoice?.payment_status === 'paid' ? 'text-green-600' :
-                  invoice?.payment_status === 'pending' ? 'text-yellow-600' :
-                    'text-red-600'
+                <span className={`ml-1 font-semibold ${invoice?.payment_status === 'paid' ? 'text-green-600 dark:text-green-400' :
+                  invoice?.payment_status === 'pending' ? 'text-yellow-600 dark:text-yellow-400' :
+                    'text-red-600 dark:text-red-400'
                   }`}>
                   {invoice?.payment_status?.toUpperCase() || 'PENDING'}
                 </span>
@@ -1747,7 +1855,7 @@ export default function InvoiceViewer({ params }: PageProps) {
 
           <div className="flex gap-2">
             {isGeneratingPDF ? (
-              <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2">
+              <button className="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 Generating PDF...
               </button>
@@ -1779,12 +1887,12 @@ export default function InvoiceViewer({ params }: PageProps) {
 
         {/* Error Display */}
         {error && (
-          <div className="mx-4 mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+          <div className="mx-4 mt-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="text-red-700 text-sm">{error}</span>
+              <span className="text-red-700 dark:text-red-400 text-sm">{error}</span>
               <button
                 onClick={() => setError(null)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
                 ×
               </button>
@@ -1794,12 +1902,12 @@ export default function InvoiceViewer({ params }: PageProps) {
 
         {/* Logo Error Display */}
         {logoError && (
-          <div className="mx-4 mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+          <div className="mx-4 mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="text-yellow-700 text-sm">Logo: {logoError}</span>
+              <span className="text-yellow-700 dark:text-yellow-400 text-sm">Logo: {logoError}</span>
               <button
                 onClick={() => setLogoError(null)}
-                className="text-yellow-500 hover:text-yellow-700"
+                className="text-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300"
               >
                 ×
               </button>
@@ -1808,20 +1916,20 @@ export default function InvoiceViewer({ params }: PageProps) {
         )}
 
         {/* PDF Preview Only */}
-        <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800 p-4">
           {pdfPreviewUrl ? (
             // PDF Preview
             <div className="h-full flex items-center justify-center">
-              <div className="bg-white rounded-lg shadow-lg p-4 max-w-4xl w-full h-full">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 max-w-4xl w-full h-full">
                 <div className="flex flex-col h-full">
-                  <div className="flex-1 border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                  <div className="flex-1 border-2 border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-white">
                     <iframe
                       src={pdfPreviewUrl}
                       className="w-full h-full min-h-[600px]"
                       title="PDF Preview"
                     />
                   </div>
-                  <div className="mt-4 text-center text-sm text-gray-600">
+                  <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
                     <p>Invoice #{invoice?.invoice_number || invoice?.invoice_id} | Generated from API data</p>
                     <p className="text-xs mt-1">Includes Terms & Conditions and Bank Details</p>
                   </div>
@@ -1835,11 +1943,11 @@ export default function InvoiceViewer({ params }: PageProps) {
                 {isGeneratingPDF ? (
                   <>
                     <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <div className="text-lg">Generating PDF...</div>
-                    <div className="text-sm text-gray-500">Loading vendor logo and invoice data</div>
+                    <div className="text-lg dark:text-white">Generating PDF...</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Loading vendor logo and invoice data</div>
                   </>
                 ) : (
-                  <div className="text-lg text-gray-500">Preparing PDF preview...</div>
+                  <div className="text-lg text-gray-500 dark:text-gray-400">Preparing PDF preview...</div>
                 )}
               </div>
             </div>
