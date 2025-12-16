@@ -66,6 +66,9 @@ export default function InvoiceViewer({ params }: PageProps) {
   const [isPrintingThermal, setIsPrintingThermal] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
+  const [showThermalPreview, setShowThermalPreview] = useState(false)
+const [thermalPreviewHtml, setThermalPreviewHtml] = useState<string | null>(null)
+
 
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
@@ -137,6 +140,214 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   // Fetch vendor profile
+  const generateThermalHTML = () => {
+  if (!invoice || !vendor) return ''
+   const formatDateSafe = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    } catch {
+      return new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    }
+  }
+
+  const formatCurrencySafe = (amount: number) =>
+    new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
+
+  // ✅ Parse numbers locally
+  const grossAmtNum = parseFloat(invoice.gross_amt) || 0
+  const gstNum = parseFloat(invoice.gst) || 0
+  const discountNum = parseFloat(invoice.discount) || 0
+  const grandTotalNum = parseFloat(invoice.grand_total) || 0
+
+  return `
+<!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            @media print {
+              @page { margin: 0; size: 80mm auto; }
+              body { 
+                width: 80mm; 
+                margin: 0; 
+                padding: 2mm; 
+                font-family: 'Courier New', monospace; 
+                font-size: 10px; 
+                line-height: 1.2;
+                color: black;
+              }
+              * { 
+                margin: 0; 
+                padding: 0; 
+                box-sizing: border-box; 
+              }
+              .thermal-container {
+                width: 100%;
+              }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              .text-bold { font-weight: bold; }
+              .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 3px; margin-bottom: 3px; }
+              .border-top { border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+              table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+              th, td { padding: 2px 1px; }
+              .dotted-line { border-bottom: 1px dotted #000; margin: 3px 0; }
+              .separator { text-align: center; margin: 3px 0; }
+            }
+            
+            /* Screen preview styles */
+            body { 
+              width: 80mm; 
+              margin: 0 auto; 
+              padding: 2mm; 
+              font-family: 'Courier New', monospace; 
+              font-size: 10px; 
+              line-height: 1.2;
+              color: black;
+              border: 1px solid #ccc;
+              background: white;
+            }
+            .thermal-container {
+              width: 100%;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-bold { font-weight: bold; }
+            .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 3px; margin-bottom: 3px; }
+            .border-top { border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px; }
+            table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+            th, td { padding: 2px 1px; }
+            .dotted-line { border-bottom: 1px dotted #000; margin: 3px 0; }
+            .separator { text-align: center; margin: 3px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="thermal-container">
+            <!-- Header -->
+            <div class="text-center text-bold">
+              <div>${vendor.shop_name}</div>
+              <div style="font-size: 9px;">${vendor.address_line1}</div>
+              ${vendor.address_line2 ? `<div style="font-size: 9px;">${vendor.address_line2}</div>` : ''}
+              <div style="font-size: 9px;">${vendor.city}, ${vendor.state} - ${vendor.pincode}</div>
+              <div style="font-size: 9px;">Ph: ${vendor.contact_number}</div>
+              ${vendor.gst_number ? `<div style="font-size: 8px;">GST: ${vendor.gst_number}</div>` : ''}
+            </div>
+            
+            <div class="separator">-----------------------------</div>
+            
+            <!-- Invoice Info -->
+            <div class="text-center text-bold">TAX INVOICE</div>
+            <div class="border-bottom">
+              <div>Invoice #: ${invoice.invoice_number || invoice.invoice_id || 'N/A'}</div>
+              <div>Date: ${formatDateSafe(invoice.issue_date)}</div>
+              <div>Time: ${new Date().toLocaleTimeString('en-IN', {hour12: false, hour: '2-digit', minute:'2-digit'})}</div>
+            </div>
+            
+            <!-- Customer Info -->
+            <div class="border-bottom">
+              <div class="text-bold">Customer Details:</div>
+              <div>${invoice.billing_to || 'Customer Name'}</div>
+              ${invoice.mobile ? `<div>Ph: ${invoice.mobile}</div>` : ''}
+              ${invoice.email ? `<div>${invoice.email}</div>` : ''}
+            </div>
+            
+            <!-- Items -->
+            <table>
+              <thead>
+                <tr class="border-bottom">
+                  <th style="text-align: left;">Item</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${invoice.product_name || 'Product/Service'}</td>
+                  <td style="text-align: center;">${invoice.qty}</td>
+                  <td style="text-align: right;">₹${formatCurrencySafe(grossAmtNum)}</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="dotted-line"></div>
+            
+            <!-- Totals -->
+            <div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Subtotal:</span>
+                <span>₹${formatCurrencySafe(grossAmtNum)}</span>
+              </div>
+              ${gstNum > 0 ? `
+              <div style="display: flex; justify-content: space-between;">
+                <span>GST:</span>
+                <span>₹${formatCurrencySafe(gstNum)}</span>
+              </div>
+              ` : ''}
+              ${discountNum > 0 ? `
+              <div style="display: flex; justify-content: space-between;">
+                <span>Discount:</span>
+                <span>-₹${formatCurrencySafe(discountNum)}</span>
+              </div>
+              ` : ''}
+              <div class="border-top" style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>TOTAL:</span>
+                <span>₹${formatCurrencySafe(grandTotalNum)}</span>
+              </div>
+            </div>
+            
+            <div class="separator">-----------------------------</div>
+            
+            <!-- Payment Info -->
+            <div style="font-size: 9px;">
+              <div>Payment Status: <span class="text-bold">${invoice.payment_status?.toUpperCase() || 'PENDING'}</span></div>
+              ${invoice.payment_mode ? `<div>Payment Mode: ${invoice.payment_mode}</div>` : ''}
+              ${invoice.utr_number ? `<div>UTR: ${invoice.utr_number}</div>` : ''}
+            </div>
+            
+            <div class="separator">*****************************</div>
+            
+            <!-- Footer -->
+            <div class="text-center" style="font-size: 8px;">
+              <div>Thank you for your business!</div>
+              <div>${vendor.shop_name}</div>
+              <div>Terms: Goods once sold will not be taken back</div>
+              <div style="margin-top: 10px;">*** END OF RECEIPT ***</div>
+            </div>
+          </div>
+          
+          <script>
+            // Auto-print when loaded
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+              }, 500);
+            }
+          </script>
+        </body>
+        </html>
+`
+}
+
+const previewThermalInvoice = () => {
+  const html = generateThermalHTML()
+  setThermalPreviewHtml(html)
+  setShowThermalPreview(true)
+}
+
   const fetchVendorProfile = async () => {
     try {
       const token = getAuthToken()
@@ -1566,6 +1777,13 @@ export default function InvoiceViewer({ params }: PageProps) {
         loading: isPrintingThermal
       },
       {
+  icon: <Thermometer size={18} />,
+  label: "Thermal Preview",
+  onClick: previewThermalInvoice,
+  variant: "secondary" as const
+},
+
+      {
         icon: <Printer size={18} />,
         label: "Print",
         onClick: () => window.print(),
@@ -1868,18 +2086,7 @@ export default function InvoiceViewer({ params }: PageProps) {
                   <Download size={16} />
                   Download PDF
                 </button>
-                <button
-                  onClick={printThermalInvoice}
-                  disabled={isPrintingThermal}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isPrintingThermal ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Thermometer size={16} />
-                  )}
-                  Thermal Print
-                </button>
+                
               </>
             )}
           </div>
@@ -1917,42 +2124,50 @@ export default function InvoiceViewer({ params }: PageProps) {
 
         {/* PDF Preview Only */}
         <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800 p-4">
-          {pdfPreviewUrl ? (
-            // PDF Preview
-            <div className="h-full flex items-center justify-center">
-              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 max-w-4xl w-full h-full">
-                <div className="flex flex-col h-full">
-                  <div className="flex-1 border-2 border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-white">
-                    <iframe
-                      src={pdfPreviewUrl}
-                      className="w-full h-full min-h-[600px]"
-                      title="PDF Preview"
-                    />
-                  </div>
-                  <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                    <p>Invoice #{invoice?.invoice_number || invoice?.invoice_id} | Generated from API data</p>
-                    <p className="text-xs mt-1">Includes Terms & Conditions and Bank Details</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // Loading or error state for PDF
-            <div className="h-full flex items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                {isGeneratingPDF ? (
-                  <>
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <div className="text-lg dark:text-white">Generating PDF...</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Loading vendor logo and invoice data</div>
-                  </>
-                ) : (
-                  <div className="text-lg text-gray-500 dark:text-gray-400">Preparing PDF preview...</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+  {showThermalPreview && thermalPreviewHtml ? (
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="bg-white p-4 rounded-lg shadow-lg">
+        <iframe
+          srcDoc={thermalPreviewHtml}
+          className="w-[320px] h-[600px] border"
+          title="Thermal Preview"
+        />
+      </div>
+
+      <div className="mt-4 flex gap-3">
+        <button
+          onClick={() => {
+            const w = window.open('', '_blank')
+            w?.document.write(thermalPreviewHtml)
+            w?.document.close()
+            w?.print()
+          }}
+          className="px-4 py-2 bg-green-600 text-white rounded"
+        >
+          Print Thermal
+        </button>
+
+        <button
+          onClick={() => setShowThermalPreview(false)}
+          className="px-4 py-2 bg-gray-300 rounded"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  ) : (
+    pdfPreviewUrl && (
+      <div className="h-full flex items-center justify-center">
+        <iframe
+          src={pdfPreviewUrl}
+          className="w-full h-full min-h-[600px]"
+          title="PDF Preview"
+        />
+      </div>
+    )
+  )}
+</div>
+
       </div>
 
       {/* Internal Right Sidebar - Actions */}
