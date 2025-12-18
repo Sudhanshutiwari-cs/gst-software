@@ -389,7 +389,7 @@ export default function SignInForm() {
                     </Label>
                     <div className="flex gap-2">
                       <Input
-                        type="text"
+                        type="tel"
                         placeholder="Enter 6-digit OTP"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}

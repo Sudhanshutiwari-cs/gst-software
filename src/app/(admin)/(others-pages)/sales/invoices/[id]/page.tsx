@@ -3284,7 +3284,7 @@ export default function InvoiceViewer({ params }: PageProps) {
       if (useBase64) {
         logoHTML = `<img src="${logoSrc}" 
                         alt="Vendor Logo" 
-                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;"
+                        style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
                         crossorigin="anonymous">`
       } else if (useProxy) {
         const directUrl = getDirectLogoUrl(vendor!.logo_url)
@@ -3292,7 +3292,7 @@ export default function InvoiceViewer({ params }: PageProps) {
         
         logoHTML = `<img src="${logoSrc}" 
                         alt="Vendor Logo" 
-                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;"
+                        style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
                         crossorigin="anonymous"
                         onerror="
                           this.onerror=null;
@@ -3307,7 +3307,7 @@ export default function InvoiceViewer({ params }: PageProps) {
       } else {
         logoHTML = `<img src="${logoSrc}" 
                         alt="Vendor Logo" 
-                        style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;">`
+                        style="width: 60px; height: 60px; object-fit: contain;">`
       }
 
       console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder")
@@ -4219,79 +4219,108 @@ export default function InvoiceViewer({ params }: PageProps) {
         </div>
 
         {/* Invoice Info */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Invoice Status</div>
-            <div className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}>
-              {currentStatus.icon}
-              {currentStatus.label}
-            </div>
-          </div>
-          
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Invoice #</span>
-              <span className="font-medium dark:text-white">{invoice?.invoice_number || invoice?.invoice_id || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Customer</span>
-              <span className="font-medium dark:text-white">{invoice?.billing_to || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Amount</span>
-              <span className="font-medium dark:text-white">₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Date</span>
-              <span className="font-medium dark:text-white">
-                {invoice?.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Quick Actions */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {actionButtons.slice(0, 6).map((action, index) => (
-              <button
-                key={index}
-                onClick={action.onClick}
-                disabled={action.loading}
-                className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-colors ${
-                  action.variant === 'primary' 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {action.loading ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  action.icon
-                )}
-                <span className="text-xs font-medium">{action.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+<div className="p-4 border-b border-gray-200 dark:border-gray-800">
+  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+    Quick Actions
+  </h4>
+
+  <div className="grid grid-cols-2 gap-2">
+    {actionButtons.slice(0, 6).map((action, index) => (
+      <button
+        key={index}
+        onClick={action.onClick}
+        disabled={action.loading}
+        className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-colors
+          ${
+            action.variant === 'primary'
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }
+          disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {action.loading ? (
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        ) : (
+          action.icon
+        )}
+        <span className="text-xs font-medium">{action.label}</span>
+      </button>
+    ))}
+  </div>
+</div>
+
+{/* Invoice Info */}
+<div className="p-4 border-b border-gray-200 dark:border-gray-800">
+  <div className="flex items-center justify-between mb-3">
+    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      Invoice Status
+    </div>
+    <div
+      className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}
+    >
+      {currentStatus.icon}
+      {currentStatus.label}
+    </div>
+  </div>
+
+  <div className="space-y-2 text-sm">
+    <div className="flex justify-between">
+      <span className="text-gray-600 dark:text-gray-400">Invoice #</span>
+      <span className="font-medium dark:text-white">
+        {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}
+      </span>
+    </div>
+
+    <div className="flex justify-between">
+      <span className="text-gray-600 dark:text-gray-400">Customer</span>
+      <span className="font-medium dark:text-white">
+        {invoice?.billing_to || 'N/A'}
+      </span>
+    </div>
+
+    <div className="flex justify-between">
+      <span className="text-gray-600 dark:text-gray-400">Amount</span>
+      <span className="font-medium dark:text-white">
+        ₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}
+      </span>
+    </div>
+
+    <div className="flex justify-between">
+      <span className="text-gray-600 dark:text-gray-400">Date</span>
+      <span className="font-medium dark:text-white">
+        {invoice?.issue_date
+          ? new Date(invoice.issue_date).toLocaleDateString()
+          : 'N/A'}
+      </span>
+    </div>
+  </div>
+</div>
+
 
         {/* More Actions */}
         <div className="p-4">
-          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">More Actions</h4>
-          <div className="space-y-2">
-            {actionButtons.slice(6).map((action, index) => (
-              <button
-                key={index}
-                onClick={action.onClick}
-                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm dark:text-gray-300"
-              >
-                {action.icon}
-                <span>{action.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+    More Actions
+  </h4>
+
+  <div className="grid grid-cols-2 gap-2">
+    {actionButtons.slice(6).map((action, index) => (
+      <button
+        key={index}
+        onClick={action.onClick}
+        className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                   flex items-center gap-3
+                   hover:bg-gray-50 dark:hover:bg-gray-800
+                   transition-colors text-sm dark:text-gray-300"
+      >
+        {action.icon}
+        <span className="truncate">{action.label}</span>
+      </button>
+    ))}
+  </div>
+</div>
+
 
         {/* Footer */}
         <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-800">
