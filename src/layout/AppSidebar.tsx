@@ -11,7 +11,7 @@ import {
   PageIcon,
   TableIcon,
 } from "../icons/index";
-import { User2Icon } from "lucide-react";
+import { Album, User2Icon } from "lucide-react";
 
 // Types for vendor profile
 type VendorProfile = {
@@ -59,6 +59,13 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Invoices", path: "/sales/invoice", pro: false },
       { name: "Add Customer", path: "/customer/add", pro: false }
+    ],
+  },
+  {
+    name: "Templates",
+    icon: <Album />,
+    subItems: [
+      { name: "View", path: "/templates", pro: false },
     ],
   },
 ];
