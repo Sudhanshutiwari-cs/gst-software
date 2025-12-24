@@ -873,9 +873,7 @@ export default function CreateInvoice() {
     // Transform selected products to API format
     const productsArray = selectedProducts.map(item => {
       // Calculate GST amount based on tax rate
-      const gstAmount = (item.product.taxRate || 0) > 0 
-        ? (item.total * (item.product.taxRate || 0) / 100)
-        : 0
+     
       
       // Calculate gross amount (without GST if tax_inclusive is false)
       const grossAmt = item.total
@@ -899,7 +897,7 @@ export default function CreateInvoice() {
       const itemTax = item.product.taxRate || 0
       return sum + (item.total * itemTax / 100)
     }, 0)
-    const totalDiscount = selectedProducts.reduce((sum, item) => sum + (item.discount || 0), 0)
+
     const grandTotal = subtotal + totalTax
 
     return {
