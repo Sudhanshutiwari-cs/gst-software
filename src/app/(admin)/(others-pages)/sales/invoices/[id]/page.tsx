@@ -1,7 +1,7 @@
 "use client"
 
 import { InvoicePreview } from "@/components/invoice/invoice-preview"
-import { Invoice, InvoiceProduct } from "../../../../.././../../types/invoice"
+import { Invoice } from "../../../../.././../../types/invoice"
 import { useEffect, useState, useRef } from "react"
 import { sampleInvoice } from "@/components/data/sampleInvoice"
 import { jsPDF } from "jspdf"
@@ -365,7 +365,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
     let itemsHTML = ''
     
     if (invoice.products && invoice.products.length > 0) {
-      invoice.products.forEach((product, index) => {
+      invoice.products.forEach((product) => {
         const productGrossAmt = parseFloat(product.gross_amt) || 0
         const productGst = parseFloat(product.gst || '0') || 0
         const productDiscount = parseFloat(product.discount || '0') || 0
@@ -380,7 +380,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
           </tr>
         `
         
-        totalQty += productQty
+     
         totalGrossAmt += productGrossAmt
         totalGst += productGst
         totalDiscount += productDiscount
@@ -953,7 +953,7 @@ const fetchInvoice = async (invoiceId: string) => {
       let totalItems = 0
       
       if (invoice.products && invoice.products.length > 0) {
-        invoice.products.forEach((product, index) => {
+        invoice.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
           const productGst = parseFloat(product.gst || '0') || 0
           const productTotal = parseFloat(product.total) || 0
