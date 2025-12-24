@@ -356,7 +356,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
       }).format(amount)
 
     // Calculate totals from products array
-    let totalQty = 0
+   
     let totalGrossAmt = 0
     let totalGst = 0
     let totalDiscount = 0
@@ -950,7 +950,7 @@ const fetchInvoice = async (invoiceId: string) => {
 
       // Generate items HTML for multiple products
       let itemsHTML = ''
-      let totalItems = 0
+
       
       if (invoice.products && invoice.products.length > 0) {
         invoice.products.forEach((product) => {
@@ -966,7 +966,7 @@ const fetchInvoice = async (invoiceId: string) => {
               <td style="text-align: right;">₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-          totalItems += productQty
+     
         })
       } else {
         // Single product fallback
@@ -1903,8 +1903,8 @@ const fetchInvoice = async (invoiceId: string) => {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
-        totalItems = 1
-        totalQuantity = invoiceData.qty || 1
+
+    
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2252,7 +2252,7 @@ const fetchInvoice = async (invoiceId: string) => {
       let totalQuantity = 0
       
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
           const productGst = parseFloat(product.gst || '0') || 0
           const productTotal = parseFloat(product.total) || 0
