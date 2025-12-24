@@ -5,16 +5,10 @@ import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft
 import { useRouter } from 'next/navigation';
 import { ToastContainer } from 'react-toastify';
 
-// Updated interface to match API response
-interface Invoice {
+// Updated interfaces to match API response
+interface Product {
   id: number;
   invoice_id: string;
-  vendor_id: string;
-  biller_name: string;
-  billing_to: string;
-  mobile: string | null;
-  email: string;
-  whatsapp_number: string | null;
   product_name: string;
   product_id: number;
   product_sku: string;
@@ -23,12 +17,26 @@ interface Invoice {
   gst: string;
   tax_inclusive: number;
   discount: string;
+  total: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Invoice {
+  id: number;
+  invoice_id: string;
+  biller_name: string;
+  billing_to: string;
+  mobile: string | null;
+  email: string;
+  whatsapp_number: string | null;
   grand_total: string;
   payment_status: 'pending' | 'paid' | 'cancelled' | 'draft';
   payment_mode: string | null;
   utr_number: string | null;
   created_at: string;
   updated_at: string;
+  products: Product[]; // Array of products
 }
 
 interface ApiResponse {
@@ -135,6 +143,16 @@ export default function SalesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate total quantity for an invoice
+  const calculateTotalQuantity = (products: Product[]): number => {
+    return products.reduce((sum, product) => sum + product.qty, 0);
+  };
+
+  // Calculate total GST for an invoice
+  const calculateTotalGST = (products: Product[]): number => {
+    return products.reduce((sum, product) => sum + parseFloat(product.gst), 0);
   };
 
   // Format date for display
@@ -426,7 +444,16 @@ export default function SalesPage() {
           {/* Desktop Actions - Including Theme Toggle */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3">
             {/* Theme Toggle Button */}
-            
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
+                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                }`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
 
             <button
               onClick={handleDocumentSettings}
@@ -464,7 +491,16 @@ export default function SalesPage() {
           {/* Tablet Actions - Including Theme Toggle */}
           <div className="hidden md:flex lg:hidden items-center gap-2">
             {/* Theme Toggle Button */}
-            
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors duration-200 ${theme === 'dark'
+                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                }`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
 
             <button
               onClick={handleCreateInvoice}
@@ -714,8 +750,11 @@ export default function SalesPage() {
                     />
                   </th>
                   {['Amount', 'Status', 'Mode', 'Invoice #', 'Customer', 'Date', 'Actions'].map((head) => (
-                    <th key={head} className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                    <th 
+                      key={head} 
+                      className={`px-4 py-3 text-left text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}
+                    >
                       <div className="flex items-center gap-2">
                         {head}
                         <ChevronDown className={`h-4 w-4 transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
@@ -729,6 +768,8 @@ export default function SalesPage() {
                 {paginatedInvoices.length > 0 ? (
                   paginatedInvoices.map((invoice) => {
                     const daysSincePending = getDaysSincePending(invoice.created_at, invoice.payment_status);
+                    const totalQuantity = calculateTotalQuantity(invoice.products);
+                    const totalGST = calculateTotalGST(invoice.products);
 
                     return (
                       <tr key={invoice.id} className={`border-b transition-colors duration-200 ${theme === 'dark'
@@ -751,7 +792,7 @@ export default function SalesPage() {
                           ₹{parseFloat(invoice.grand_total).toFixed(2)}
                           <span className={`block text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                            Tax: ₹{invoice.gst}
+                            Tax: ₹{totalGST.toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm whitespace-nowrap">
@@ -804,7 +845,7 @@ export default function SalesPage() {
                           </p>
                           <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                            {invoice.qty} item{invoice.qty !== 1 ? 's' : ''}
+                            {totalQuantity} item{totalQuantity !== 1 ? 's' : ''}
                           </p>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">

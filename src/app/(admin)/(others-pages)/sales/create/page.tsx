@@ -142,21 +142,24 @@ interface AddProductFormData {
   // is_active removed from form since it's always true
 }
 
-// Invoice Data interface for API
+// Invoice Data interface for API with products array
 interface InvoiceData {
   biller_name: string
   billing_to: string
   mobile?: string
   email?: string
-  whatapp_number?: string
-  product_name: string
-  product_id?: number
-  product_sku?: string
-  qty: number
-  gross_amt: number
-  gst?: number
-  tax_inclusive?: boolean
-  discount?: number
+  whatsapp_number?: string
+  products: Array<{
+    product_name: string
+    product_id?: number
+    product_sku?: string
+    qty: number
+    gross_amt: number
+    gst?: number
+    tax_inclusive?: boolean
+    discount?: number
+    total: number
+  }>
   grand_total: number
   payment_status: string
   payment_mode?: string
@@ -853,7 +856,7 @@ export default function CreateInvoice() {
     }
   }
 
-  // Prepare and submit invoice data
+  // Prepare and submit invoice data with products array
   const prepareInvoiceData = (): InvoiceData => {
     if (selectedProducts.length === 0) {
       throw new Error('Please add at least one product to the invoice')
@@ -867,26 +870,46 @@ export default function CreateInvoice() {
       throw new Error('Vendor profile not loaded')
     }
 
-    // For now, we'll use the first product. You might want to handle multiple products differently
-    const firstProduct = selectedProducts[0]
+    // Transform selected products to API format
+    const productsArray = selectedProducts.map(item => {
+      // Calculate GST amount based on tax rate
+      const gstAmount = (item.product.taxRate || 0) > 0 
+        ? (item.total * (item.product.taxRate || 0) / 100)
+        : 0
+      
+      // Calculate gross amount (without GST if tax_inclusive is false)
+      const grossAmt = item.total
+      
+      return {
+        product_name: item.product.name,
+        product_id: parseInt(item.product.id) || undefined,
+        product_sku: item.product.sku || undefined,
+        qty: item.quantity,
+        gross_amt: grossAmt,
+        gst: item.product.taxRate || 0, // Store tax rate percentage
+        tax_inclusive: false, // You can make this configurable per product if needed
+        discount: item.discount || 0,
+        total: grossAmt - (item.discount || 0)
+      }
+    })
+
+    // Calculate totals
+    const subtotal = selectedProducts.reduce((sum, item) => sum + item.total, 0)
+    const totalTax = selectedProducts.reduce((sum, item) => {
+      const itemTax = item.product.taxRate || 0
+      return sum + (item.total * itemTax / 100)
+    }, 0)
     const totalDiscount = selectedProducts.reduce((sum, item) => sum + (item.discount || 0), 0)
-    const totalGST = selectedProducts.reduce((sum, item) => sum + (item.gst || 0), 0)
+    const grandTotal = subtotal + totalTax
 
     return {
       biller_name: vendorProfile.shop_name || vendorProfile.name,
       billing_to: selectedCustomerData.company || selectedCustomerData.name,
       mobile: selectedCustomerData.phone || undefined,
       email: selectedCustomerData.email || undefined,
-      whatapp_number: selectedCustomerData.phone || undefined,
-      product_name: firstProduct.product.name,
-      product_id: parseInt(firstProduct.product.id) || undefined,
-      product_sku: firstProduct.product.sku || undefined,
-      qty: firstProduct.quantity,
-      gross_amt: taxableAmount,
-      gst: totalGST || undefined,
-      tax_inclusive: false, // You can make this configurable
-      discount: totalDiscount || undefined,
-      grand_total: roundedAmount,
+      whatsapp_number: selectedCustomerData.phone || undefined,
+      products: productsArray,
+      grand_total: isRoundedOff ? Math.round(grandTotal) : grandTotal,
       payment_status: paymentStatus,
       payment_mode: paymentMode !== 'cash' ? paymentMode : undefined,
       utr_number: utrNumber || undefined
@@ -929,14 +952,14 @@ export default function CreateInvoice() {
       // Handle different response formats
       let invoiceId: string | null = null;
 
-      if (result?.data?.id) {
-        invoiceId = result.data.id;
-      } else if (result?.id) {
-        invoiceId = result.id;
-      } else if (result?.data?.invoice_id) {
+      if (result?.data?.invoice_id) {
         invoiceId = result.data.invoice_id;
       } else if (result?.invoice_id) {
         invoiceId = result.invoice_id;
+      } else if (result?.data?.id) {
+        invoiceId = result.data.id;
+      } else if (result?.id) {
+        invoiceId = result.id;
       }
 
       if (invoiceId) {
@@ -949,8 +972,6 @@ export default function CreateInvoice() {
         // Optionally, you could redirect to a generic invoices page
         // router.push('/invoices');
       }
-
-
     } catch (error) {
       console.error('Error saving and printing invoice:', error);
       alert("Error saving invoice!");
@@ -1006,6 +1027,7 @@ export default function CreateInvoice() {
     const itemTax = item.product.taxRate || 0
     return sum + (item.total * itemTax / 100)
   }, 0)
+  const totalDiscount = selectedProducts.reduce((sum, item) => sum + (item.discount || 0), 0)
   const totalAmount = taxableAmount + totalTax
   const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
   const roundOff = roundedAmount - totalAmount
@@ -1051,16 +1073,39 @@ export default function CreateInvoice() {
     if (newQuantity < 1) return
 
     setSelectedProducts(prev =>
-      prev.map(item =>
-        item.id === productId
-          ? {
+      prev.map(item => {
+        if (item.id === productId) {
+          const discountAmount = item.discount || 0
+          const total = (newQuantity * item.unitPrice) - discountAmount
+          return {
             ...item,
             quantity: newQuantity,
-            total: newQuantity * item.unitPrice,
-            gst: (newQuantity * item.unitPrice * (item.product.taxRate || 0)) / 100
+            total: total > 0 ? total : 0,
+            gst: (total * (item.product.taxRate || 0)) / 100
           }
-          : item
-      )
+        }
+        return item
+      })
+    )
+  }
+
+  const updateProductDiscount = (productId: string, discount: number) => {
+    if (discount < 0) return
+
+    setSelectedProducts(prev =>
+      prev.map(item => {
+        if (item.id === productId) {
+          const discountAmount = discount
+          const total = (item.quantity * item.unitPrice) - discountAmount
+          return {
+            ...item,
+            discount: discountAmount,
+            total: total > 0 ? total : 0,
+            gst: (total * (item.product.taxRate || 0)) / 100
+          }
+        }
+        return item
+      })
     )
   }
 
@@ -1690,9 +1735,10 @@ export default function CreateInvoice() {
               <>
                 <div className="mb-4 border-b border-slate-200 dark:border-gray-800 pb-3">
                   <div className="grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-slate-700 dark:text-gray-300">
-                    <div className="col-span-6 md:col-span-5">Product</div>
-                    <div className="col-span-3 md:col-span-2">Qty</div>
+                    <div className="col-span-4 md:col-span-4">Product</div>
+                    <div className="col-span-2 md:col-span-1">Qty</div>
                     <div className="col-span-2 md:col-span-2">Price</div>
+                    <div className="col-span-2 md:col-span-2">Discount</div>
                     <div className="col-span-1 md:col-span-2 text-right">Total</div>
                     <div className="col-span-1 text-right"></div>
                   </div>
@@ -1700,7 +1746,7 @@ export default function CreateInvoice() {
 
                 {selectedProducts.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-4 py-3 border-b border-slate-100 dark:border-gray-800 last:border-b-0">
-                    <div className="col-span-6 md:col-span-5">
+                    <div className="col-span-4 md:col-span-4">
                       <div className="font-medium text-slate-900 dark:text-white text-sm">{item.product.name}</div>
                       <div className="text-xs text-slate-600 dark:text-gray-400">
                         {item.product.sku && `SKU: ${item.product.sku}`}
@@ -1711,7 +1757,7 @@ export default function CreateInvoice() {
                         {!item.product.sku && !item.product.hsnCode && !item.product.taxRate && 'No additional info'}
                       </div>
                     </div>
-                    <div className="col-span-3 md:col-span-2">
+                    <div className="col-span-2 md:col-span-1">
                       <input
                         type="number"
                         min="1"
@@ -1720,8 +1766,23 @@ export default function CreateInvoice() {
                         className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-2 py-1 text-sm dark:bg-gray-800 dark:text-white"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-2 text-slate-900 dark:text-white text-sm">₹{item.unitPrice.toFixed(2)}</div>
-                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 dark:text-white text-sm">₹{item.total.toFixed(2)}</div>
+                    <div className="col-span-2 md:col-span-2 text-slate-900 dark:text-white text-sm">
+                      ₹{item.unitPrice.toFixed(2)}
+                    </div>
+                    <div className="col-span-2 md:col-span-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.discount || 0}
+                        onChange={(e) => updateProductDiscount(item.id, parseFloat(e.target.value) || 0)}
+                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-2 py-1 text-sm dark:bg-gray-800 dark:text-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="col-span-1 md:col-span-2 text-right font-medium text-slate-900 dark:text-white text-sm">
+                      ₹{item.total.toFixed(2)}
+                    </div>
                     <div className="col-span-1 text-right">
                       <button
                         onClick={() => removeProduct(item.id)}
@@ -1784,6 +1845,11 @@ export default function CreateInvoice() {
                     <span className="font-semibold text-slate-900 dark:text-white">₹ {totalTax.toFixed(2)}</span>
                   </div>
 
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700 dark:text-gray-300">Total Discount</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹ {totalDiscount.toFixed(2)}</span>
+                  </div>
+
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm text-slate-700 dark:text-gray-300">Round Off</span>
                     <label className="flex items-center gap-2">
@@ -1802,10 +1868,6 @@ export default function CreateInvoice() {
                     <div className="mb-2 flex items-center justify-between">
                       <span className="font-semibold text-slate-900 dark:text-white">Total Amount</span>
                       <span className="text-lg font-bold text-slate-900 dark:text-white">₹ {roundedAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
-                      <span>Total Discount</span>
-                      <span>₹ 0.00</span>
                     </div>
                   </div>
                 </div>
