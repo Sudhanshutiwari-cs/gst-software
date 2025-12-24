@@ -1867,7 +1867,7 @@ const fetchInvoice = async (invoiceId: string) => {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
+  
       let totalQuantity = 0
       
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -1886,8 +1886,8 @@ const fetchInvoice = async (invoiceId: string) => {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-          totalItems++
-          totalQuantity += productQty
+         
+   
         })
       } else {
         // Single product fallback
@@ -2254,7 +2254,7 @@ const fetchInvoice = async (invoiceId: string) => {
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-          const productGst = parseFloat(product.gst || '0') || 0
+
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
@@ -2692,9 +2692,9 @@ const fetchInvoice = async (invoiceId: string) => {
       let totalQuantity = 0
       
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-          const productGst = parseFloat(product.gst || '0') || 0
+       
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
@@ -3128,9 +3128,9 @@ const fetchInvoice = async (invoiceId: string) => {
       let totalQuantity = 0
       
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-          const productGst = parseFloat(product.gst || '0') || 0
+ 
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
