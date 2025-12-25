@@ -177,7 +177,7 @@ export default function InvoiceViewer({ params }: PageProps) {
   useEffect(() => {
     document.body.classList.remove('light-theme', 'dark-theme')
     document.body.classList.add(`${resolvedTheme}-theme`)
-    
+
     // Update data-theme attribute for CSS custom properties
     document.documentElement.setAttribute('data-theme', resolvedTheme)
   }, [resolvedTheme])
@@ -194,65 +194,65 @@ export default function InvoiceViewer({ params }: PageProps) {
 
   // Helper to calculate totals from products array
   // Helper to calculate totals from products array
-const calculateInvoiceTotals = (invoiceData: Invoice) => {
-  let totalQty = 0
-  let totalGrossAmt = 0
-  let totalGst = 0
-  let totalDiscount = 0
-  let totalGrandTotal = 0
-  
-  console.log("🧮 Calculating invoice totals...")
-  
-  if (invoiceData.products && invoiceData.products.length > 0) {
-    console.log(`Processing ${invoiceData.products.length} products`)
-    
-    invoiceData.products.forEach((product, index) => {
-      const productQty = parseInt(product.qty.toString()) || 0
-      const productGrossAmt = parseFloat(product.gross_amt) || 0
-      const productGst = parseFloat(product.gst || '0') || 0
-      const productDiscount = parseFloat(product.discount || '0') || 0
-      const productTotal = parseFloat(product.total) || 0
-      
-      console.log(`Product ${index + 1} (${product.product_name}):`, {
-        qty: productQty,
-        gross: productGrossAmt,
-        gst: productGst,
-        discount: productDiscount,
-        total: productTotal
+  const calculateInvoiceTotals = (invoiceData: Invoice) => {
+    let totalQty = 0
+    let totalGrossAmt = 0
+    let totalGst = 0
+    let totalDiscount = 0
+    let totalGrandTotal = 0
+
+    console.log("🧮 Calculating invoice totals...")
+
+    if (invoiceData.products && invoiceData.products.length > 0) {
+      console.log(`Processing ${invoiceData.products.length} products`)
+
+      invoiceData.products.forEach((product, index) => {
+        const productQty = parseInt(product.qty.toString()) || 0
+        const productGrossAmt = parseFloat(product.gross_amt) || 0
+        const productGst = parseFloat(product.gst || '0') || 0
+        const productDiscount = parseFloat(product.discount || '0') || 0
+        const productTotal = parseFloat(product.total) || 0
+
+        console.log(`Product ${index + 1} (${product.product_name}):`, {
+          qty: productQty,
+          gross: productGrossAmt,
+          gst: productGst,
+          discount: productDiscount,
+          total: productTotal
+        })
+
+        totalQty += productQty
+        totalGrossAmt += productGrossAmt
+        totalGst += productGst
+        totalDiscount += productDiscount
+        totalGrandTotal += productTotal
       })
-      
-      totalQty += productQty
-      totalGrossAmt += productGrossAmt
-      totalGst += productGst
-      totalDiscount += productDiscount
-      totalGrandTotal += productTotal
+    } else {
+      // Single product fallback (legacy support)
+      console.log("Using single product fallback")
+      totalQty = invoiceData.qty || 0
+      totalGrossAmt = parseFloat(invoiceData.gross_amt) || 0
+      totalGst = parseFloat(invoiceData.gst) || 0
+      totalDiscount = parseFloat(invoiceData.discount) || 0
+      totalGrandTotal = parseFloat(invoiceData.grand_total) || 0
+    }
+
+    console.log("📊 Final totals:", {
+      totalQty,
+      totalGrossAmt,
+      totalGst,
+      totalDiscount,
+      totalGrandTotal
     })
-  } else {
-    // Single product fallback (legacy support)
-    console.log("Using single product fallback")
-    totalQty = invoiceData.qty || 0
-    totalGrossAmt = parseFloat(invoiceData.gross_amt) || 0
-    totalGst = parseFloat(invoiceData.gst) || 0
-    totalDiscount = parseFloat(invoiceData.discount) || 0
-    totalGrandTotal = parseFloat(invoiceData.grand_total) || 0
+
+    return {
+      totalQty,
+      totalGrossAmt,
+      totalGst,
+      totalDiscount,
+      totalGrandTotal
+    }
   }
-  
-  console.log("📊 Final totals:", {
-    totalQty,
-    totalGrossAmt,
-    totalGst,
-    totalDiscount,
-    totalGrandTotal
-  })
-  
-  return {
-    totalQty,
-    totalGrossAmt,
-    totalGst,
-    totalDiscount,
-    totalGrandTotal
-  }
-}
 
   // INTERNAL TEMPLATE SELECTOR COMPONENT - Updated to match Code 2 style
   const TemplateSelector = () => {
@@ -268,7 +268,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
             <X size={18} />
           </button>
         </div>
-        
+
         <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
           {templates.map((template) => (
             <button
@@ -277,11 +277,10 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
                 setSelectedTemplate(template.id)
                 setShowTemplateSelector(false)
               }}
-              className={`w-full rounded-lg border-2 p-2 transition-all hover:border-blue-500/50 dark:hover:border-blue-400/50 ${
-                selectedTemplate === template.id 
-                  ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20" 
-                  : "border-gray-200 dark:border-gray-700"
-              }`}
+              className={`w-full rounded-lg border-2 p-2 transition-all hover:border-blue-500/50 dark:hover:border-blue-400/50 ${selectedTemplate === template.id
+                ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-200 dark:border-gray-700"
+                }`}
             >
               <div className="relative aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded overflow-hidden mb-2">
                 <img
@@ -320,7 +319,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
         setError("Failed to load invoice ID")
       }
     }
-    
+
     resolveParams()
   }, [params])
 
@@ -332,7 +331,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
   // Fetch vendor profile
   const generateThermalHTML = () => {
     if (!invoice || !vendor) return ''
-    
+
     const formatDateSafe = (dateString: string) => {
       try {
         return new Date(dateString).toLocaleDateString('en-GB', {
@@ -356,14 +355,14 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
       }).format(amount)
 
     // Calculate totals from products array
-   
+
     let totalGrossAmt = 0
     let totalGst = 0
     let totalDiscount = 0
     let totalAmount = 0
-    
+
     let itemsHTML = ''
-    
+
     if (invoice.products && invoice.products.length > 0) {
       invoice.products.forEach((product) => {
         const productGrossAmt = parseFloat(product.gross_amt) || 0
@@ -371,7 +370,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
         const productDiscount = parseFloat(product.discount || '0') || 0
         const productTotal = parseFloat(product.total) || 0
         const productQty = parseInt(product.qty.toString()) || 1
-        
+
         itemsHTML += `
           <tr>
             <td>${product.product_name || 'Item'}</td>
@@ -379,8 +378,8 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
             <td style="text-align: right;">₹${formatCurrencySafe(productTotal)}</td>
           </tr>
         `
-        
-     
+
+
         totalGrossAmt += productGrossAmt
         totalGst += productGst
         totalDiscount += productDiscount
@@ -391,7 +390,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
       const totals = calculateInvoiceTotals(invoice)
       const grandTotalNum = totals.totalGrandTotal
       const singleQty = invoice.qty || 1
-      
+
       itemsHTML = `
         <tr>
           <td>${invoice.product_name || 'Product/Service'}</td>
@@ -399,8 +398,8 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
           <td style="text-align: right;">₹${formatCurrencySafe(grandTotalNum)}</td>
         </tr>
       `
-      
-  
+
+
       totalGrossAmt = totals.totalGrossAmt
       totalGst = totals.totalGst
       totalDiscount = totals.totalDiscount
@@ -490,7 +489,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
     <div class="border-bottom">
       <div>Invoice #: ${invoice.invoice_number || invoice.invoice_id || 'N/A'}</div>
       <div>Date: ${formatDateSafe(invoice.issue_date)}</div>
-      <div>Time: ${new Date().toLocaleTimeString('en-IN', {hour12: false, hour: '2-digit', minute:'2-digit'})}</div>
+      <div>Time: ${new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
     </div>
     
     <!-- Customer Info -->
@@ -620,7 +619,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
 
       console.log("✅ Vendor profile loaded:", vendorProfile)
       setVendor(vendorProfile)
-      
+
       // Load logo via server proxy - don't await, let it happen in background
       if (vendorProfile.logo_url) {
         console.log("🔄 Starting logo load via server proxy...")
@@ -628,7 +627,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
           console.warn("Logo loading warning:", err)
         })
       }
-      
+
       return vendorProfile
     } catch (err) {
       console.error('❌ Error fetching vendor profile:', err)
@@ -641,7 +640,7 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
     try {
       setLogoError(null)
       console.log("🔄 Loading vendor logo via server proxy...")
-      
+
       if (!url || url.trim() === '') {
         console.log("No logo URL provided")
         setLogoBase64(null)
@@ -653,17 +652,17 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
       if (imageUrl.startsWith('/')) {
         imageUrl = `https://manhemdigitalsolutions.com${imageUrl}`
       }
-      
+
       console.log("Absolute URL for proxy:", imageUrl)
 
       // Use our server-side API route
       const encodedUrl = encodeURIComponent(imageUrl)
       const proxyUrl = `/api/vendor/logo?url=${encodedUrl}`
-      
+
       console.log("📤 Calling proxy:", proxyUrl)
-      
+
       const response = await fetch(proxyUrl)
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error(`❌ Proxy fetch failed: ${response.status}`, errorText)
@@ -709,18 +708,18 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
   // Test the logo proxy
   const testLogoProxy = async () => {
     if (!vendor?.logo_url) return false
-    
+
     console.log("🧪 Testing logo proxy...")
-    
+
     try {
       const encodedUrl = encodeURIComponent(vendor.logo_url)
       const proxyUrl = `/api/vendor/logo?url=${encodedUrl}`
-      
+
       console.log("Testing proxy URL:", proxyUrl)
-      
+
       const response = await fetch(proxyUrl)
       console.log("Proxy response status:", response.status)
-      
+
       if (response.ok) {
         const blob = await response.blob()
         console.log("✅ Proxy test successful - blob size:", blob.size, "type:", blob.type)
@@ -738,173 +737,173 @@ const calculateInvoiceTotals = (invoiceData: Invoice) => {
 
   // Fetch invoice data from API
   // Fetch invoice data from API - UPDATED
-const fetchInvoice = async (invoiceId: string) => {
-  try {
-    setLoading(true)
-    setError(null)
+  const fetchInvoice = async (invoiceId: string) => {
+    try {
+      setLoading(true)
+      setError(null)
 
-    // Fetch vendor profile first
-    await fetchVendorProfile()
+      // Fetch vendor profile first
+      await fetchVendorProfile()
 
-    const token = getAuthToken()
-    const response = await fetch(
-      `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const token = getAuthToken()
+      const response = await fetch(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch invoice: ${response.status}`)
       }
-    )
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch invoice: ${response.status}`)
-    }
+      const data = await response.json()
 
-    const data = await response.json()
+      // Validate the response data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid invoice data received')
+      }
 
-    // Validate the response data structure
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid invoice data received')
-    }
+      // Extract the actual invoice data from the nested structure
+      const invoiceData = data.data || data
 
-    // Extract the actual invoice data from the nested structure
-    const invoiceData = data.data || data
+      console.log("✅ Invoice API Response:", invoiceData)
+      console.log("📦 Products array:", invoiceData.products)
 
-    console.log("✅ Invoice API Response:", invoiceData)
-    console.log("📦 Products array:", invoiceData.products)
+      // Check if we have products array
+      const hasProductsArray = Array.isArray(invoiceData.products) && invoiceData.products.length > 0
 
-    // Check if we have products array
-    const hasProductsArray = Array.isArray(invoiceData.products) && invoiceData.products.length > 0
-    
-    // Calculate totals if we have products array
-    let totalQty = 0
-    let totalGrossAmt = 0
-    let totalGst = 0
-    let totalDiscount = 0
-    let totalGrandTotal = 0
-    
-    if (hasProductsArray) {
-      console.log("🔄 Calculating totals from products array...")
-      invoiceData.products.forEach((product: any, index: number) => {
-        const productQty = parseInt(product.qty) || 0
-        const productGrossAmt = parseFloat(product.gross_amt) || 0
-        const productGst = parseFloat(product.gst) || 0
-        const productDiscount = parseFloat(product.discount) || 0
-        const productTotal = parseFloat(product.total) || 0
-        
-        console.log(`Product ${index + 1}:`, {
-          name: product.product_name,
-          qty: productQty,
-          gross: productGrossAmt,
-          gst: productGst,
-          discount: productDiscount,
-          total: productTotal
+      // Calculate totals if we have products array
+      let totalQty = 0
+      let totalGrossAmt = 0
+      let totalGst = 0
+      let totalDiscount = 0
+      let totalGrandTotal = 0
+
+      if (hasProductsArray) {
+        console.log("🔄 Calculating totals from products array...")
+        invoiceData.products.forEach((product: any, index: number) => {
+          const productQty = parseInt(product.qty) || 0
+          const productGrossAmt = parseFloat(product.gross_amt) || 0
+          const productGst = parseFloat(product.gst) || 0
+          const productDiscount = parseFloat(product.discount) || 0
+          const productTotal = parseFloat(product.total) || 0
+
+          console.log(`Product ${index + 1}:`, {
+            name: product.product_name,
+            qty: productQty,
+            gross: productGrossAmt,
+            gst: productGst,
+            discount: productDiscount,
+            total: productTotal
+          })
+
+          totalQty += productQty
+          totalGrossAmt += productGrossAmt
+          totalGst += productGst
+          totalDiscount += productDiscount
+          totalGrandTotal += productTotal
         })
-        
-        totalQty += productQty
-        totalGrossAmt += productGrossAmt
-        totalGst += productGst
-        totalDiscount += productDiscount
-        totalGrandTotal += productTotal
-      })
-      
-      console.log("📊 Calculated totals:", {
-        totalQty,
-        totalGrossAmt,
-        totalGst,
-        totalDiscount,
-        totalGrandTotal
-      })
-    }
 
-    // Map API fields to your invoice structure with all required fields
-    const mappedInvoice: Invoice = {
-      id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
-      invoice_id: invoiceData.invoice_id || '',
-      invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
-      vendor_id: invoiceData.vendor_id?.toString() || '',
-      currency: invoiceData.currency || 'INR',
-      biller_name: invoiceData.biller_name || '',
-      issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
-      from_name: '',
-      description: invoiceData.product_name || (hasProductsArray ? 
-        `${invoiceData.products.length} items` : ''),
-      due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      billing_to: invoiceData.billing_to || '',
-      to_email: invoiceData.email || '',
-      from_address: '',
-      from_email: '',
-      billing_address: invoiceData.billing_address || '',
-      mobile: invoiceData.mobile || null,
-      to_name: invoiceData.billing_to || '',
-      to_address: invoiceData.shipping_address || null,
-      email: invoiceData.email || '',
-      whatsapp_number: invoiceData.whatsapp_number || null,
-      product_name: hasProductsArray ? 
-        `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` : 
-        invoiceData.product_name || '',
-      terms: invoiceData.terms || null,
-      notes: invoiceData.notes || null,
-      product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id) || 0 : 
-        parseInt(invoiceData.product_id) || 0,
-      product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' : 
-        invoiceData.product_sku || '',
-      qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
-      gross_amt: hasProductsArray ? totalGrossAmt.toString() : 
-        (parseFloat(invoiceData.gross_amt) || 0).toString(),
-      gst: hasProductsArray ? totalGst.toString() : 
-        (parseFloat(invoiceData.gst) || 0).toString(),
-      tax_inclusive: invoiceData.tax_inclusive || 0,
-      discount: hasProductsArray ? totalDiscount.toString() : 
-        (parseFloat(invoiceData.discount) || 0).toString(),
-      grand_total: hasProductsArray ? totalGrandTotal.toString() : 
-        (parseFloat(invoiceData.grand_total) || 0).toString(),
-      payment_status: invoiceData.payment_status || 'pending',
-      payment_mode: invoiceData.payment_mode || null,
-      utr_number: invoiceData.utr_number || null,
-      created_at: invoiceData.created_at || new Date().toISOString(),
-      updated_at: invoiceData.updated_at || new Date().toISOString(),
-      shipping_address: invoiceData.shipping_address || null,
-      // Add products array - IMPORTANT: Map all product fields
-      products: hasProductsArray ? invoiceData.products.map((product: any) => ({
-        id: parseInt(product.id) || 0,
-        invoice_id: product.invoice_id || '',
-        product_name: product.product_name || '',
-        product_id: parseInt(product.product_id) || 0,
-        product_sku: product.product_sku || '',
-        qty: parseInt(product.qty) || 0,
-        gross_amt: product.gross_amt || '0',
-        gst: product.gst || '0',
-        tax_inclusive: product.tax_inclusive || 0,
-        discount: product.discount || '0',
-        total: product.total || '0',
-        created_at: product.created_at || new Date().toISOString(),
-        updated_at: product.updated_at || new Date().toISOString()
-      })) : undefined
-    }
+        console.log("📊 Calculated totals:", {
+          totalQty,
+          totalGrossAmt,
+          totalGst,
+          totalDiscount,
+          totalGrandTotal
+        })
+      }
 
-    console.log("✅ Mapped Invoice:", mappedInvoice)
-    console.log("📦 Mapped Products:", mappedInvoice.products)
-    
-    setInvoice(mappedInvoice)
-    return mappedInvoice
-  } catch (err) {
-    console.error('❌ Error fetching invoice:', err)
-    setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
-    // Fallback to sample data if API fails
-    const fallbackInvoice = {
-      ...sampleInvoice,
-      payment_status: sampleInvoice.payment_status || 'pending'
-    }
+      // Map API fields to your invoice structure with all required fields
+      const mappedInvoice: Invoice = {
+        id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
+        invoice_id: invoiceData.invoice_id || '',
+        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
+        vendor_id: invoiceData.vendor_id?.toString() || '',
+        currency: invoiceData.currency || 'INR',
+        biller_name: invoiceData.biller_name || '',
+        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
+        from_name: '',
+        description: invoiceData.product_name || (hasProductsArray ?
+          `${invoiceData.products.length} items` : ''),
+        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        billing_to: invoiceData.billing_to || '',
+        to_email: invoiceData.email || '',
+        from_address: '',
+        from_email: '',
+        billing_address: invoiceData.billing_address || '',
+        mobile: invoiceData.mobile || null,
+        to_name: invoiceData.billing_to || '',
+        to_address: invoiceData.shipping_address || null,
+        email: invoiceData.email || '',
+        whatsapp_number: invoiceData.whatsapp_number || null,
+        product_name: hasProductsArray ?
+          `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
+          invoiceData.product_name || '',
+        terms: invoiceData.terms || null,
+        notes: invoiceData.notes || null,
+        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id) || 0 :
+          parseInt(invoiceData.product_id) || 0,
+        product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
+          invoiceData.product_sku || '',
+        qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
+        gross_amt: hasProductsArray ? totalGrossAmt.toString() :
+          (parseFloat(invoiceData.gross_amt) || 0).toString(),
+        gst: hasProductsArray ? totalGst.toString() :
+          (parseFloat(invoiceData.gst) || 0).toString(),
+        tax_inclusive: invoiceData.tax_inclusive || 0,
+        discount: hasProductsArray ? totalDiscount.toString() :
+          (parseFloat(invoiceData.discount) || 0).toString(),
+        grand_total: hasProductsArray ? totalGrandTotal.toString() :
+          (parseFloat(invoiceData.grand_total) || 0).toString(),
+        payment_status: invoiceData.payment_status || 'pending',
+        payment_mode: invoiceData.payment_mode || null,
+        utr_number: invoiceData.utr_number || null,
+        created_at: invoiceData.created_at || new Date().toISOString(),
+        updated_at: invoiceData.updated_at || new Date().toISOString(),
+        shipping_address: invoiceData.shipping_address || null,
+        // Add products array - IMPORTANT: Map all product fields
+        products: hasProductsArray ? invoiceData.products.map((product: any) => ({
+          id: parseInt(product.id) || 0,
+          invoice_id: product.invoice_id || '',
+          product_name: product.product_name || '',
+          product_id: parseInt(product.product_id) || 0,
+          product_sku: product.product_sku || '',
+          qty: parseInt(product.qty) || 0,
+          gross_amt: product.gross_amt || '0',
+          gst: product.gst || '0',
+          tax_inclusive: product.tax_inclusive || 0,
+          discount: product.discount || '0',
+          total: product.total || '0',
+          created_at: product.created_at || new Date().toISOString(),
+          updated_at: product.updated_at || new Date().toISOString()
+        })) : undefined
+      }
 
-    setInvoice(fallbackInvoice)
-    return fallbackInvoice
-  } finally {
-    setLoading(false)
+      console.log("✅ Mapped Invoice:", mappedInvoice)
+      console.log("📦 Mapped Products:", mappedInvoice.products)
+
+      setInvoice(mappedInvoice)
+      return mappedInvoice
+    } catch (err) {
+      console.error('❌ Error fetching invoice:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
+      // Fallback to sample data if API fails
+      const fallbackInvoice = {
+        ...sampleInvoice,
+        payment_status: sampleInvoice.payment_status || 'pending'
+      }
+
+      setInvoice(fallbackInvoice)
+      return fallbackInvoice
+    } finally {
+      setLoading(false)
+    }
   }
-}
   // THERMAL PRINT FUNCTION
   const printThermalInvoice = async () => {
     if (!invoice || !vendor) {
@@ -951,14 +950,14 @@ const fetchInvoice = async (invoiceId: string) => {
       // Generate items HTML for multiple products
       let itemsHTML = ''
 
-      
+
       if (invoice.products && invoice.products.length > 0) {
         invoice.products.forEach((product) => {
-      
+
 
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
-          
+
           itemsHTML += `
             <tr>
               <td>${product.product_name || 'Item'}</td>
@@ -966,14 +965,14 @@ const fetchInvoice = async (invoiceId: string) => {
               <td style="text-align: right;">₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-     
+
         })
       } else {
         // Single product fallback
         const totals = calculateInvoiceTotals(invoice)
         const grandTotalNum = totals.totalGrandTotal
         const singleQty = invoice.qty || 1
-        
+
         itemsHTML = `
           <tr>
             <td>${invoice.product_name || 'Product/Service'}</td>
@@ -1066,7 +1065,7 @@ const fetchInvoice = async (invoiceId: string) => {
             <div class="border-bottom">
               <div>Invoice #: ${invoice.invoice_number || invoice.invoice_id || 'N/A'}</div>
               <div>Date: ${formatDate(invoice.issue_date)}</div>
-              <div>Time: ${new Date().toLocaleTimeString('en-IN', {hour12: false, hour: '2-digit', minute:'2-digit'})}</div>
+              <div>Time: ${new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
             </div>
             
             <!-- Customer Info -->
@@ -1157,7 +1156,7 @@ const fetchInvoice = async (invoiceId: string) => {
       if (!printWindow) {
         throw new Error('Popup blocked. Please allow popups for thermal printing.')
       }
-      
+
       printWindow.document.write(thermalHtml)
       printWindow.document.close()
 
@@ -1190,147 +1189,147 @@ const fetchInvoice = async (invoiceId: string) => {
 
   // Modern Template PDF
   const generateModernTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
-  try {
-    setIsGeneratingPDF(true);
+    try {
+      setIsGeneratingPDF(true);
 
-    // Calculate totals from products array or single product
-    const totals = calculateInvoiceTotals(invoiceData);
-    const grossAmtNum = totals.totalGrossAmt;
-    const gstNum = totals.totalGst;
-    const discountNum = totals.totalDiscount;
-    const grandTotalNum = totals.totalGrandTotal;
+      // Calculate totals from products array or single product
+      const totals = calculateInvoiceTotals(invoiceData);
+      const grossAmtNum = totals.totalGrossAmt;
+      const gstNum = totals.totalGst;
+      const discountNum = totals.totalDiscount;
+      const grandTotalNum = totals.totalGrandTotal;
 
-    // Format date
-    const formatDate = (dateString: string) => {
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      } catch {
-        return new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      }
-    };
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        }
+      };
 
-    // Format currency
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount);
-    };
+      // Format currency
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      };
 
-    // Number to words function (simplified)
-    const numberToWords = (num: number): string => {
-      const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
-        'Eighteen', 'Nineteen'];
-      const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+      // Number to words function (simplified)
+      const numberToWords = (num: number): string => {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+          'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
+          'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-      if (num === 0) return 'Zero';
+        if (num === 0) return 'Zero';
 
-      let words = '';
+        let words = '';
 
-      if (num >= 10000000) {
-        words += numberToWords(Math.floor(num / 10000000)) + ' Crore ';
-        num %= 10000000;
-      }
+        if (num >= 10000000) {
+          words += numberToWords(Math.floor(num / 10000000)) + ' Crore ';
+          num %= 10000000;
+        }
 
-      if (num >= 100000) {
-        words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
-        num %= 100000;
-      }
+        if (num >= 100000) {
+          words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
+          num %= 100000;
+        }
 
-      if (num >= 1000) {
-        words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
-        num %= 1000;
-      }
+        if (num >= 1000) {
+          words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
+          num %= 1000;
+        }
 
-      if (num >= 100) {
-        words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
-        num %= 100;
-      }
+        if (num >= 100) {
+          words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
+          num %= 100;
+        }
 
-      if (num > 0) {
-        if (words !== '') words += 'and ';
+        if (num > 0) {
+          if (words !== '') words += 'and ';
 
-        if (num < 20) {
-          words += ones[num];
-        } else {
-          words += tens[Math.floor(num / 10)];
-          if (num % 10 > 0) {
-            words += ' ' + ones[num % 10];
+          if (num < 20) {
+            words += ones[num];
+          } else {
+            words += tens[Math.floor(num / 10)];
+            if (num % 10 > 0) {
+              words += ' ' + ones[num % 10];
+            }
           }
         }
-      }
 
-      return words.trim() + ' Rupees Only.';
-    };
+        return words.trim() + ' Rupees Only.';
+      };
 
-    // Use vendor data for company info
-    const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
-    const vendorAddress = vendor?.address_line1 ?
-      `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
-      : '123 Business St, City, State, PIN';
-    const vendorPhone = vendor?.contact_number || '+91 9856314765';
+      // Use vendor data for company info
+      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
+      const vendorAddress = vendor?.address_line1 ?
+        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
+        : '123 Business St, City, State, PIN';
+      const vendorPhone = vendor?.contact_number || '+91 9856314765';
 
-    // Create a simple placeholder logo
-    const createPlaceholderLogo = () => {
-      const initial = (vendorName || 'V').charAt(0).toUpperCase();
-      const colors = ['#FF9900', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'];
-      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-      const color = colors[colorIndex];
-      
-      const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      // Create a simple placeholder logo
+      const createPlaceholderLogo = () => {
+        const initial = (vendorName || 'V').charAt(0).toUpperCase();
+        const colors = ['#FF9900', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'];
+        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+        const color = colors[colorIndex];
+
+        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
         <circle cx="30" cy="30" r="28" fill="${color}"/>
         <text x="30" y="40" text-anchor="middle" fill="white" font-family="Arial" font-size="28" font-weight="bold">
           ${initial}
         </text>
       </svg>`;
-      
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
-    };
 
-    // Determine logo source
-    let logoSrc = '';
-    if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
-      logoSrc = logoBase64;
-    } else if (vendor?.logo_url) {
-      const encodedUrl = encodeURIComponent(vendor.logo_url);
-      logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
-    } else {
-      logoSrc = createPlaceholderLogo();
-    }
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
+      };
 
-    // Invoice data
-    const invoiceDate = formatDate(invoiceData.issue_date);
-    const dueDate = formatDate(invoiceData.due_date);
-    const totalAmount = formatCurrency(grandTotalNum);
-    const discountAmount = formatCurrency(discountNum);
-    const gstAmount = formatCurrency(gstNum);
-    const grossAmount = formatCurrency(grossAmtNum);
-    const amountInWords = numberToWords(grandTotalNum);
+      // Determine logo source
+      let logoSrc = '';
+      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+        logoSrc = logoBase64;
+      } else if (vendor?.logo_url) {
+        const encodedUrl = encodeURIComponent(vendor.logo_url);
+        logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
+      } else {
+        logoSrc = createPlaceholderLogo();
+      }
 
-    // Generate products table rows
-    let tableRows = '';
-    let totalItems = 0;
-    let totalQuantity = 0;
-    
-    if (invoiceData.products && invoiceData.products.length > 0) {
-      invoiceData.products.forEach((product, index) => {
-        const productGrossAmt = parseFloat(product.gross_amt) || 0;
-    
-        const productTotal = parseFloat(product.total) || 0;
-        const productQty = parseInt(product.qty.toString()) || 1;
-        const unitPrice = productGrossAmt / productQty;
-        
-        tableRows += `
+      // Invoice data
+      const invoiceDate = formatDate(invoiceData.issue_date);
+      const dueDate = formatDate(invoiceData.due_date);
+      const totalAmount = formatCurrency(grandTotalNum);
+      const discountAmount = formatCurrency(discountNum);
+      const gstAmount = formatCurrency(gstNum);
+      const grossAmount = formatCurrency(grossAmtNum);
+      const amountInWords = numberToWords(grandTotalNum);
+
+      // Generate products table rows
+      let tableRows = '';
+      let totalItems = 0;
+      let totalQuantity = 0;
+
+      if (invoiceData.products && invoiceData.products.length > 0) {
+        invoiceData.products.forEach((product, index) => {
+          const productGrossAmt = parseFloat(product.gross_amt) || 0;
+
+          const productTotal = parseFloat(product.total) || 0;
+          const productQty = parseInt(product.qty.toString()) || 1;
+          const unitPrice = productGrossAmt / productQty;
+
+          tableRows += `
           <tr>
             <td>${index + 1}</td>
             <td>
@@ -1343,16 +1342,16 @@ const fetchInvoice = async (invoiceId: string) => {
             <td>₹${formatCurrency(productTotal)}</td>
           </tr>
         `;
-        totalItems++;
-        totalQuantity += productQty;
-      });
-    } else {
-      // Single product fallback
-      const totals = calculateInvoiceTotals(invoiceData);
-      const grandTotalNum = totals.totalGrandTotal;
-      const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1);
-      
-      tableRows = `
+          totalItems++;
+          totalQuantity += productQty;
+        });
+      } else {
+        // Single product fallback
+        const totals = calculateInvoiceTotals(invoiceData);
+        const grandTotalNum = totals.totalGrandTotal;
+        const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1);
+
+        tableRows = `
         <tr>
           <td>1</td>
           <td>
@@ -1365,13 +1364,13 @@ const fetchInvoice = async (invoiceId: string) => {
           <td>₹${formatCurrency(grandTotalNum)}</td>
         </tr>
       `;
-      totalItems = 1;
-      totalQuantity = invoiceData.qty || 1;
-    }
+        totalItems = 1;
+        totalQuantity = invoiceData.qty || 1;
+      }
 
-    // Create iframe for rendering
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = `
+      // Create iframe for rendering
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = `
       position: fixed;
       left: -9999px;
       top: 0;
@@ -1380,16 +1379,16 @@ const fetchInvoice = async (invoiceId: string) => {
       border: none;
       visibility: hidden;
     `;
-    document.body.appendChild(iframe);
+      document.body.appendChild(iframe);
 
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) {
-      throw new Error('Could not create iframe document');
-    }
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Could not create iframe document');
+      }
 
-    // Write HTML with modern template
-    iframeDoc.open();
-    iframeDoc.write(`
+      // Write HTML with modern template
+      iframeDoc.open();
+      iframeDoc.write(`
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -1774,52 +1773,52 @@ const fetchInvoice = async (invoiceId: string) => {
       </body>
       </html>
     `);
-    iframeDoc.close();
+      iframeDoc.close();
 
-    // Wait for rendering
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for rendering
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Generate PDF
-    const canvas = await html2canvas(iframeDoc.body, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: 210 * 3.78,
-      height: 297 * 3.78,
-      windowWidth: 210 * 3.78,
-      windowHeight: 297 * 3.78,
-    });
+      // Generate PDF
+      const canvas = await html2canvas(iframeDoc.body, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 210 * 3.78,
+        height: 297 * 3.78,
+        windowWidth: 210 * 3.78,
+        windowHeight: 297 * 3.78,
+      });
 
-    // Clean up
-    document.body.removeChild(iframe);
+      // Clean up
+      document.body.removeChild(iframe);
 
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
 
-    const imgData = canvas.toDataURL('image/png', 1.0);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    const pdfBlob = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-    console.log("✅ Modern template PDF generated successfully");
-    return pdfUrl;
+      console.log("✅ Modern template PDF generated successfully");
+      return pdfUrl;
 
-  } catch (err) {
-    console.error('❌ Error generating modern template PDF:', err);
-    return null;
-  } finally {
-    setIsGeneratingPDF(false);
-  }
-};
+    } catch (err) {
+      console.error('❌ Error generating modern template PDF:', err);
+      return null;
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Minimal Template PDF
   const generateMinimalTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
@@ -1867,17 +1866,17 @@ const fetchInvoice = async (invoiceId: string) => {
 
       // Generate products table rows
       let tableRows = ''
-  
-      let totalQuantity = 0
-      
+
+
+
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-     
+
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
-          
+
           tableRows += `
             <tr>
               <td>${product.product_name || 'Product/Service'}</td>
@@ -1886,15 +1885,15 @@ const fetchInvoice = async (invoiceId: string) => {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-         
-   
+
+
         })
       } else {
         // Single product fallback
         const totals = calculateInvoiceTotals(invoiceData)
         const grandTotalNum = totals.totalGrandTotal
         const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1)
-        
+
         tableRows = `
           <tr>
             <td>${invoiceData.product_name || 'Product/Service'}</td>
@@ -1904,7 +1903,7 @@ const fetchInvoice = async (invoiceId: string) => {
           </tr>
         `
 
-    
+
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2250,7 +2249,7 @@ const fetchInvoice = async (invoiceId: string) => {
       let tableRows = ''
       let totalItems = 0
       let totalQuantity = 0
-      
+
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
@@ -2258,7 +2257,7 @@ const fetchInvoice = async (invoiceId: string) => {
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
-          
+
           tableRows += `
             <tr>
               <td>${product.product_name || 'Product/Service'}</td>
@@ -2275,7 +2274,7 @@ const fetchInvoice = async (invoiceId: string) => {
         const totals = calculateInvoiceTotals(invoiceData)
         const grandTotalNum = totals.totalGrandTotal
         const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1)
-        
+
         tableRows = `
           <tr>
             <td>${invoiceData.product_name || 'Product/Service'}</td>
@@ -2509,7 +2508,7 @@ const fetchInvoice = async (invoiceId: string) => {
                 <p>Phone: ${vendorPhone} ${vendor?.gst_number ? `| GST: ${vendor.gst_number}` : ''}</p>
               </div>
               <div class="invoice-meta">
-                <div class="invoice-number">INVOICE #${ invoiceData.invoice_id || 'N/A'}</div>
+                <div class="invoice-number">INVOICE #${invoiceData.invoice_id || 'N/A'}</div>
                 <div style="margin-top: 10px; font-size: 13px;">
                   Date: ${formatDate(invoiceData.issue_date)}<br>
                   Due: ${formatDate(invoiceData.due_date)}
@@ -2690,15 +2689,15 @@ const fetchInvoice = async (invoiceId: string) => {
       let tableRows = ''
       let totalItems = 0
       let totalQuantity = 0
-      
+
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-       
+
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
-          
+
           tableRows += `
             <tr>
               <td>${product.product_name || 'Product/Service'}</td>
@@ -2716,7 +2715,7 @@ const fetchInvoice = async (invoiceId: string) => {
         const totals = calculateInvoiceTotals(invoiceData)
         const grandTotalNum = totals.totalGrandTotal
         const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1)
-        
+
         tableRows = `
           <tr>
             <td>${invoiceData.product_name || 'Product/Service'}</td>
@@ -3126,15 +3125,15 @@ const fetchInvoice = async (invoiceId: string) => {
       let tableRows = ''
       let totalItems = 0
       let totalQuantity = 0
-      
+
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
- 
+
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
           const unitPrice = productGrossAmt / productQty
-          
+
           tableRows += `
             <tr>
               <td>${product.product_name || 'Product/Service'}</td>
@@ -3152,7 +3151,7 @@ const fetchInvoice = async (invoiceId: string) => {
         const totals = calculateInvoiceTotals(invoiceData)
         const grandTotalNum = totals.totalGrandTotal
         const unitPrice = totals.totalGrossAmt / (invoiceData.qty || 1)
-        
+
         tableRows = `
           <tr>
             <td>${invoiceData.product_name || 'Product/Service'}</td>
@@ -3520,775 +3519,860 @@ const fetchInvoice = async (invoiceId: string) => {
 
   // Classic Template PDF (existing code)
   // Classic Template PDF (existing code)
-const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
-  try {
-    setIsGeneratingPDF(true);
-    
-    console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
-    console.log("📦 Products data for PDF:", invoiceData.products);
-    console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
+  const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
+    try {
+      setIsGeneratingPDF(true);
 
-    // Calculate totals from products array or single product
-    const totals = calculateInvoiceTotals(invoiceData);
-    const grossAmtNum = totals.totalGrossAmt;
-    const gstNum = totals.totalGst;
-    const discountNum = totals.totalDiscount;
-    const grandTotalNum = totals.totalGrandTotal;
+      console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
+      console.log("📦 Products data for PDF:", invoiceData.products);
+      console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
 
-    // Format date
-    const formatDate = (dateString: string) => {
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      } catch {
-        return new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      }
-    };
+      // Calculate totals from products array or single product
+      const totals = calculateInvoiceTotals(invoiceData);
+      const grossAmtNum = totals.totalGrossAmt;
+      const gstNum = totals.totalGst;
+      const discountNum = totals.totalDiscount;
+      const grandTotalNum = totals.totalGrandTotal;
 
-    // Format currency
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount);
-    };
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        }
+      };
 
-    // Number to words function
-    const numberToWords = (num: number): string => {
-      const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
-        'Eighteen', 'Nineteen'];
-      const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+      // Format currency
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      };
 
-      if (num === 0) return 'Zero';
+      // Number to words function
+      const numberToWords = (num: number): string => {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+          'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
+          'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-      let words = '';
+        if (num === 0) return 'Zero';
 
-      if (num >= 10000000) {
-        words += numberToWords(Math.floor(num / 10000000)) + ' Crore ';
-        num %= 10000000;
-      }
+        let words = '';
 
-      if (num >= 100000) {
-        words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
-        num %= 100000;
-      }
+        if (num >= 10000000) {
+          words += numberToWords(Math.floor(num / 10000000)) + ' Crore ';
+          num %= 10000000;
+        }
 
-      if (num >= 1000) {
-        words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
-        num %= 1000;
-      }
+        if (num >= 100000) {
+          words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
+          num %= 100000;
+        }
 
-      if (num >= 100) {
-        words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
-        num %= 100;
-      }
+        if (num >= 1000) {
+          words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
+          num %= 1000;
+        }
 
-      if (num > 0) {
-        if (words !== '') words += 'and ';
+        if (num >= 100) {
+          words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
+          num %= 100;
+        }
 
-        if (num < 20) {
-          words += ones[num];
-        } else {
-          words += tens[Math.floor(num / 10)];
-          if (num % 10 > 0) {
-            words += ' ' + ones[num % 10];
+        if (num > 0) {
+          if (words !== '') words += 'and ';
+
+          if (num < 20) {
+            words += ones[num];
+          } else {
+            words += tens[Math.floor(num / 10)];
+            if (num % 10 > 0) {
+              words += ' ' + ones[num % 10];
+            }
           }
         }
+
+        return words.trim() + ' Rupees Only.';
+      };
+
+      // Use vendor data for company info
+      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
+      const vendorAddress = vendor?.address_line1 ?
+        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
+        : '123 Business St, City, State, PIN';
+      const vendorPhone = vendor?.contact_number || '+91 9856314765';
+
+      console.log("=== PDF LOGO DEBUG ===");
+      console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
+      console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
+      console.log("logoBase64 length:", logoBase64?.length);
+      console.log("Vendor logo URL:", vendor?.logo_url);
+
+      // Helper function to create a placeholder logo
+      const createPlaceholderLogo = () => {
+        const initial = (vendorName || 'V').charAt(0).toUpperCase();
+        const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+        const color = colors[colorIndex];
+
+        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+        ${initial}
+      </text>
+    </svg>`;
+
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
+      };
+
+      // Get direct URL with cache busting
+      const getDirectLogoUrl = (url: string): string => {
+        const timestamp = new Date().getTime();
+        return `${url}?t=${timestamp}`;
+      };
+
+      // Determine which logo to use
+      let logoSrc = '';
+      let useBase64 = false;
+      let useProxy = false;
+
+      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+        // Use the base64 we already have
+        logoSrc = logoBase64;
+        useBase64 = true;
+        console.log("✅ Using existing base64 logo");
+      } else if (vendor?.logo_url) {
+        // Use server proxy for the vendor URL
+        const encodedUrl = encodeURIComponent(vendor.logo_url);
+        logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
+        useProxy = true;
+        console.log("⚠️ Using server proxy for vendor logo");
+      } else {
+        // Create placeholder
+        logoSrc = createPlaceholderLogo();
+        console.log("❌ No logo available, using placeholder");
       }
 
-      return words.trim() + ' Rupees Only.';
-    };
+      // Invoice data
+      const invoiceDate = formatDate(invoiceData.issue_date);
+      const dueDate = formatDate(invoiceData.due_date);
 
-    // Use vendor data for company info
-    const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
-    const vendorAddress = vendor?.address_line1 ?
-      `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
-      : '123 Business St, City, State, PIN';
-    const vendorPhone = vendor?.contact_number || '+91 9856314765';
 
-    console.log("=== PDF LOGO DEBUG ===");
-    console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
-    console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
-    console.log("logoBase64 length:", logoBase64?.length);
-    console.log("Vendor logo URL:", vendor?.logo_url);
 
-    // Helper function to create a placeholder logo
-    const createPlaceholderLogo = () => {
-      const initial = (vendorName || 'V').charAt(0).toUpperCase();
-      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-      const color = colors[colorIndex];
-      
-      const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
-        <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
-          ${initial}
-        </text>
-      </svg>`;
-      
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
-    };
+      // Generate products table rows
+      let tableRows = '';
+      let totalItems = 0;
+      let totalQuantity = 0;
+      let subtotalAmount = 0;
 
-    // Get direct URL with cache busting
-    const getDirectLogoUrl = (url: string): string => {
-      const timestamp = new Date().getTime();
-      return `${url}?t=${timestamp}`;
-    };
+      console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
 
-    // Determine which logo to use
-    let logoSrc = '';
-    let useBase64 = false;
-    let useProxy = false;
+      if (invoiceData.products && invoiceData.products.length > 0) {
+        console.log(`Processing ${invoiceData.products.length} products`);
 
-    if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
-      // Use the base64 we already have
-      logoSrc = logoBase64;
-      useBase64 = true;
-      console.log("✅ Using existing base64 logo");
-    } else if (vendor?.logo_url) {
-      // Use server proxy for the vendor URL
-      const encodedUrl = encodeURIComponent(vendor.logo_url);
-      logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
-      useProxy = true;
-      console.log("⚠️ Using server proxy for vendor logo");
-    } else {
-      // Create placeholder
-      logoSrc = createPlaceholderLogo();
-      console.log("❌ No logo available, using placeholder");
-    }
+        invoiceData.products.forEach((product, index) => {
+          const productGrossAmt = parseFloat(product.gross_amt) || 0;
+          const productGst = parseFloat(product.gst || '0') || 0;
+          const productDiscount = parseFloat(product.discount || '0') || 0;
+          const productTotal = parseFloat(product.total) || 0;
+          const productQty = parseInt(product.qty.toString()) || 1;
+          const unitPrice = productGrossAmt / productQty;
+          const originalPrice = productGrossAmt + productDiscount;
 
-    // Invoice data
-    const invoiceDate = formatDate(invoiceData.issue_date);
-    const dueDate = formatDate(invoiceData.due_date);
-    const totalAmount = formatCurrency(grandTotalNum);
-    const discountAmount = formatCurrency(discountNum);
-    const gstAmount = formatCurrency(gstNum);
-    const grossAmount = formatCurrency(grossAmtNum);
-    const amountInWords = numberToWords(grandTotalNum);
+          console.log(`Product ${index + 1} (${product.product_name}):`, {
+            qty: productQty,
+            unitPrice,
+            gross: productGrossAmt,
+            gst: productGst,
+            discount: productDiscount,
+            total: productTotal
+          });
 
-    // Generate products table rows
-    let tableRows = '';
-    let totalItems = 0;
-    let totalQuantity = 0;
-    let subtotalAmount = 0;
-
-    console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
-    
-    if (invoiceData.products && invoiceData.products.length > 0) {
-      console.log(`Processing ${invoiceData.products.length} products`);
-      
-      invoiceData.products.forEach((product, index) => {
-        const productGrossAmt = parseFloat(product.gross_amt) || 0;
-        const productGst = parseFloat(product.gst || '0') || 0;
-        const productDiscount = parseFloat(product.discount || '0') || 0;
-        const productTotal = parseFloat(product.total) || 0;
-        const productQty = parseInt(product.qty.toString()) || 1;
-        const unitPrice = productGrossAmt / productQty;
-        const originalPrice = productGrossAmt + productDiscount;
-        
-        console.log(`Product ${index + 1} (${product.product_name}):`, {
-          qty: productQty,
-          unitPrice,
-          gross: productGrossAmt,
-          gst: productGst,
-          discount: productDiscount,
-          total: productTotal
-        });
-        
-        tableRows += `
-          <tr>
-            <td style="padding: 8px; text-align: center; vertical-align: middle;">${index + 1}</td>
-            <td style="padding: 8px;">
-              <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
-              ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
-            </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle;">${product.product_sku || 'N/A'}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle;">
-              ₹${formatCurrency(unitPrice)}<br>
-              ${productDiscount > 0 ?
-                `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
-                : ''}
-            </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle;">
-              <div>${productQty}</div>
-              <div style="font-size: 9px; color: #666;">${productQty > 1 ? 'PCS' : 'PC'}</div>
-            </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle;">
-              <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
-              ${productGst > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(productGst)}</div>` : ''}
-            </td>
-          </tr>
-        `;
-        totalItems++;
-        totalQuantity += productQty;
-        subtotalAmount += productTotal;
-      });
-      
-      console.log("📊 Table totals:", {
-        totalItems,
-        totalQuantity,
-        subtotalAmount
-      });
-    } else {
-      // Single product fallback
-      console.log("Using single product fallback");
-      const unitPrice = grossAmtNum / (invoiceData.qty || 1);
-      const originalPrice = grossAmtNum + discountNum;
-      
-      tableRows = `
+          tableRows += `
         <tr>
-          <td style="padding: 8px; text-align: center; vertical-align: middle;">1</td>
-          <td style="padding: 8px;">
-            <div style="font-weight: bold; margin-bottom: 2px;">${invoiceData.product_name || 'Product/Service'}</div>
-            ${invoiceData.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${invoiceData.product_sku}</div>` : ''}
+          <td style="border: none; border-bottom: 1px solid #666; padding: 8px;">
+  ${index + 1}
+</td>
+
+          <td>
+            <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
+            ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
           </td>
-          <td style="padding: 8px; text-align: center; vertical-align: middle;">${invoiceData.product_sku || 'N/A'}</td>
-          <td style="padding: 8px; text-align: center; vertical-align: middle;">
+          <td>${product.product_sku || 'N/A'}</td>
+          <td>
             ₹${formatCurrency(unitPrice)}<br>
-            ${discountNum > 0 ?
-              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
+            ${productDiscount > 0 ?
+              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
               : ''}
           </td>
-          <td style="padding: 8px; text-align: center; vertical-align: middle;">
-            <div>${invoiceData.qty || 1}</div>
-            <div style="font-size: 9px; color: #666;">${(invoiceData.qty || 1) > 1 ? 'PCS' : 'PC'}</div>
+          <td>
+            <div>${productQty}</div>
+       
           </td>
-          <td style="padding: 8px; text-align: center; vertical-align: middle;">
-            <div style="font-weight: bold;">₹${formatCurrency(grandTotalNum)}</div>
-            ${gstNum > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(gstNum)}</div>` : ''}
+          <td>
+            <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
+            
           </td>
         </tr>
       `;
-      totalItems = 1;
-      totalQuantity = invoiceData.qty || 1;
-      subtotalAmount = grandTotalNum;
-    }
-
-    // Create the logo HTML with fallback
-    let logoHTML = '';
-    
-    if (useBase64) {
-      logoHTML = `<img src="${logoSrc}" 
-                      alt="Vendor Logo" 
-                      style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
-                      crossorigin="anonymous">`;
-    } else if (useProxy) {
-      const directUrl = getDirectLogoUrl(vendor!.logo_url);
-      const placeholder = createPlaceholderLogo();
-      
-      logoHTML = `<img src="${logoSrc}" 
-                      alt="Vendor Logo" 
-                      style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
-                      crossorigin="anonymous"
-                      onerror="
-                        this.onerror=null;
-                        console.log('Proxy failed, trying direct URL');
-                        this.src='${directUrl}';
-                        this.onerror=function() {
-                          console.log('Direct URL also failed, using placeholder');
-                          this.src='${placeholder}';
-                          this.onerror=null;
-                        }
-                      ">`;
-    } else {
-      logoHTML = `<img src="${logoSrc}" 
-                      alt="Vendor Logo" 
-                      style="width: 60px; height: 60px; object-fit: contain;">`;
-    }
-
-    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
-
-    // Create a temporary iframe for perfect rendering
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = `
-      position: fixed;
-      left: -9999px;
-      top: 0;
-      width: 210mm;
-      height: 297mm;
-      border: none;
-      visibility: hidden;
-    `;
-    document.body.appendChild(iframe);
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) {
-      throw new Error('Could not create iframe document');
-    }
-
-    // Write the exact HTML structure with API data
-    iframeDoc.open();
-    iframeDoc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { 
-              margin: 0; 
-              padding: 0; 
-              box-sizing: border-box; 
-              font-family: Arial, Helvetica, sans-serif;
-            }
-            body { 
-              width: 210mm; 
-              min-height: 297mm; 
-              padding: 15mm 15mm 5mm 15mm; 
-              background: white; 
-              color: black;
-              line-height: 1.4;
-              position: relative;
-            }
-            .invoice-container {
-              width: 100%;
-              background: white;
-              border: 1px solid #666;
-              position: relative;
-              min-height: 260mm;
-              padding-bottom: 40mm; /* Space for fixed footer */
-            }
-            .border-bottom {
-              border-bottom: 1px solid #666;
-              padding-bottom: 8px;
-              margin-bottom: 8px;
-            }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: bold; }
-            .text-sm { font-size: 12px; }
-            .text-base { font-size: 13px; }
-            .text-lg { font-size: 14px; }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 15px 0;
-              font-size: 12px;
-            }
-            th, td {
-              border: 1px solid #666;
-              padding: 8px;
-              text-align: left;
-              vertical-align: top;
-            }
-            th {
-              background-color: #f5f5f5;
-              font-weight: bold;
-              text-align: center;
-            }
-            .grid-2 {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              margin: 15px 0;
-            }
-            .border-all {
-              border: 1px solid #666;
-              padding-bottom: 10px;
-            }
-            .flex-between {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .signature-box {
-              margin-top: 20px;
-              text-align: right;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-              object-fit: contain;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-            }
-            .logo-placeholder {
-              width: 60px;
-              height: 60px;
-              background: #f5f5f5;
-              border: 1px solid #ddd;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 24px;
-              font-weight: bold;
-              color: #666;
-              border-radius: 4px;
-            }
-            .status-paid { color: green; }
-            .status-pending { color: orange; }
-            .status-unpaid { color: red; }
-            
-            /* Footer Styles */
-            .footer-fixed {
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              border-top: 2px solid #666;
-              background: white;
-              padding: 0;
-              height: 115px;
-              display: flex;
-              align-items: stretch;
-            }
-            .footer-title {
-              font-weight: bold;
-              margin-bottom: 5px;
-              font-size: 12px;
-              color: #1e40af;
-            }
-            .bank-details {
-              font-size: 11px;
-              line-height: 1.4;
-            }
-            .terms-conditions {
-              font-size: 10px;
-              line-height: 1.2;
-            }
-            .final-signature {
-              margin-top: 20px;
-              text-align: right;
-              border-top: 1px solid #000;
-              padding-top: 10px;
-            }
-            .page-break {
-              page-break-inside: avoid;
-            }
-            .footer-columns {
-              display: flex;
-              width: 100%;
-              height: 100%;
-            }
-            .terms-column {
-              flex: 1;
-              border-right: 1px solid #666;
-              padding: 10px 15px 10px 10px;
-            }
-            .bank-column {
-              flex: 1;
-              padding: 10px 10px 10px 15px;
-            }
-            
-            /* Bank & Signature Section Styles */
-            .bank-signature-section {
-              margin: 20px 0 25px 0;
-              border: 1px solid #666;
-              padding: 0;
-              background-color: #fff;
-              page-break-inside: avoid;
-              display: flex;
-            }
-            .bank-details-column {
-              flex: 1;
-              border-right: 1px solid #666;
-              padding: 15px;
-            }
-            .signature-column {
-              flex: 1;
-              padding: 15px;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-            }
-            .thank-you-note {
-              font-size: 11px;
-              line-height: 1.4;
-              color: #1e40af;
-              text-align: center;
-              padding: 10px;
-              font-style: italic;
-              border: 1px dashed #1e40af;
-              background-color: #f0f8ff;
-              margin-bottom: 10px;
-            }
-            .signature-space {
-              flex-grow: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: flex-end;
-            }
-            .signature-line {
-              width: 100%;
-              border-top: 1px solid #000;
-              margin-top: 20px;
-              padding-top: 5px;
-              text-align: center;
-            }
-            
-            /* Remove old footer styles */
-            .footer-section {
-              display: none;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="invoice-container">
-            <!-- Invoice Title -->
-            <div class="text-center">
-              <h1 class="text-lg font-bold" style="color: #1e40af; letter-spacing: 2px; margin-bottom: 20px;">TAX INVOICE</h1>
-            </div>
-
-            <!-- Header Section -->
-            <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
-              <!-- Left Box -->
-              <div style="border-right: 1px solid #666; padding: 10px;">
-                <!-- Logo and Details -->
-                <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-                  ${logoHTML}
-                
-                  <div>
-                    <h2 class="font-bold text-base">${vendorName}</h2>
-                    <p class="text-sm">${vendorAddress}</p>
-                    <p class="text-sm">Mobile: ${vendorPhone}</p>
-                    ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
-                  </div>
-                </div>
-                
-                <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
-                  <p class="font-bold text-sm">Customer Details:</p>
-                  <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
-                  ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
-                  ${invoiceData.email ? `<p class="text-sm">${invoiceData.email}</p>` : ''}
-                </div>
-              </div>
-
-              <!-- Right Box -->
-              <div style="padding-right: 0px;">
-                <div class="flex-between border-bottom ">
-                  <div class="font-bold text-sm" style="padding-left: 5px;">Invoice #:</div>
-                  <div class="text-sm" style="padding-right: 5px;">${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}</div>
-                </div>
-
-                <div class="flex-between border-bottom" style="margin-top: 8px;">
-                  <div class="font-bold text-sm" style="padding-left: 5px;">Invoice Date:</div>
-                  <div class="text-sm" style="padding-right: 5px;">${invoiceDate}</div>
-                </div>
-
-                <div class="flex-between border-bottom" style="margin-top: 8px;">
-                  <div class="font-bold text-sm" style="padding-left: 5px;">Due Date:</div>
-                  <div class="text-sm" style="padding-right: 5px;">${dueDate}</div>
-                </div>
-
-                <div class="flex-between border-bottom" style="margin-top: 8px;">
-                  <div class="font-bold text-sm" style="padding-left: 5px;">Status:</div>
-                  <div class="text-sm status-${invoiceData.payment_status}" style="padding-right: 5px;">
-                    ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Items Table -->
-            <table style="margin-top: 20px;" class="page-break">
-              <thead>
-                <tr>
-                  <th style="width: 40px; padding: 8px; text-align: center; vertical-align: middle;">#</th>
-                  <th style="padding: 8px; text-align: center;">Item Description</th>
-                  <th style="width: 80px; padding: 8px; text-align: center; vertical-align: middle;">HSN/SAC</th>
-                  <th style="width: 100px; padding: 8px; text-align: center; vertical-align: middle;">Rate / Item</th>
-                  <th style="width: 70px; padding: 8px; text-align: center; vertical-align: middle;">Qty</th>
-                  <th style="width: 120px; padding: 8px; text-align: center; vertical-align: middle;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-            </table>
-
-            <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
-              Total Items / Qty : ${totalItems} / ${totalQuantity}
-            </p>
-
-            <!-- Totals Box -->
-            <div class="border-all page-break" style="margin-top: 20px; padding: 15px;">
-              <div class="flex-between border-bottom">
-                <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
-                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
-              </div>
-              ${gstNum > 0 ? `
-              <div class="flex-between border-bottom" style="margin-top: 8px;">
-                <div class="font-bold text-sm" style="padding-left: 5px;">GST</div>
-                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
-              </div>
-              ` : ''}
-              ${discountNum > 0 ? `
-              <div class="flex-between border-bottom" style="margin-top: 8px;">
-                <span class="font-bold text-sm">Total Discount</span>
-                <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
-              </div>
-              ` : ''}
-              
-              <p class="text-sm" style="margin-top: 15px; padding-left: 5px;">
-                <b>Total amount (in words):</b> ${amountInWords}
-              </p>
-              
-              <div class="flex-between" style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #000;">
-                <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
-                <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
-              </div>
-            </div>
-
-            <!-- Bank Details & Authorized Signatory Section (NEW) -->
-            <div class="bank-signature-section page-break">
-              <!-- Left Column: Bank Details -->
-              <div class="bank-details-column">
-                <div class="footer-title">Bank Details</div>
-                <div class="bank-details">
-                  <p><b>Account Number:</b> 234000991111899</p>
-                  <p><b>Bank:</b> ICICI</p>
-                  <p><b>IFSC:</b> ICICI560000078</p>
-                  <p><b>Branch:</b> Meerut</p>
-                  <p><b>Account Name:</b> Kamal</p>
-                </div>
-              </div>
-              
-              <!-- Right Column: Signature -->
-              <div class="signature-column">
-                <!-- Thank You Note -->
-                <div class="thank-you-note">
-                  Thank you for your business! We appreciate your trust in us and look forward to serving you again.
-                </div>
-                
-                <!-- Signature Space -->
-                <div class="signature-space">
-                  <div class="signature-line">
-                    <p class="text-sm font-bold">For ${vendorName}</p>
-                    <p class="text-sm">Authorized Signatory</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fixed Footer Section with Terms & Conditions -->
-            <div class="footer-fixed page-break">
-              <!-- Two-column layout for Terms & Conditions -->
-              <div class="footer-columns">
-                <!-- Terms and Conditions -->
-                <div class="terms-column">
-                  <div class="footer-title">Terms and Conditions</div>
-                  <div class="terms-conditions">
-                    <p><b>E & O.E</b></p>
-                    <p>1. Goods once sold will not be taken back.</p>
-                    <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
-                    <p>3. Subject to 'Delhi' Jurisdiction only.</p>
-                  </div>
-                </div>
-
-                <!-- Empty column for alignment -->
-                <div class="bank-column" style="background-color: #f9f9f9;">
-                  <!-- Empty space or additional info can go here -->
-                </div>
-              </div>
-            </div>
-            
-          </div>
-        </body>
-      </html>
-    `);
-    iframeDoc.close();
-
-    // Wait for iframe to render and images to load
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Check if images are loaded in the iframe
-    const images = iframeDoc.images;
-    let allImagesLoaded = true;
-    
-    for (let i = 0; i < images.length; i++) {
-      if (!images[i].complete) {
-        allImagesLoaded = false;
-        console.log(`Image ${i} not yet loaded:`, images[i].src);
-      }
-    }
-
-    if (!allImagesLoaded) {
-      console.log("Waiting additional time for images to load...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-    }
-
-    // Generate PDF from iframe with improved settings
-    const canvas = await html2canvas(iframeDoc.body, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: 210 * 3.78,
-      height: 297 * 3.78,
-      windowWidth: 210 * 3.78,
-      windowHeight: 297 * 3.78,
-      logging: true,
-      imageTimeout: 15000,
-      onclone: (clonedDoc, element) => {
-        // Ensure all images have crossOrigin attribute
-        const images = element.getElementsByTagName('img');
-        Array.from(images).forEach(img => {
-          img.setAttribute('crossOrigin', 'anonymous');
-          
-          // If image is from our proxy, add enhanced error handling
-          if (img.src.includes('/api/vendor/logo')) {
-            console.log('🔗 Found proxy image, adding enhanced error handler');
-            
-            const initial = (vendorName || 'V').charAt(0).toUpperCase();
-            const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
-            
-            img.onerror = function() {
-              console.log('❌ Proxy image failed in clone');
-              this.src = placeholderSvg;
-              this.onerror = null;
-            };
-          }
+          totalItems++;
+          totalQuantity += productQty;
+          subtotalAmount += productTotal;
         });
+
+        console.log("📊 Table totals:", {
+          totalItems,
+          totalQuantity,
+          subtotalAmount
+        });
+      } else {
+        // Single product fallback
+        console.log("Using single product fallback");
+        const unitPrice = grossAmtNum / (invoiceData.qty || 1);
+        const originalPrice = grossAmtNum + discountNum;
+
+        tableRows = `
+      <tr>
+        <td>1</td>
+        <td>
+          <div style="font-weight: bold; margin-bottom: 2px;">${invoiceData.product_name || 'Product/Service'}</div>
+          ${invoiceData.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${invoiceData.product_sku}</div>` : ''}
+        </td>
+        <td>${invoiceData.product_sku || 'N/A'}</td>
+        <td>
+          ₹${formatCurrency(unitPrice)}<br>
+          ${discountNum > 0 ?
+            `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
+            : ''}
+        </td>
+        <td>
+          <div>${invoiceData.qty || 1}</div>
+          <div style="font-size: 9px; color: #666;">${(invoiceData.qty || 1) > 1 ? 'PCS' : 'PC'}</div>
+        </td>
+        <td>
+          <div style="font-weight: bold;">₹${formatCurrency(grandTotalNum)}</div>
+          ${gstNum > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(gstNum)}</div>` : ''}
+        </td>
+      </tr>
+    `;
+        totalItems = 1;
+        totalQuantity = invoiceData.qty || 1;
+        subtotalAmount = grandTotalNum;
       }
-    });
 
-    // Clean up
-    document.body.removeChild(iframe);
+      // Create the logo HTML with fallback
+      let logoHTML = '';
 
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
+      if (useBase64) {
+        logoHTML = `<img src="${logoSrc}" 
+                    alt="Vendor Logo" 
+                    style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
+                    crossorigin="anonymous">`;
+      } else if (useProxy) {
+        const directUrl = getDirectLogoUrl(vendor!.logo_url);
+        const placeholder = createPlaceholderLogo();
 
-    const imgData = canvas.toDataURL('image/png', 1.0);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        logoHTML = `<img src="${logoSrc}" 
+                    alt="Vendor Logo" 
+                    style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
+                    crossorigin="anonymous"
+                    onerror="
+                      this.onerror=null;
+                      console.log('Proxy failed, trying direct URL');
+                      this.src='${directUrl}';
+                      this.onerror=function() {
+                        console.log('Direct URL also failed, using placeholder');
+                        this.src='${placeholder}';
+                        this.onerror=null;
+                      }
+                    ">`;
+      } else {
+        logoHTML = `<img src="${logoSrc}" 
+                    alt="Vendor Logo" 
+                    style="width: 60px; height: 60px; object-fit: contain;">`;
+      }
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
 
-    const pdfBlob = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
+      // Create a temporary iframe for perfect rendering
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = `
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 210mm;
+    height: 297mm;
+    border: none;
+    visibility: hidden;
+  `;
+      document.body.appendChild(iframe);
 
-    console.log("✅ Classic template PDF generated successfully");
-    console.log("📄 PDF details:", {
-      totalItems,
-      totalQuantity,
-      subtotalAmount,
-      gst: gstNum,
-      discount: discountNum,
-      grandTotal: grandTotalNum
-    });
-    
-    return pdfUrl;
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Could not create iframe document');
+      }
 
-  } catch (err) {
-    console.error('❌ Error generating classic template PDF:', err);
-    // Fallback: generate PDF without logo
-    return await generateSimplePDF(invoiceData);
-  } finally {
-    setIsGeneratingPDF(false);
-  }
-};
+      // Write the exact HTML structure with API data
+      iframeDoc.open();
+      iframeDoc.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          body { 
+            width: 210mm; 
+            min-height: 297mm; 
+            padding: 7mm 7mm 7mm 7mm; 
+            background: white; 
+            color: black;
+            line-height: 1.4;
+            position: relative;
+          }
+          .invoice-container {
+            width: 100%;
+            background: white;
+            border: 1px solid #666;
+            position: relative;
+            min-height: 260mm;
+            padding-bottom: 40mm; /* Space for fixed footer */
+          }
+          .border-bottom {
+            border-bottom: 1px solid #666;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+          }
+          .text-center { text-align: center; 
+          padding:-4px 0 important;  }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: bold; }
+          .text-sm { font-size: 12px; }
+          .text-base { font-size: 13px; }
+          .text-lg { font-size: 14px; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 12px;
+            border-top: 1px solid #666;
+           
+          }
+          th, td {
+            border-bottom: 1px solid #666;
+            border-left: 1px solid #666;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+          }
+          th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            text-align: center;
+      
+          }
+          .invoice-table {
+           
+          }
+          .invoice-table th,
+          .invoice-table td {
+          
+          }
+          .invoice-table td:nth-child(1),
+          .invoice-table td:nth-child(3),
+          .invoice-table td:nth-child(4),
+          .invoice-table td:nth-child(5),
+          .invoice-table td:nth-child(6) {
+            text-align: center;
+          }
+          .invoice-table th:nth-child(2),
+          .invoice-table td:nth-child(2) {
+            text-align: left;
+          }
+          .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin: 15px 0;
+          }
+          .border-all {
+            border: 1px solid #666;
+            padding-bottom: 10px;
+          }
+          .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .signature-box {
+            margin-top: 20px;
+            text-align: right;
+          }
+          .logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+          }
+          .logo-placeholder {
+            width: 60px;
+            height: 60px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+            border-radius: 4px;
+          }
+          .status-paid { color: green; }
+          .status-pending { color: orange; }
+          .status-unpaid { color: red; }
+          
+          /* Footer Styles */
+          .footer-fixed {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 2px solid #666;
+            background: white;
+            padding: 0;
+            height: 115px;
+            display: flex;
+            align-items: stretch;
+          }
+          .footer-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #1e40af;
+          }
+          .bank-details {
+            font-size: 11px;
+            line-height: 1.4;
+          }
+          .terms-conditions {
+            font-size: 10px;
+            line-height: 1.2;
+          }
+          .final-signature {
+            margin-top: 20px;
+            text-align: right;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+          }
+          .page-break {
+            page-break-inside: avoid;
+          }
+          .footer-columns {
+            display: flex;
+            width: 100%;
+            height: 100%;
+          }
+          .terms-column {
+            flex: 1;
+            border-right: 1px solid #666;
+            padding: 10px 15px 10px 10px;
+          }
+          .bank-column {
+            flex: 1;
+            padding: 10px 10px 10px 15px;
+          }
+          
+          /* Bank & Signature Section Styles */
+          .bank-signature-section {
+            margin: 20px 0 25px 0;
+            border-top: 1px solid #666;
+            border-bottom: 1px solid #666;
+            padding: 0;
+            background-color: #fff;
+            page-break-inside: avoid;
+            display: flex;
+          }
+          .bank-details-column {
+            flex: 1;
+            border-right: 1px solid #666;
+            padding: 15px;
+          }
+          .signature-column {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .thank-you-note {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #1e40af;
+            text-align: center;
+            padding: 10px;
+            font-style: italic;
+            border: 1px dashed #1e40af;
+            background-color: #f0f8ff;
+            margin-bottom: 10px;
+          }
+          .signature-space {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+          }
+          .signature-line {
+            width: 100%;
+            border-top: 1px solid #000;
+            margin-top: 20px;
+            padding-top: 5px;
+            text-align: center;
+          }
+          
+          /* Remove old footer styles */
+          .footer-section {
+            display: none;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-container">
+          <!-- Invoice Title -->
+          <div class="text-center">
+            <h1
+class="text-lg font-bold"
+style="
+  color: #1e40af;
+  letter-spacing: 2px;
+  margin: 0;
+  padding: -4px 0px important;
+"
+>
+TAX INVOICE
+</h1>
+
+          </div>
+
+          <!-- Header Section -->
+          <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
+            <!-- Left Box -->
+            <div style="border-right: 1px solid #666; padding: 10px;">
+              <!-- Logo and Details -->
+              <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
+                ${logoHTML}
+              
+                <div>
+                  <h2 class="font-bold text-base">${vendorName}</h2>
+                  <p class="text-sm">${vendorAddress}</p>
+                  <p class="text-sm">Mobile: ${vendorPhone}</p>
+                  ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
+                </div>
+              </div>
+              
+              <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
+                <p class="font-bold text-sm">Customer Details:</p>
+                <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
+                ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
+                ${invoiceData.email ? `<p class="text-sm">${invoiceData.email}</p>` : ''}
+              </div>
+            </div>
+
+            <!-- Right Box -->
+            <div style="
+  padding-right: 0px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+ 
+  font-size: 12px;
+">
+
+  <!-- Invoice Number -->
+  <div style="padding: 6px; border-right: 1px solid #666; border-bottom: 1px solid #666;">
+    <div class="font-bold">Invoice #</div>
+    <div>
+      ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
+    </div>
+  </div>
+
+  <!-- Invoice Date -->
+  <div style="padding: 6px; border-bottom: 1px solid #666;">
+    <div class="font-bold">Invoice Date</div>
+    <div>${invoiceDate}</div>
+  </div>
+
+  <!-- Due Date -->
+  <div style="padding: 6px; border-right: 1px solid #666;">
+    <div class="font-bold">Due Date</div>
+    <div>${dueDate}</div>
+  </div>
+
+  <!-- Status -->
+  <div style="padding: 6px;">
+    <div class="font-bold">Status</div>
+    <div class="status-${invoiceData.payment_status}">
+      ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
+    </div>
+  </div>
+
+</div>
+
+          </div>
+
+          <!-- Items Table -->
+          <table class="invoice-table page-break">
+            <thead>
+              <tr>
+                <th style="width: 40px; padding: 8px; border: none; border-bottom: 1px solid #666;">
+  #
+</th>
+
+                <th style="padding: 8px;">Item Description</th>
+                <th style="width: 80px; padding: 8px;">HSN/SAC</th>
+                <th style="width: 100px; padding: 8px;">Rate / Item</th>
+                <th style="width: 70px; padding: 8px;">Qty</th>
+                <th style="width: 120px; padding: 8px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
+            Total Items / Qty : ${totalItems} / ${totalQuantity}
+          </p>
+
+          <!-- Totals Box -->
+          <div class="page-break" style=" border-top: 1px solid #666;  margin-top: 20px; ">
+            <div class="flex-between border-bottom">
+              <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
+              <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
+            </div>
+            ${gstNum > 0 ? `
+            <div class="flex-between border-bottom" style="margin-top: 8px;">
+              <div class="font-bold text-sm" style="padding-left: 5px;">GST</div>
+              <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
+            </div>
+            ` : ''}
+            ${discountNum > 0 ? `
+            <div class="flex-between border-bottom" style="margin-top: 8px;">
+              <span class="font-bold text-sm">Total Discount</span>
+              <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
+            </div>
+            ` : ''}
+            
+
+            
+            <div class="flex-between" style=" padding-top: 2px;">
+              <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
+              <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
+            </div>
+          </div>
+
+          <!-- Bank Details & Authorized Signatory Section (NEW) -->
+          <div class="bank-signature-section page-break">
+            <!-- Left Column: Bank Details -->
+            <div style="
+  display: flex;
+  border-right: 1px solid #666;
+">
+
+  <!-- Left: Bank Details -->
+  <div style="
+    width: 50%;
+    padding: 10px;
+  ">
+    <div style="font-weight: bold; margin-bottom: 6px;">
+      Bank Details
+    </div>
+    <div>
+      <p><b>Account Number:</b> 234000991111899</p>
+      <p><b>Bank:</b> ICICI</p>
+      <p><b>IFSC:</b> ICICI560000078</p>
+      <p><b>Branch:</b> Meerut</p>
+      <p><b>Account Name:</b> Kamal</p>
+    </div>
+  </div>
+
+  <!-- Right: QR Code -->
+  <div style="
+    width: 50%;
+    padding: 10px;
+    border-left: 1px solid #666;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  ">
+    <div style="font-weight: bold; margin-bottom: 6px;">
+      QR Code
+    </div>
+    <img
+      src="/images/QRCode.png"
+      alt="Payment QR Code"
+      style="width: 120px; height: 120px; object-fit: contain;"
+    />
+  </div>
+
+</div>
+
+            
+            <!-- Right Column: Signature -->
+            <div class="signature-column">
+              <!-- Thank You Note -->
+             
+              
+              <!-- Signature Space -->
+              <div class="signature-space">
+                <div class="signature-line">
+                  <p class="text-sm font-bold">For ${vendorName}</p>
+                  <p class="text-sm">Authorized Signatory</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fixed Footer Section with Terms & Conditions -->
+          <div class="footer-fixed page-break">
+            <!-- Two-column layout for Terms & Conditions -->
+            <div class="footer-columns">
+              <!-- Terms and Conditions -->
+              <div class="terms-column">
+                <div class="footer-title">Terms and Conditions</div>
+                <div class="terms-conditions">
+                  <p><b>E & O.E</b></p>
+                  <p>1. Goods once sold will not be taken back.</p>
+                  <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
+                  <p>3. Subject to 'Delhi' Jurisdiction only.</p>
+                </div>
+              </div>
+
+              <!-- Empty column for alignment -->
+              <div class="bank-column" style="background-color: #f9f9f9;">
+                 <div class="thank-you-note">
+                Thank you for your business! We appreciate your trust in us and look forward to serving you again.
+              </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </body>
+    </html>
+  `);
+      iframeDoc.close();
+
+      // Wait for iframe to render and images to load
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Check if images are loaded in the iframe
+      const images = iframeDoc.images;
+      let allImagesLoaded = true;
+
+      for (let i = 0; i < images.length; i++) {
+        if (!images[i].complete) {
+          allImagesLoaded = false;
+          console.log(`Image ${i} not yet loaded:`, images[i].src);
+        }
+      }
+
+      if (!allImagesLoaded) {
+        console.log("Waiting additional time for images to load...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      // Generate PDF from iframe with improved settings
+      const canvas = await html2canvas(iframeDoc.body, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 210 * 3.78,
+        height: 297 * 3.78,
+        windowWidth: 210 * 3.78,
+        windowHeight: 297 * 3.78,
+        logging: true,
+        imageTimeout: 15000,
+        onclone: (clonedDoc, element) => {
+          // Ensure all images have crossOrigin attribute
+          const images = element.getElementsByTagName('img');
+          Array.from(images).forEach(img => {
+            img.setAttribute('crossOrigin', 'anonymous');
+
+            // If image is from our proxy, add enhanced error handling
+            if (img.src.includes('/api/vendor/logo')) {
+              console.log('🔗 Found proxy image, adding enhanced error handler');
+
+              const initial = (vendorName || 'V').charAt(0).toUpperCase();
+              const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
+
+              img.onerror = function () {
+                console.log('❌ Proxy image failed in clone');
+                this.src = placeholderSvg;
+                this.onerror = null;
+              };
+            }
+          });
+        }
+      });
+
+      // Clean up
+      document.body.removeChild(iframe);
+
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      console.log("✅ Classic template PDF generated successfully");
+      console.log("📄 PDF details:", {
+        totalItems,
+        totalQuantity,
+        subtotalAmount,
+        gst: gstNum,
+        discount: discountNum,
+        grandTotal: grandTotalNum
+      });
+
+      return pdfUrl;
+
+    } catch (err) {
+      console.error('❌ Error generating classic template PDF:', err);
+      // Fallback: generate PDF without logo
+      return await generateSimplePDF(invoiceData);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Simple fallback PDF
   const generateSimplePDF = async (invoiceData: Invoice): Promise<string | null> => {
@@ -4339,7 +4423,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
       y += 10
       pdf.setFontSize(10)
       pdf.setTextColor(0, 0, 0)
-      pdf.text(`Invoice #: ${ invoiceData.invoice_id || 'N/A'}`, 20, y)
+      pdf.text(`Invoice #: ${invoiceData.invoice_id || 'N/A'}`, 20, y)
       pdf.text(`Date: ${formatDate(invoiceData.issue_date)}`, 150, y)
 
       y += 15
@@ -4379,13 +4463,13 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
 
       y += 10
       pdf.setFontSize(10)
-      
+
       // Add products
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product, index) => {
           const productTotal = parseFloat(product.total) || 0
           const productQty = parseInt(product.qty.toString()) || 1
-          
+
           pdf.text((index + 1).toString(), 20, y)
           pdf.text(product.product_name || 'Product/Service', 30, y)
           pdf.text(product.product_sku || 'N/A', 120, y)
@@ -4398,7 +4482,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
         const totals = calculateInvoiceTotals(invoiceData)
         const grandTotalNum = totals.totalGrandTotal
         const singleQty = invoiceData.qty || 1
-        
+
         pdf.text('1', 20, y)
         pdf.text(invoiceData.product_name || 'Product/Service', 30, y)
         pdf.text(invoiceData.product_sku || 'N/A', 120, y)
@@ -4511,10 +4595,10 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
         console.log("Vendor:", vendor.shop_name)
         console.log("Logo base64 loaded:", logoBase64 ? "Yes" : "No")
         console.log("Selected Template:", selectedTemplate)
-        
+
         // Small delay to ensure logo is loaded
         await new Promise(resolve => setTimeout(resolve, 800))
-        
+
         const pdfUrl = await generatePDFByTemplate(invoice, selectedTemplate)
         if (pdfUrl) {
           setPdfPreviewUrl(pdfUrl)
@@ -4532,7 +4616,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
       if (pdfPreviewUrl) {
         URL.revokeObjectURL(pdfPreviewUrl)
       }
-      
+
       // Regenerate with new template
       const regeneratePDF = async () => {
         setPdfPreviewUrl(null)
@@ -4541,7 +4625,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
           setPdfPreviewUrl(pdfUrl)
         }
       }
-      
+
       regeneratePDF()
     }
   }, [selectedTemplate])
@@ -4569,7 +4653,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
         await fetchInvoice(invoiceId)
       }
     }
-    
+
     fetchData()
   }, [invoiceId])
 
@@ -4691,7 +4775,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
               Change
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {templates
               .filter(t => ['modern', 'classic', 'minimal'].includes(t.id))
@@ -4699,11 +4783,10 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplate(template.id)}
-                  className={`w-full rounded-lg border-2 p-2 transition-all hover:border-primary/50 ${
-                    selectedTemplate === template.id 
-                      ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20" 
-                      : "border-gray-200 dark:border-gray-700"
-                  }`}
+                  className={`w-full rounded-lg border-2 p-2 transition-all hover:border-primary/50 ${selectedTemplate === template.id
+                    ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 dark:border-gray-700"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative bg-gray-100 dark:bg-gray-800 rounded overflow-hidden" style={{ width: '60px', height: '80px' }}>
@@ -4735,106 +4818,105 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
 
         {/* Invoice Info */}
         {/* Quick Actions */}
-<div className="p-4 border-b border-gray-200 dark:border-gray-800">
-  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
-    Quick Actions
-  </h4>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Quick Actions
+          </h4>
 
-  <div className="grid grid-cols-2 gap-2">
-    {actionButtons.slice(0, 6).map((action, index) => (
-      <button
-        key={index}
-        onClick={action.onClick}
-        disabled={action.loading}
-        className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-colors
-          ${
-            action.variant === 'primary'
-              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-          }
+          <div className="grid grid-cols-2 gap-2">
+            {actionButtons.slice(0, 6).map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                disabled={action.loading}
+                className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-colors
+          ${action.variant === 'primary'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }
           disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        {action.loading ? (
-          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-        ) : (
-          action.icon
-        )}
-        <span className="text-xs font-medium">{action.label}</span>
-      </button>
-    ))}
-  </div>
-</div>
+              >
+                {action.loading ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  action.icon
+                )}
+                <span className="text-xs font-medium">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-{/* Invoice Info */}
-<div className="p-4 border-b border-gray-200 dark:border-gray-800">
-  <div className="flex items-center justify-between mb-3">
-    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-      Invoice Status
-    </div>
-    <div
-      className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}
-    >
-      {currentStatus.icon}
-      {currentStatus.label}
-    </div>
-  </div>
+        {/* Invoice Info */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Invoice Status
+            </div>
+            <div
+              className={`px-3 py-1 rounded-full border flex items-center gap-1 text-xs font-medium ${currentStatus.color}`}
+            >
+              {currentStatus.icon}
+              {currentStatus.label}
+            </div>
+          </div>
 
-  <div className="space-y-2 text-sm">
-    <div className="flex justify-between">
-      <span className="text-gray-600 dark:text-gray-400">Invoice #</span>
-      <span className="font-medium dark:text-white">
-        {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}
-      </span>
-    </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Invoice #</span>
+              <span className="font-medium dark:text-white">
+                {invoice?.invoice_number || invoice?.invoice_id || 'N/A'}
+              </span>
+            </div>
 
-    <div className="flex justify-between">
-      <span className="text-gray-600 dark:text-gray-400">Customer</span>
-      <span className="font-medium dark:text-white">
-        {invoice?.billing_to || 'N/A'}
-      </span>
-    </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Customer</span>
+              <span className="font-medium dark:text-white">
+                {invoice?.billing_to || 'N/A'}
+              </span>
+            </div>
 
-    <div className="flex justify-between">
-      <span className="text-gray-600 dark:text-gray-400">Amount</span>
-      <span className="font-medium dark:text-white">
-        ₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}
-      </span>
-    </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Amount</span>
+              <span className="font-medium dark:text-white">
+                ₹{parseInvoiceNumber(invoice?.grand_total || '0').toFixed(2)}
+              </span>
+            </div>
 
-    <div className="flex justify-between">
-      <span className="text-gray-600 dark:text-gray-400">Date</span>
-      <span className="font-medium dark:text-white">
-        {invoice?.issue_date
-          ? new Date(invoice.issue_date).toLocaleDateString()
-          : 'N/A'}
-      </span>
-    </div>
-  </div>
-</div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Date</span>
+              <span className="font-medium dark:text-white">
+                {invoice?.issue_date
+                  ? new Date(invoice.issue_date).toLocaleDateString()
+                  : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
 
 
         {/* More Actions */}
         <div className="p-4">
-  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
-    More Actions
-  </h4>
+          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+            More Actions
+          </h4>
 
-  <div className="grid grid-cols-2 gap-2">
-    {actionButtons.slice(6).map((action, index) => (
-      <button
-        key={index}
-        onClick={action.onClick}
-        className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
+          <div className="grid grid-cols-2 gap-2">
+            {actionButtons.slice(6).map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
                    flex items-center gap-3
                    hover:bg-gray-50 dark:hover:bg-gray-800
                    transition-colors text-sm dark:text-gray-300"
-      >
-        {action.icon}
-        <span className="truncate">{action.label}</span>
-      </button>
-    ))}
-  </div>
-</div>
+              >
+                {action.icon}
+                <span className="truncate">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
 
         {/* Footer */}
@@ -4891,7 +4973,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
             >
               <Settings size={20} />
             </button>
-            
+
             {/* Template Selector Button */}
             <div className="relative">
               <button
@@ -4904,11 +4986,11 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
                   Template: {templates.find(t => t.id === selectedTemplate)?.name}
                 </span>
               </button>
-              
+
               {/* Template Selector Dropdown */}
               <TemplateSelector />
             </div>
-            
+
             {/* Theme Toggle */}
             <div className="relative">
               <button
@@ -4928,33 +5010,30 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
                   {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}
                 </span>
               </button>
-              
+
               {/* Theme dropdown for desktop */}
               <div className="absolute left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                 <div className="py-1">
                   <button
                     onClick={() => toggleTheme('light')}
-                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      theme === 'light' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${theme === 'light' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   >
                     <Sun size={16} />
                     Light
                   </button>
                   <button
                     onClick={() => toggleTheme('dark')}
-                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      theme === 'dark' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${theme === 'dark' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   >
                     <Moon size={16} />
                     Dark
                   </button>
                   <button
                     onClick={() => toggleTheme('system')}
-                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      theme === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${theme === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   >
                     <Monitor size={16} />
                     System
@@ -4992,7 +5071,7 @@ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string 
                   <Download size={16} />
                   Download PDF
                 </button>
-                
+
               </>
             )}
           </div>

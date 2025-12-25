@@ -49,6 +49,7 @@ export interface Invoice {
   payment_status: string;
   payment_mode: string | null;
   utr_number: string | null;
+  
   invoice_number: string | null;
   created_at: string;
   updated_at: string;
