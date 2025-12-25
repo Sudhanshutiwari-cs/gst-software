@@ -2684,7 +2684,7 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
+  
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -2705,7 +2705,7 @@ export default function InvoiceViewer({ params }: PageProps) {
             </tr>
           `
         
-          totalItems++
+         
         })
       } else {
         // Single product fallback
