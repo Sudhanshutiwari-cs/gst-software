@@ -2247,7 +2247,7 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
+   
       let totalQuantity = 0
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -2266,7 +2266,7 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-          totalItems++
+          
           totalQuantity += productQty
         })
       } else {
@@ -2284,7 +2284,7 @@ export default function InvoiceViewer({ params }: PageProps) {
           </tr>
         `
       
-        totalQuantity = invoiceData.qty || 1
+        
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2687,8 +2687,8 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
-      let totalQuantity = 0
+ 
+
 
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product) => {
@@ -2707,8 +2707,8 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td><strong>₹${formatCurrency(productTotal)}</strong></td>
             </tr>
           `
-          totalItems++
-          totalQuantity += productQty
+        
+       
         })
       } else {
         // Single product fallback
@@ -3123,7 +3123,7 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
+      
       let totalQuantity = 0
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -3143,8 +3143,8 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-          totalItems++
-          totalQuantity += productQty
+        
+       
         })
       } else {
         // Single product fallback
@@ -3561,51 +3561,7 @@ export default function InvoiceViewer({ params }: PageProps) {
       };
 
       // Number to words function
-      const numberToWords = (num: number): string => {
-        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-          'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
-          'Eighteen', 'Nineteen'];
-        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-        if (num === 0) return 'Zero';
-
-        let words = '';
-
-        if (num >= 10000000) {
-          words += numberToWords(Math.floor(num / 10000000)) + ' Crore ';
-          num %= 10000000;
-        }
-
-        if (num >= 100000) {
-          words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
-          num %= 100000;
-        }
-
-        if (num >= 1000) {
-          words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
-          num %= 1000;
-        }
-
-        if (num >= 100) {
-          words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
-          num %= 100;
-        }
-
-        if (num > 0) {
-          if (words !== '') words += 'and ';
-
-          if (num < 20) {
-            words += ones[num];
-          } else {
-            words += tens[Math.floor(num / 10)];
-            if (num % 10 > 0) {
-              words += ' ' + ones[num % 10];
-            }
-          }
-        }
-
-        return words.trim() + ' Rupees Only.';
-      };
+      
 
       // Use vendor data for company info
       const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
