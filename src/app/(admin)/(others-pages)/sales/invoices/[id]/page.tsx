@@ -2245,7 +2245,7 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalQuantity = 0
+     
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -2264,8 +2264,7 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-          
-          totalQuantity += productQty
+
         })
       } else {
         // Single product fallback
@@ -3121,8 +3120,8 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      let totalItems = 0
-      let totalQuantity = 0
+     
+     
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -3143,8 +3142,7 @@ export default function InvoiceViewer({ params }: PageProps) {
             </tr>
           `
         
-          totalItems++
-          totalQuantity += productQty
+
         })
       } else {
         // Single product fallback
