@@ -1,7 +1,7 @@
 "use client"
 
 import { InvoicePreview } from "@/components/invoice/invoice-preview"
-import { Invoice } from "../../../../.././../../types/invoice"
+import { Invoice, InvoiceProduct } from "../../../../.././../../types/invoice"
 import { useEffect, useState, useRef } from "react"
 import { sampleInvoice } from "@/components/data/sampleInvoice"
 import { jsPDF } from "jspdf"
@@ -193,7 +193,6 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   // Helper to calculate totals from products array
-  // Helper to calculate totals from products array
   const calculateInvoiceTotals = (invoiceData: Invoice) => {
     let totalQty = 0
     let totalGrossAmt = 0
@@ -206,8 +205,8 @@ export default function InvoiceViewer({ params }: PageProps) {
     if (invoiceData.products && invoiceData.products.length > 0) {
       console.log(`Processing ${invoiceData.products.length} products`)
 
-      invoiceData.products.forEach((product, index) => {
-        const productQty = parseInt(product.qty.toString()) || 0
+      invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+        const productQty = product.qty || 0
         const productGrossAmt = parseFloat(product.gross_amt) || 0
         const productGst = parseFloat(product.gst || '0') || 0
         const productDiscount = parseFloat(product.discount || '0') || 0
@@ -364,12 +363,12 @@ export default function InvoiceViewer({ params }: PageProps) {
     let itemsHTML = ''
 
     if (invoice.products && invoice.products.length > 0) {
-      invoice.products.forEach((product) => {
+      invoice.products.forEach((product: InvoiceProduct) => {
         const productGrossAmt = parseFloat(product.gross_amt) || 0
         const productGst = parseFloat(product.gst || '0') || 0
         const productDiscount = parseFloat(product.discount || '0') || 0
         const productTotal = parseFloat(product.total) || 0
-        const productQty = parseInt(product.qty.toString()) || 1
+        const productQty = product.qty || 1
 
         itemsHTML += `
           <tr>
@@ -736,7 +735,6 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   // Fetch invoice data from API
-  // Fetch invoice data from API - UPDATED
   const fetchInvoice = async (invoiceId: string) => {
     try {
       setLoading(true)
@@ -786,11 +784,11 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       if (hasProductsArray) {
         console.log("🔄 Calculating totals from products array...")
-        invoiceData.products.forEach((product: any, index: number) => {
-          const productQty = parseInt(product.qty) || 0
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+          const productQty = product.qty || 0
           const productGrossAmt = parseFloat(product.gross_amt) || 0
-          const productGst = parseFloat(product.gst) || 0
-          const productDiscount = parseFloat(product.discount) || 0
+          const productGst = parseFloat(product.gst || '0') || 0
+          const productDiscount = parseFloat(product.discount || '0') || 0
           const productTotal = parseFloat(product.total) || 0
 
           console.log(`Product ${index + 1}:`, {
@@ -846,7 +844,7 @@ export default function InvoiceViewer({ params }: PageProps) {
           invoiceData.product_name || '',
         terms: invoiceData.terms || null,
         notes: invoiceData.notes || null,
-        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id) || 0 :
+        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
           parseInt(invoiceData.product_id) || 0,
         product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
           invoiceData.product_sku || '',
@@ -867,13 +865,13 @@ export default function InvoiceViewer({ params }: PageProps) {
         updated_at: invoiceData.updated_at || new Date().toISOString(),
         shipping_address: invoiceData.shipping_address || null,
         // Add products array - IMPORTANT: Map all product fields
-        products: hasProductsArray ? invoiceData.products.map((product: any) => ({
-          id: parseInt(product.id) || 0,
+        products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
+          id: parseInt(product.id?.toString() || '0') || 0,
           invoice_id: product.invoice_id || '',
           product_name: product.product_name || '',
-          product_id: parseInt(product.product_id) || 0,
+          product_id: parseInt(product.product_id?.toString() || '0') || 0,
           product_sku: product.product_sku || '',
-          qty: parseInt(product.qty) || 0,
+          qty: product.qty || 0,
           gross_amt: product.gross_amt || '0',
           gst: product.gst || '0',
           tax_inclusive: product.tax_inclusive || 0,
@@ -952,11 +950,11 @@ export default function InvoiceViewer({ params }: PageProps) {
 
 
       if (invoice.products && invoice.products.length > 0) {
-        invoice.products.forEach((product) => {
+        invoice.products.forEach((product: InvoiceProduct) => {
 
 
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
 
           itemsHTML += `
             <tr>
@@ -1322,11 +1320,11 @@ export default function InvoiceViewer({ params }: PageProps) {
       let totalQuantity = 0;
 
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0;
 
           const productTotal = parseFloat(product.total) || 0;
-          const productQty = parseInt(product.qty.toString()) || 1;
+          const productQty = product.qty || 1;
           const unitPrice = productGrossAmt / productQty;
 
           tableRows += `
@@ -1870,11 +1868,11 @@ export default function InvoiceViewer({ params }: PageProps) {
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product) => {
+        invoiceData.products.forEach((product: InvoiceProduct) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
 
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
           const unitPrice = productGrossAmt / productQty
 
           tableRows += `
@@ -2247,15 +2245,15 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-   
       let totalQuantity = 0
 
+
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product) => {
+        invoiceData.products.forEach((product: InvoiceProduct) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
 
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
           const unitPrice = productGrossAmt / productQty
 
           tableRows += `
@@ -2687,15 +2685,15 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
- 
+      let totalItems = 0
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product) => {
+        invoiceData.products.forEach((product: InvoiceProduct) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
 
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
           const unitPrice = productGrossAmt / productQty
 
           tableRows += `
@@ -2708,7 +2706,7 @@ export default function InvoiceViewer({ params }: PageProps) {
             </tr>
           `
         
-       
+          totalItems++
         })
       } else {
         // Single product fallback
@@ -3123,15 +3121,16 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
-      
+      let totalItems = 0
       let totalQuantity = 0
 
+
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product) => {
+        invoiceData.products.forEach((product: InvoiceProduct) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
 
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
           const unitPrice = productGrossAmt / productQty
 
           tableRows += `
@@ -3144,7 +3143,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             </tr>
           `
         
-       
+          totalItems++
+          totalQuantity += productQty
         })
       } else {
         // Single product fallback
@@ -3518,7 +3518,6 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   // Classic Template PDF (existing code)
-  // Classic Template PDF (existing code)
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
       setIsGeneratingPDF(true);
@@ -3559,9 +3558,6 @@ export default function InvoiceViewer({ params }: PageProps) {
           maximumFractionDigits: 2
         }).format(amount);
       };
-
-      // Number to words function
-      
 
       // Use vendor data for company info
       const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
@@ -3638,12 +3634,12 @@ export default function InvoiceViewer({ params }: PageProps) {
       if (invoiceData.products && invoiceData.products.length > 0) {
         console.log(`Processing ${invoiceData.products.length} products`);
 
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0;
           const productGst = parseFloat(product.gst || '0') || 0;
           const productDiscount = parseFloat(product.discount || '0') || 0;
           const productTotal = parseFloat(product.total) || 0;
-          const productQty = parseInt(product.qty.toString()) || 1;
+          const productQty = product.qty || 1;
           const unitPrice = productGrossAmt / productQty;
           const originalPrice = productGrossAmt + productDiscount;
 
@@ -4422,9 +4418,9 @@ TAX INVOICE
 
       // Add products
       if (invoiceData.products && invoiceData.products.length > 0) {
-        invoiceData.products.forEach((product, index) => {
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
           const productTotal = parseFloat(product.total) || 0
-          const productQty = parseInt(product.qty.toString()) || 1
+          const productQty = product.qty || 1
 
           pdf.text((index + 1).toString(), 20, y)
           pdf.text(product.product_name || 'Product/Service', 30, y)
