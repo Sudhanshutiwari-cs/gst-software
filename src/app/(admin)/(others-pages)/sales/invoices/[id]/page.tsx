@@ -2283,7 +2283,7 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
-        totalItems = 1
+      
         totalQuantity = invoiceData.qty || 1
       }
 
@@ -2725,8 +2725,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td><strong>₹${formatCurrency(grandTotalNum)}</strong></td>
           </tr>
         `
-        totalItems = 1
-        totalQuantity = invoiceData.qty || 1
+       
+ 
       }
 
       // Create a temporary iframe for perfect rendering
@@ -3161,8 +3161,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
-        totalItems = 1
-        totalQuantity = invoiceData.qty || 1
+      
+      
       }
 
       // Create a temporary iframe for perfect rendering
