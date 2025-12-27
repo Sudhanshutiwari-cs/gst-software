@@ -187,17 +187,6 @@ export default function InvoiceViewer({ params }: PageProps) {
     localStorage.setItem('invoice-theme', newTheme)
   }
 
-  // Get auth token with better logging
-  const getAuthToken = () => {
-    const tokenFromLocalStorage = localStorage.getItem('authToken');
-    const tokenFromSessionStorage = sessionStorage.getItem('authToken');
-    
-    console.log("🔑 Token from localStorage:", tokenFromLocalStorage ? "Available" : "Not available");
-    console.log("🔑 Token from sessionStorage:", tokenFromSessionStorage ? "Available" : "Not available");
-    
-    return tokenFromLocalStorage || tokenFromSessionStorage;
-  }
-
   // Helper function to parse invoice string values to numbers for calculations
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
@@ -318,51 +307,12 @@ export default function InvoiceViewer({ params }: PageProps) {
     )
   }
 
-  // Add debug effect to see what's happening with the invoice ID
-  useEffect(() => {
-    console.log("🔍 Debug - Invoice ID state:", invoiceId);
-    console.log("🔍 Debug - Current URL:", window.location.href);
-    console.log("🔍 Debug - Path segments:", window.location.pathname.split('/'));
-  }, [invoiceId]);
-
-  // Alternative: Get invoice ID from URL path
-  const getInvoiceIdFromUrl = () => {
-    const pathSegments = window.location.pathname.split('/');
-    console.log("Path segments:", pathSegments);
-    
-    // Find the invoice ID in the URL (adjust index based on your routing)
-    const invoiceIndex = pathSegments.findIndex(seg => seg === 'invoices') + 1;
-    if (invoiceIndex > 0 && invoiceIndex < pathSegments.length) {
-      const idFromUrl = pathSegments[invoiceIndex];
-      console.log("Invoice ID from URL:", idFromUrl);
-      return idFromUrl;
-    }
-    return null;
-  };
-
   // Resolve params promise when component mounts
   useEffect(() => {
     const resolveParams = async () => {
       try {
         const resolvedParams = await params
-        const idFromParams = resolvedParams.id;
-        console.log("Invoice ID from params:", idFromParams);
-        
-        // If params.id is empty, try to get from URL
-        let finalInvoiceId = idFromParams;
-        if (!finalInvoiceId || finalInvoiceId === 'undefined' || finalInvoiceId === 'null') {
-          const idFromUrl = getInvoiceIdFromUrl();
-          if (idFromUrl) {
-            finalInvoiceId = idFromUrl;
-            console.log("Using invoice ID from URL:", finalInvoiceId);
-          }
-        }
-        
-        if (!finalInvoiceId) {
-          throw new Error("No invoice ID found in params or URL");
-        }
-        
-        setInvoiceId(finalInvoiceId);
+        setInvoiceId(resolvedParams.id)
       } catch (error) {
         console.error("Error resolving params:", error)
         setError("Failed to load invoice ID")
@@ -371,6 +321,11 @@ export default function InvoiceViewer({ params }: PageProps) {
 
     resolveParams()
   }, [params])
+
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+  }
 
   // Fetch vendor profile
   const generateThermalHTML = () => {
@@ -399,6 +354,7 @@ export default function InvoiceViewer({ params }: PageProps) {
       }).format(amount)
 
     // Calculate totals from products array
+
     let totalGrossAmt = 0
     let totalGst = 0
     let totalDiscount = 0
@@ -422,6 +378,7 @@ export default function InvoiceViewer({ params }: PageProps) {
           </tr>
         `
 
+
         totalGrossAmt += productGrossAmt
         totalGst += productGst
         totalDiscount += productDiscount
@@ -440,6 +397,7 @@ export default function InvoiceViewer({ params }: PageProps) {
           <td style="text-align: right;">₹${formatCurrencySafe(grandTotalNum)}</td>
         </tr>
       `
+
 
       totalGrossAmt = totals.totalGrossAmt
       totalGst = totals.totalGst
@@ -776,114 +734,78 @@ export default function InvoiceViewer({ params }: PageProps) {
     }
   }
 
-  // Fetch invoice data from API with improved error handling
+  // Fetch invoice data from API
   const fetchInvoice = async (invoiceId: string) => {
     try {
-      setLoading(true);
-      setError(null);
-
-      console.log("🔍 Fetching invoice with ID:", invoiceId);
-
-      // First check if we have the auth token
-      const token = getAuthToken();
-      console.log("🔑 Auth token available:", !!token);
-
-      if (!token) {
-        setError("Authentication required. Please login again.");
-        setLoading(false);
-        // Fallback to sample data
-        setInvoice({
-          ...sampleInvoice,
-          payment_status: sampleInvoice.payment_status || 'pending'
-        });
-        return sampleInvoice;
-      }
+      setLoading(true)
+      setError(null)
 
       // Fetch vendor profile first
-      await fetchVendorProfile();
+      await fetchVendorProfile()
 
-      // Try the API endpoint - corrected URL
-      const apiUrl = `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`;
-      console.log("📡 API URL:", apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      console.log("📊 Response status:", response.status);
+      const token = getAuthToken()
+      const response = await fetch(
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
 
       if (!response.ok) {
-        // Try to get more details from the response
-        let errorMessage = `Failed to fetch invoice: ${response.status}`;
-        try {
-          const errorData = await response.text();
-          console.error("❌ Error response body:", errorData);
-          errorMessage = `Failed to fetch invoice (${response.status}): ${errorData}`;
-        } catch  {
-          console.error("❌ Could not read error response");
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error(`Failed to fetch invoice: ${response.status}`)
       }
 
-      const data = await response.json();
-      console.log("✅ API Response received:", data);
+      const data = await response.json()
 
-      // Check if we have valid data
+      // Validate the response data structure
       if (!data || typeof data !== 'object') {
-        console.error("❌ Invalid response structure:", data);
-        throw new Error('Invalid invoice data received from server');
+        throw new Error('Invalid invoice data received')
       }
 
-      // Check if we have an invoice in the response
-      if (!data.invoice) {
-        console.error("❌ No invoice object in response:", data);
-        throw new Error('No invoice data found in response');
-      }
+      // Extract the actual invoice data from the nested structure
+      const invoiceData = data.data || data
 
-      // Extract the invoice data
-      const invoiceData = data.invoice;
-      const productsData = data.products || [];
+      console.log("✅ Invoice API Response:", invoiceData)
+      console.log("📦 Products array:", invoiceData.products)
 
-      console.log("📦 Invoice data:", invoiceData);
-      console.log("📦 Products array:", productsData);
-      console.log(`📦 Number of products: ${productsData.length}`);
+      // Check if we have products array
+      const hasProductsArray = Array.isArray(invoiceData.products) && invoiceData.products.length > 0
 
-      // Calculate totals from products array
-      let totalQty = 0;
-      let totalGrossAmt = 0;
-      let totalGst = 0;
-      let totalDiscount = 0;
-      let totalGrandTotal = 0;
+      // Calculate totals if we have products array
+      let totalQty = 0
+      let totalGrossAmt = 0
+      let totalGst = 0
+      let totalDiscount = 0
+      let totalGrandTotal = 0
 
-      if (productsData.length > 0) {
-        console.log("🔄 Calculating totals from products array...");
-        productsData.forEach((product: InvoiceProduct, index: number) => {
-          const productQty = product.qty || 0;
-          const productGrossAmt = parseFloat(product.gross_amt) || 0;
-          const productGst = parseFloat(product.gst || '0') || 0;
-          const productDiscount = parseFloat(product.discount || '0') || 0;
-          const productTotal = parseFloat(product.total) || 0;
+      if (hasProductsArray) {
+        console.log("🔄 Calculating totals from products array...")
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+          const productQty = product.qty || 0
+          const productGrossAmt = parseFloat(product.gross_amt) || 0
+          const productGst = parseFloat(product.gst || '0') || 0
+          const productDiscount = parseFloat(product.discount || '0') || 0
+          const productTotal = parseFloat(product.total) || 0
 
-          console.log(`Product ${index + 1} (${product.product_name}):`, {
+          console.log(`Product ${index + 1}:`, {
+            name: product.product_name,
             qty: productQty,
             gross: productGrossAmt,
             gst: productGst,
             discount: productDiscount,
             total: productTotal
-          });
+          })
 
-          totalQty += productQty;
-          totalGrossAmt += productGrossAmt;
-          totalGst += productGst;
-          totalDiscount += productDiscount;
-          totalGrandTotal += productTotal;
-        });
+          totalQty += productQty
+          totalGrossAmt += productGrossAmt
+          totalGst += productGst
+          totalDiscount += productDiscount
+          totalGrandTotal += productTotal
+        })
 
         console.log("📊 Calculated totals:", {
           totalQty,
@@ -891,66 +813,59 @@ export default function InvoiceViewer({ params }: PageProps) {
           totalGst,
           totalDiscount,
           totalGrandTotal
-        });
-      } else {
-        // Single product fallback
-        console.log("⚠️ No products array, using single product data");
-        totalQty = parseInt(invoiceData.qty) || 0;
-        totalGrossAmt = parseFloat(invoiceData.gross_amt) || 0;
-        totalGst = parseFloat(invoiceData.gst) || 0;
-        totalDiscount = parseFloat(invoiceData.discount) || 0;
-        totalGrandTotal = parseFloat(invoiceData.grand_total) || 0;
+        })
       }
 
-      // Map API fields to your invoice structure
+      // Map API fields to your invoice structure with all required fields
       const mappedInvoice: Invoice = {
-        id: parseInt(invoiceData.id) || 0,
+        id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
         invoice_id: invoiceData.invoice_id || '',
-        invoice_number: invoiceData.invoice_id || 'N/A',
-        vendor_id: invoiceData.vendor_id || '',
-        currency: 'INR',
+        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
+        vendor_id: invoiceData.vendor_id?.toString() || '',
+        currency: invoiceData.currency || 'INR',
         biller_name: invoiceData.biller_name || '',
-        issue_date: invoiceData.created_at || new Date().toISOString(),
+        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
         from_name: '',
-        description: productsData.length > 0 ? 
-          `${productsData.length} items` : 
-          (invoiceData.product_name || ''),
+        description: invoiceData.product_name || (hasProductsArray ?
+          `${invoiceData.products.length} items` : ''),
         due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         billing_to: invoiceData.billing_to || '',
         to_email: invoiceData.email || '',
         from_address: '',
         from_email: '',
-        billing_address: '',
+        billing_address: invoiceData.billing_address || '',
         mobile: invoiceData.mobile || null,
         to_name: invoiceData.billing_to || '',
-        to_address: null,
+        to_address: invoiceData.shipping_address || null,
         email: invoiceData.email || '',
         whatsapp_number: invoiceData.whatsapp_number || null,
-        product_name: productsData.length > 0 ? 
-          `${productsData[0]?.product_name}${productsData.length > 1 ? ` + ${productsData.length - 1} more` : ''}` :
-          (invoiceData.product_name || ''),
+        product_name: hasProductsArray ?
+          `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
+          invoiceData.product_name || '',
         terms: invoiceData.terms || null,
         notes: invoiceData.notes || null,
-        product_id: productsData.length > 0 ? 
-          (parseInt(productsData[0]?.product_id?.toString() || '0') || 0) :
-          (parseInt(invoiceData.product_id) || 0),
-        product_sku: productsData.length > 0 ? 
-          (productsData[0]?.product_sku || '') :
-          (invoiceData.product_sku || ''),
-        qty: totalQty,
-        gross_amt: totalGrossAmt.toString(),
-        gst: totalGst.toString(),
+        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
+          parseInt(invoiceData.product_id) || 0,
+        product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
+          invoiceData.product_sku || '',
+        qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
+        gross_amt: hasProductsArray ? totalGrossAmt.toString() :
+          (parseFloat(invoiceData.gross_amt) || 0).toString(),
+        gst: hasProductsArray ? totalGst.toString() :
+          (parseFloat(invoiceData.gst) || 0).toString(),
         tax_inclusive: invoiceData.tax_inclusive || 0,
-        discount: totalDiscount.toString(),
-        grand_total: totalGrandTotal.toString(),
+        discount: hasProductsArray ? totalDiscount.toString() :
+          (parseFloat(invoiceData.discount) || 0).toString(),
+        grand_total: hasProductsArray ? totalGrandTotal.toString() :
+          (parseFloat(invoiceData.grand_total) || 0).toString(),
         payment_status: invoiceData.payment_status || 'pending',
         payment_mode: invoiceData.payment_mode || null,
         utr_number: invoiceData.utr_number || null,
         created_at: invoiceData.created_at || new Date().toISOString(),
         updated_at: invoiceData.updated_at || new Date().toISOString(),
-        shipping_address: null,
-        // Add products array
-        products: productsData.map((product: InvoiceProduct) => ({
+        shipping_address: invoiceData.shipping_address || null,
+        // Add products array - IMPORTANT: Map all product fields
+        products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
           id: parseInt(product.id?.toString() || '0') || 0,
           invoice_id: product.invoice_id || '',
           product_name: product.product_name || '',
@@ -964,33 +879,29 @@ export default function InvoiceViewer({ params }: PageProps) {
           total: product.total || '0',
           created_at: product.created_at || new Date().toISOString(),
           updated_at: product.updated_at || new Date().toISOString()
-        }))
-      };
+        })) : undefined
+      }
 
-      console.log("✅ Mapped Invoice:", mappedInvoice);
-      console.log("📦 Mapped Products:", mappedInvoice.products);
+      console.log("✅ Mapped Invoice:", mappedInvoice)
+      console.log("📦 Mapped Products:", mappedInvoice.products)
 
-      setInvoice(mappedInvoice);
-      return mappedInvoice;
-      
+      setInvoice(mappedInvoice)
+      return mappedInvoice
     } catch (err) {
-      console.error('❌ Error fetching invoice:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch invoice data from server';
-      setError(errorMsg);
-      
-      // Fallback to sample data
+      console.error('❌ Error fetching invoice:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
+      // Fallback to sample data if API fails
       const fallbackInvoice = {
         ...sampleInvoice,
         payment_status: sampleInvoice.payment_status || 'pending'
-      };
+      }
 
-      setInvoice(fallbackInvoice);
-      return fallbackInvoice;
+      setInvoice(fallbackInvoice)
+      return fallbackInvoice
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
-
   // THERMAL PRINT FUNCTION
   const printThermalInvoice = async () => {
     if (!invoice || !vendor) {
@@ -1037,8 +948,11 @@ export default function InvoiceViewer({ params }: PageProps) {
       // Generate items HTML for multiple products
       let itemsHTML = ''
 
+
       if (invoice.products && invoice.products.length > 0) {
         invoice.products.forEach((product: InvoiceProduct) => {
+
+
           const productTotal = parseFloat(product.total) || 0
           const productQty = product.qty || 1
 
@@ -1049,6 +963,7 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td style="text-align: right;">₹${formatCurrency(productTotal)}</td>
             </tr>
           `
+
         })
       } else {
         // Single product fallback
@@ -1063,6 +978,7 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td style="text-align: right;">₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
+
       }
 
       // Create thermal receipt HTML
@@ -1949,6 +1865,8 @@ export default function InvoiceViewer({ params }: PageProps) {
       // Generate products table rows
       let tableRows = ''
 
+
+
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
           const productGrossAmt = parseFloat(product.gross_amt) || 0
@@ -1965,6 +1883,8 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
+
+
         })
       } else {
         // Single product fallback
@@ -1980,6 +1900,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
+
+
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2323,6 +2245,8 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
+     
+
 
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
@@ -2340,6 +2264,7 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
+
         })
       } else {
         // Single product fallback
@@ -2355,6 +2280,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
+      
+        
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2757,6 +2684,8 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
+  
+
 
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
@@ -2775,6 +2704,8 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td><strong>₹${formatCurrency(productTotal)}</strong></td>
             </tr>
           `
+        
+         
         })
       } else {
         // Single product fallback
@@ -2791,6 +2722,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td><strong>₹${formatCurrency(grandTotalNum)}</strong></td>
           </tr>
         `
+       
+ 
       }
 
       // Create a temporary iframe for perfect rendering
@@ -3187,6 +3120,9 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Generate products table rows
       let tableRows = ''
+     
+     
+
 
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
@@ -3205,6 +3141,8 @@ export default function InvoiceViewer({ params }: PageProps) {
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
+        
+
         })
       } else {
         // Single product fallback
@@ -3221,6 +3159,8 @@ export default function InvoiceViewer({ params }: PageProps) {
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
+      
+      
       }
 
       // Create a temporary iframe for perfect rendering
@@ -3678,6 +3618,8 @@ export default function InvoiceViewer({ params }: PageProps) {
       // Invoice data
       const invoiceDate = formatDate(invoiceData.issue_date);
       const dueDate = formatDate(invoiceData.due_date);
+
+
 
       // Generate products table rows
       let tableRows = '';
@@ -4593,27 +4535,6 @@ TAX INVOICE
     document.body.removeChild(link)
   }
 
-  // Fetch invoice data when invoiceId is available
-  useEffect(() => {
-    const fetchData = async () => {
-      if (invoiceId) {
-        console.log("📥 Fetching data for invoice ID:", invoiceId);
-        await fetchInvoice(invoiceId);
-      } else {
-        console.log("⚠️ No invoice ID available yet");
-        // Try to get invoice ID from URL as fallback
-        const idFromUrl = getInvoiceIdFromUrl();
-        if (idFromUrl) {
-          console.log("🔄 Using invoice ID from URL:", idFromUrl);
-          setInvoiceId(idFromUrl);
-          await fetchInvoice(idFromUrl);
-        }
-      }
-    }
-
-    fetchData();
-  }, [invoiceId])
-
   // Generate PDF automatically when invoice data is loaded
   useEffect(() => {
     const generateAndShowPDF = async () => {
@@ -4674,6 +4595,17 @@ TAX INVOICE
       }
     }
   }, [pdfPreviewUrl])
+
+  // Fetch invoice data when invoiceId is available
+  useEffect(() => {
+    const fetchData = async () => {
+      if (invoiceId) {
+        await fetchInvoice(invoiceId)
+      }
+    }
+
+    fetchData()
+  }, [invoiceId])
 
   // INTERNAL ACTIONS SIDEBAR COMPONENT
   const InternalActionsSidebar = () => {
