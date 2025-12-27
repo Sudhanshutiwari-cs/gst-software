@@ -5,7 +5,7 @@ import {
   Edit2, Save, X, Trash2, Eye, Plus, Search, Filter, 
   CheckCircle, FileText,
   User, QrCode, Signature, Settings, Copy,
-  Building, RefreshCw, AlertCircle, Globe, CreditCard, Hash
+  Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
 
 // ========== TYPES ==========
@@ -396,12 +396,7 @@ export default function TemplatesPage() {
   };
 
   // Handle file URL input for QR code and signature
-  const handleUrlInput = (field: 'qr_code' | 'signature', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value || null
-    }));
-  };
+  
 
   // Save template (create or update)
   const handleSaveTemplate = async () => {
