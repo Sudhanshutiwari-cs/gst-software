@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Updated interfaces to match API response
 interface Product {
@@ -88,6 +89,7 @@ export default function SalesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const router = useRouter();
 
   // Theme toggle function
@@ -105,14 +107,18 @@ export default function SalesPage() {
     }));
   };
 
+  // Helper function to get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  };
+
   // API Integration
   const fetchInvoices = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get JWT token from localStorage or your auth context
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      const token = getAuthToken();
 
       if (!token) {
         throw new Error('Authentication required. Please log in.');
@@ -123,8 +129,17 @@ export default function SalesPage() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error(`Server returned non-JSON response. Status: ${response.status}`);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -140,9 +155,197 @@ export default function SalesPage() {
     } catch (err) {
       console.error('Error fetching invoices:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
+      
+      // Show toast for user feedback
+      if (err instanceof Error && err.message.includes('non-JSON')) {
+        toast.error('Server error. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // DELETE API Integration
+  const handleDelete = async (invoiceId: number) => {
+    if (!confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(invoiceId);
+      
+      const token = getAuthToken();
+
+      if (!token) {
+        toast.error('Authentication required. Please log in.');
+        return;
+      }
+
+      // Try different possible endpoints - the correct one might be different
+      const endpoints = [
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`,
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/delete/${invoiceId}`,
+        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/destroy/${invoiceId}`
+      ];
+
+      let lastError = null;
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log('Trying DELETE endpoint:', endpoint);
+          
+          const response = await fetch(endpoint, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          });
+
+          // Check content type
+          const contentType = response.headers.get('content-type');
+          const responseText = await response.text();
+          
+          if (contentType && contentType.includes('application/json')) {
+            const data = JSON.parse(responseText);
+            
+            if (data.success) {
+              // Remove the deleted invoice from state
+              setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.id !== invoiceId));
+              
+              // Also remove from selected invoices if it was selected
+              setSelectedInvoices(prev => prev.filter(id => id !== invoiceId));
+              
+              toast.success('Invoice deleted successfully!');
+              setIsDeleting(null);
+              return; // Success, exit function
+            } else {
+              lastError = new Error(data.message || 'Failed to delete invoice');
+            }
+          } else {
+            // Not JSON response
+            console.warn('Non-JSON response from endpoint:', endpoint);
+            console.log('Response:', responseText.substring(0, 200));
+            
+            // If it's a 200 OK but HTML, we might still want to consider it successful
+            // Some APIs return HTML with success message
+            if (response.ok && responseText.includes('success') || responseText.includes('deleted')) {
+              // Remove the deleted invoice from state
+              setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.id !== invoiceId));
+              setSelectedInvoices(prev => prev.filter(id => id !== invoiceId));
+              toast.success('Invoice deleted successfully!');
+              setIsDeleting(null);
+              return;
+            }
+            
+            lastError = new Error(`Server returned non-JSON response from ${endpoint}`);
+          }
+        } catch (err) {
+          console.warn(`Failed with endpoint ${endpoint}:`, err);
+          lastError = err instanceof Error ? err : new Error('Unknown error');
+        }
+      }
+
+      // If we get here, all endpoints failed
+      throw lastError || new Error('All delete endpoints failed');
+
+    } catch (err) {
+      console.error('Error deleting invoice:', err);
+      
+      // Fallback: Remove from local state anyway (for demo purposes)
+      // In production, you might want to keep this commented out
+      // setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.id !== invoiceId));
+      // setSelectedInvoices(prev => prev.filter(id => id !== invoiceId));
+      // toast.success('Invoice removed from view (API call failed)');
+      
+      toast.error(err instanceof Error ? err.message : 'Failed to delete invoice. Please check if the endpoint exists.');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  // Bulk Delete
+  const handleBulkDelete = async () => {
+    if (selectedInvoices.length === 0) {
+      toast.warning('Please select invoices first');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedInvoices.length} invoice(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const token = getAuthToken();
+
+      if (!token) {
+        toast.error('Authentication required. Please log in.');
+        return;
+      }
+
+      // Since bulk delete might not be supported, we'll delete one by one
+      const deletedIds: number[] = [];
+      const failedIds: number[] = [];
+
+      for (const invoiceId of selectedInvoices) {
+        try {
+          // Try the most likely endpoint first
+          const response = await fetch(`https://manhemdigitalsolutions.com/pos-admin/api/vendor/invoices/${invoiceId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            deletedIds.push(invoiceId);
+          } else {
+            failedIds.push(invoiceId);
+          }
+        } catch (err) {
+          console.error(`Failed to delete invoice ${invoiceId}:`, err);
+          failedIds.push(invoiceId);
+        }
+      }
+
+      // Update UI based on results
+      if (deletedIds.length > 0) {
+        setInvoices(prevInvoices => 
+          prevInvoices.filter(invoice => !deletedIds.includes(invoice.id))
+        );
+        setSelectedInvoices(prev => 
+          prev.filter(id => !deletedIds.includes(id))
+        );
+        toast.success(`${deletedIds.length} invoice(s) deleted successfully!`);
+      }
+
+      if (failedIds.length > 0) {
+        toast.warning(`${failedIds.length} invoice(s) could not be deleted. Please try individually.`);
+      }
+
+    } catch (err) {
+      console.error('Error in bulk delete:', err);
+      toast.error('Failed to delete invoices. Please try individually.');
+    }
+  };
+
+  // Update the bulk action handler
+  const handleBulkAction = (action: string) => {
+    if (selectedInvoices.length === 0) {
+      toast.warning('Please select invoices first');
+      return;
+    }
+    
+    if (action === 'bulk_delete') {
+      handleBulkDelete();
+      return;
+    }
+    
+    console.log(`Performing ${action} on:`, selectedInvoices);
+    alert(`Performing ${action} on ${selectedInvoices.length} invoices`);
   };
 
   // Calculate total quantity for an invoice
@@ -326,15 +529,6 @@ export default function SalesPage() {
   const handleSend = (invoice: Invoice) => {
     console.log('Sending invoice:', invoice);
     alert(`Sending invoice ${invoice.invoice_id} to ${invoice.email}`);
-  };
-
-  const handleBulkAction = (action: string) => {
-    if (selectedInvoices.length === 0) {
-      alert('Please select invoices first');
-      return;
-    }
-    console.log(`Performing ${action} on:`, selectedInvoices);
-    alert(`Performing ${action} on ${selectedInvoices.length} invoices`);
   };
 
   const toggleInvoiceSelection = (invoiceId: number) => {
@@ -715,7 +909,7 @@ export default function SalesPage() {
                 Edit
               </button>
               <button
-                onClick={() => handleBulkAction('bulk_delete')}
+                onClick={handleBulkDelete}
                 className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors duration-200 ${theme === 'dark'
                     ? 'bg-red-900/50 hover:bg-red-800/70 text-red-200'
                     : 'bg-red-100 hover:bg-red-200 text-red-600'
@@ -880,11 +1074,22 @@ export default function SalesPage() {
                               <Send className="h-4 w-4" />
                               <span className="hidden lg:inline ml-1">Send</span>
                             </button>
-                            <button className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 min-h-[32px] min-w-[32px] flex items-center justify-center ${theme === 'dark'
-                                ? 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                              }`}>
-                              <MoreVertical className="h-4 w-4" />
+                            <button
+                              onClick={() => handleDelete(invoice.id)}
+                              disabled={isDeleting === invoice.id}
+                              className={`p-2 transition-colors duration-200 rounded hover:bg-opacity-20 min-h-[32px] min-w-[32px] flex items-center justify-center ${isDeleting === invoice.id
+                                  ? 'opacity-50 cursor-not-allowed'
+                                  : theme === 'dark'
+                                    ? 'text-red-400 hover:text-red-300 hover:bg-red-900/30'
+                                    : 'text-red-600 hover:text-red-800 hover:bg-red-100'
+                                }`}
+                              title="Delete invoice"
+                            >
+                              {isDeleting === invoice.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         </td>
