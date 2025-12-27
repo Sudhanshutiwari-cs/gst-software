@@ -768,7 +768,8 @@ export default function InvoiceViewer({ params }: PageProps) {
 
       // Extract the actual invoice data from the nested structure
       const invoiceData = data.data || data
-
+      console.log("📦 Invoice data received:", invoiceData)
+      console.log("📦 Invoice data structure:", invoiceData.invoice.invoice_id)
       console.log("✅ Invoice API Response:", invoiceData)
       console.log("📦 Products array:", invoiceData.products)
 
@@ -817,76 +818,78 @@ export default function InvoiceViewer({ params }: PageProps) {
       }
 
       // Map API fields to your invoice structure with all required fields
-      const mappedInvoice: Invoice = {
-        id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
-        invoice_id: invoiceData.invoice_id || '',
-        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
-        vendor_id: invoiceData.vendor_id?.toString() || '',
-        currency: invoiceData.currency || 'INR',
-        biller_name: invoiceData.biller_name || '',
-        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
-        from_name: '',
-        description: invoiceData.product_name || (hasProductsArray ?
-          `${invoiceData.products.length} items` : ''),
-        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        billing_to: invoiceData.billing_to || '',
-        to_email: invoiceData.email || '',
-        from_address: '',
-        from_email: '',
-        billing_address: invoiceData.billing_address || '',
-        mobile: invoiceData.mobile || null,
-        to_name: invoiceData.billing_to || '',
-        to_address: invoiceData.shipping_address || null,
-        email: invoiceData.email || '',
-        whatsapp_number: invoiceData.whatsapp_number || null,
-        product_name: hasProductsArray ?
-          `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
-          invoiceData.product_name || '',
-        terms: invoiceData.terms || null,
-        notes: invoiceData.notes || null,
-        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
-          parseInt(invoiceData.product_id) || 0,
-        product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
-          invoiceData.product_sku || '',
-        qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
-        gross_amt: hasProductsArray ? totalGrossAmt.toString() :
-          (parseFloat(invoiceData.gross_amt) || 0).toString(),
-        gst: hasProductsArray ? totalGst.toString() :
-          (parseFloat(invoiceData.gst) || 0).toString(),
-        tax_inclusive: invoiceData.tax_inclusive || 0,
-        discount: hasProductsArray ? totalDiscount.toString() :
-          (parseFloat(invoiceData.discount) || 0).toString(),
-        grand_total: hasProductsArray ? totalGrandTotal.toString() :
-          (parseFloat(invoiceData.grand_total) || 0).toString(),
-        payment_status: invoiceData.payment_status || 'pending',
-        payment_mode: invoiceData.payment_mode || null,
-        utr_number: invoiceData.utr_number || null,
-        created_at: invoiceData.created_at || new Date().toISOString(),
-        updated_at: invoiceData.updated_at || new Date().toISOString(),
-        shipping_address: invoiceData.shipping_address || null,
-        // Add products array - IMPORTANT: Map all product fields
-        products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
-          id: parseInt(product.id?.toString() || '0') || 0,
-          invoice_id: product.invoice_id || '',
-          product_name: product.product_name || '',
-          product_id: parseInt(product.product_id?.toString() || '0') || 0,
-          product_sku: product.product_sku || '',
-          qty: product.qty || 0,
-          gross_amt: product.gross_amt || '0',
-          gst: product.gst || '0',
-          tax_inclusive: product.tax_inclusive || 0,
-          discount: product.discount || '0',
-          total: product.total || '0',
-          created_at: product.created_at || new Date().toISOString(),
-          updated_at: product.updated_at || new Date().toISOString()
-        })) : undefined
-      }
+      // Map API fields to your invoice structure with all required fields
+const mappedInvoice: Invoice = {
 
-      console.log("✅ Mapped Invoice:", mappedInvoice)
-      console.log("📦 Mapped Products:", mappedInvoice.products)
+  id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
+  invoice_id: invoiceData.invoice.invoice_id || '',
+  invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
+  vendor_id: invoiceData.vendor_id?.toString() || '',
+  currency: invoiceData.currency || 'INR',
+  biller_name: invoiceData.biller_name || '',
+  issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
+  from_name: '',
+  description: invoiceData.product_name || (hasProductsArray ?
+    `${invoiceData.products.length} items` : ''),
+  due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  billing_to: invoiceData.billing_to || '',
+  to_email: invoiceData.email || '',
+  from_address: '',
+  from_email: '',
+  billing_address: invoiceData.billing_address || '',
+  mobile: invoiceData.mobile || null,
+  to_name: invoiceData.billing_to || '',
+  to_address: invoiceData.shipping_address || null,
+  email: invoiceData.email || '',
+  whatsapp_number: invoiceData.whatsapp_number || null,
+  product_name: hasProductsArray ?
+    `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
+    invoiceData.product_name || '',
+  terms: invoiceData.terms || null,
+  notes: invoiceData.notes || null,
+  product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
+    parseInt(invoiceData.product_id) || 0,
+  product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
+    invoiceData.product_sku || '',
+  qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
+  gross_amt: hasProductsArray ? totalGrossAmt.toString() :
+    (parseFloat(invoiceData.gross_amt) || 0).toString(),
+  gst: hasProductsArray ? totalGst.toString() :
+    (parseFloat(invoiceData.gst) || 0).toString(),
+  tax_inclusive: invoiceData.tax_inclusive || 0,
+  discount: hasProductsArray ? totalDiscount.toString() :
+    (parseFloat(invoiceData.discount) || 0).toString(),
+  grand_total: hasProductsArray ? totalGrandTotal.toString() :
+    (parseFloat(invoiceData.grand_total) || 0).toString(),
+  payment_status: invoiceData.payment_status || 'pending',
+  payment_mode: invoiceData.payment_mode || null,
+  utr_number: invoiceData.utr_number || null,
+  created_at: invoiceData.created_at || new Date().toISOString(),
+  updated_at: invoiceData.updated_at || new Date().toISOString(),
+  shipping_address: invoiceData.shipping_address || null,
+  // Add products array - IMPORTANT: Map all product fields
+  products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
+    id: parseInt(product.id?.toString() || '0') || 0,
+    invoice_id: product.invoice_id || '',
+    product_name: product.product_name || '',
+    product_id: parseInt(product.product_id?.toString() || '0') || 0,
+    product_sku: product.product_sku || '',
+    qty: product.qty || 0,
+    gross_amt: product.gross_amt || '0',
+    gst: product.gst || '0',
+    tax_inclusive: product.tax_inclusive || 0,
+    discount: product.discount || '0',
+    total: product.total || '0',
+    created_at: product.created_at || new Date().toISOString(),
+    updated_at: product.updated_at || new Date().toISOString()
+  })) : undefined
+}
 
-      setInvoice(mappedInvoice)
-      return mappedInvoice
+console.log("✅ Mapped Invoice:", mappedInvoice)
+console.log("📦 Mapped Products:", mappedInvoice.products)
+
+setInvoice(mappedInvoice)
+return mappedInvoice
     } catch (err) {
       console.error('❌ Error fetching invoice:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
@@ -3519,7 +3522,7 @@ export default function InvoiceViewer({ params }: PageProps) {
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
       setIsGeneratingPDF(true);
-
+      console.log("📦 Invoice data for PDF:", invoiceData);
       console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
       console.log("📦 Products data for PDF:", invoiceData.products);
       console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
