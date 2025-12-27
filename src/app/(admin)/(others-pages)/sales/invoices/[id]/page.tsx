@@ -40,6 +40,7 @@ interface VendorProfile {
   owner_name: string
   address_line1: string
   address_line2: string
+  signature_url: string
   city: string
   state: string
   pincode: string
@@ -53,6 +54,26 @@ interface VendorProfile {
 // Solution: Accept params as a Promise
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+export interface VendorTemplate {
+  id: number
+  template_id: string
+  template_name: string
+  name: string
+  notes: string
+  terms_conditions: string
+  bank_name: string
+  ifsc_code: string
+  acc_number: string
+  upi_id: string
+  qr_code: string
+  signature: string
+  vendor_id: string
+  acc_holder_name: string
+  status: number
+  created_at: string
+  updated_at: string
 }
 
 // Template types
@@ -160,7 +181,8 @@ export default function InvoiceViewer({ params }: PageProps) {
     }
 
     updateResolvedTheme()
-
+   
+    
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleSystemThemeChange = () => {
@@ -186,7 +208,8 @@ export default function InvoiceViewer({ params }: PageProps) {
     setTheme(newTheme)
     localStorage.setItem('invoice-theme', newTheme)
   }
-
+  
+  
   // Helper function to parse invoice string values to numbers for calculations
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
@@ -572,6 +595,45 @@ export default function InvoiceViewer({ params }: PageProps) {
   }
 
   // Fetch vendor profile
+  const fetchVendorTemplate = async () => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      console.error("No auth token found")
+      return null
+    }
+
+    const response = await fetch(
+      "https://manhemdigitalsolutions.com/pos-admin/api/vendor/templates/view/classic",
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      }
+    )
+
+    if (!response.ok) {
+      console.error("Failed to fetch vendor template", response.status)
+      return null
+    }
+
+    const Classicdata = await response.json()
+
+    // ✅ PRINT RESPONSE
+    
+
+    return Classicdata
+  } catch (error) {
+    console.error("Error fetching vendor template:", error)
+    return null
+  }
+}
+
+
+
   const fetchVendorProfile = async () => {
     try {
       const token = getAuthToken()
@@ -605,6 +667,7 @@ export default function InvoiceViewer({ params }: PageProps) {
         shop_name: vendorData.shop_name || '',
         owner_name: vendorData.owner_name || '',
         address_line1: vendorData.address_line1 || '',
+        signature_url: vendorData.signature_url || '',
         address_line2: vendorData.address_line2 || '',
         city: vendorData.city || '',
         state: vendorData.state || '',
@@ -832,8 +895,8 @@ const mappedInvoice: Invoice = {
   description: invoiceData.product_name || (hasProductsArray ?
     `${invoiceData.products.length} items` : ''),
   due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  billing_to: invoiceData.billing_to || '',
-  to_email: invoiceData.email || '',
+  billing_to: invoiceData.invoice.billing_to || '',
+  to_email: invoiceData.invoice.email || '',
   from_address: '',
   from_email: '',
   billing_address: invoiceData.billing_address || '',
@@ -1679,7 +1742,7 @@ return mappedInvoice
           <div>
             <div class="label">Customer Details:</div>
             <div class="name">${invoiceData.billing_to || 'Customer Name'}</div>
-            ${invoiceData.mobile ? `<div>Ph: ${invoiceData.mobile}</div>` : ''}
+            ${invoiceData.to_email ? `<div>Ph: ${invoiceData.to_email}</div>` : ''}
           </div>
           <div>
             <div class="label">Status:</div>
@@ -3520,813 +3583,915 @@ return mappedInvoice
 
   // Classic Template PDF (existing code)
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
-    try {
-      setIsGeneratingPDF(true);
-      console.log("📦 Invoice data for PDF:", invoiceData);
-      console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
-      console.log("📦 Products data for PDF:", invoiceData.products);
-      console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
+  try {
+    // ✅ AUTO CALL (Client Side Only)
+    const classicTemplate = await fetchVendorTemplate()
+    
+    setIsGeneratingPDF(true);
+    console.log("📦 Invoice data for PDF:", invoiceData);
+    console.log("📦 Vendor Template Response:", classicTemplate.data.template_name)
+    console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
+    console.log("📦 Products data for PDF:", invoiceData.products);
+    console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
+    
+    // Calculate totals from products array or single product
+    const totals = calculateInvoiceTotals(invoiceData);
+    const grossAmtNum = totals.totalGrossAmt;
+    const gstNum = totals.totalGst;
+    const discountNum = totals.totalDiscount;
+    const grandTotalNum = totals.totalGrandTotal;
 
-      // Calculate totals from products array or single product
-      const totals = calculateInvoiceTotals(invoiceData);
-      const grossAmtNum = totals.totalGrossAmt;
-      const gstNum = totals.totalGst;
-      const discountNum = totals.totalDiscount;
-      const grandTotalNum = totals.totalGrandTotal;
-
-      // Format date
-      const formatDate = (dateString: string) => {
-        try {
-          const date = new Date(dateString);
-          return date.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          });
-        } catch {
-          return new Date().toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          });
-        }
-      };
-
-      // Format currency
-      const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(amount);
-      };
-
-      // Use vendor data for company info
-      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
-      const vendorAddress = vendor?.address_line1 ?
-        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
-        : '123 Business St, City, State, PIN';
-      const vendorPhone = vendor?.contact_number || '+91 9856314765';
-
-      console.log("=== PDF LOGO DEBUG ===");
-      console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
-      console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
-      console.log("logoBase64 length:", logoBase64?.length);
-      console.log("Vendor logo URL:", vendor?.logo_url);
-
-      // Helper function to create a placeholder logo
-      const createPlaceholderLogo = () => {
-        const initial = (vendorName || 'V').charAt(0).toUpperCase();
-        const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-        const color = colors[colorIndex];
-
-        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
-      <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
-        ${initial}
-      </text>
-    </svg>`;
-
-        return `data:image/svg+xml;base64,${btoa(svg)}`;
-      };
-
-      // Get direct URL with cache busting
-      const getDirectLogoUrl = (url: string): string => {
-        const timestamp = new Date().getTime();
-        return `${url}?t=${timestamp}`;
-      };
-
-      // Determine which logo to use
-      let logoSrc = '';
-      let useBase64 = false;
-      let useProxy = false;
-
-      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
-        // Use the base64 we already have
-        logoSrc = logoBase64;
-        useBase64 = true;
-        console.log("✅ Using existing base64 logo");
-      } else if (vendor?.logo_url) {
-        // Use server proxy for the vendor URL
-        const encodedUrl = encodeURIComponent(vendor.logo_url);
-        logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
-        useProxy = true;
-        console.log("⚠️ Using server proxy for vendor logo");
-      } else {
-        // Create placeholder
-        logoSrc = createPlaceholderLogo();
-        console.log("❌ No logo available, using placeholder");
+    // Format date
+    const formatDate = (dateString: string) => {
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      } catch {
+        return new Date().toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
       }
+    };
 
-      // Invoice data
-      const invoiceDate = formatDate(invoiceData.issue_date);
-      const dueDate = formatDate(invoiceData.due_date);
+    // Format currency
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    };
 
+    // Use vendor data for company info
+    const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
+    const vendorAddress = vendor?.address_line1 ?
+      `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
+      : '123 Business St, City, State, PIN';
+    const vendorPhone = vendor?.contact_number || '+91 9856314765';
 
+    console.log("=== PDF LOGO DEBUG ===");
+    console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
+    console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
+    console.log("logoBase64 length:", logoBase64?.length);
+    console.log("Vendor logo URL:", vendor?.logo_url);
 
-      // Generate products table rows
-      let tableRows = '';
-      let totalItems = 0;
-      let totalQuantity = 0;
-      let subtotalAmount = 0;
+    // Helper function to create a placeholder logo
+    const createPlaceholderLogo = () => {
+      const initial = (vendorName || 'V').charAt(0).toUpperCase();
+      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+      const color = colors[colorIndex];
 
-      console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
+      const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
+        <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+          ${initial}
+        </text>
+      </svg>`;
 
-      if (invoiceData.products && invoiceData.products.length > 0) {
-        console.log(`Processing ${invoiceData.products.length} products`);
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
 
-        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
-          const productGrossAmt = parseFloat(product.gross_amt) || 0;
-          const productGst = parseFloat(product.gst || '0') || 0;
-          const productDiscount = parseFloat(product.discount || '0') || 0;
-          const productTotal = parseFloat(product.total) || 0;
-          const productQty = product.qty || 1;
-          const unitPrice = productGrossAmt / productQty;
-          const originalPrice = productGrossAmt + productDiscount;
+    // Helper function to create a placeholder signature
+    const createPlaceholderSignature = () => {
+      const initial = (vendorName || 'V').charAt(0).toUpperCase();
+      const colors = ['#1e40af', '#000000', '#374151'];
+      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+      const color = colors[colorIndex];
 
-          console.log(`Product ${index + 1} (${product.product_name}):`, {
-            qty: productQty,
-            unitPrice,
-            gross: productGrossAmt,
-            gst: productGst,
-            discount: productDiscount,
-            total: productTotal
-          });
+      const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" fill="#10B981" stroke="#047857" stroke-width="2"/>
+        <circle cx="40" cy="40" r="34" fill="white" stroke="#059669" stroke-width="1"/>
+        <path d="M25 40 L35 50 L55 30" stroke="#059669" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <text x="40" y="70" text-anchor="middle" fill="#047857" font-family="Arial, sans-serif" font-size="8" font-weight="bold">
+          APPROVED
+        </text>
+      </svg>`;
 
-          tableRows += `
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
+
+    // Get direct URL with cache busting
+    const getDirectLogoUrl = (url: string): string => {
+      const timestamp = new Date().getTime();
+      return `${url}?t=${timestamp}`;
+    };
+
+    // Helper function to generate QR code placeholder HTML
+    const generateQRPlaceholderHtml = (upiId: string, vendorName: string) => {
+      if (upiId) {
+        return `
+          <div style="
+            width: 120px; 
+            height: 120px; 
+            border: 2px dashed #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            margin-bottom: 5px;
+          ">
+            <div style="font-size: 32px; color: #666; margin-bottom: 5px;">📱</div>
+            <div style="font-size: 10px; text-align: center; color: #666; padding: 0 5px;">
+              QR Code Placeholder
+            </div>
+          </div>
+          <p style="font-size: 9px; margin-top: 4px; color: #666;">
+            UPI: ${upiId}
+          </p>
+        `;
+      } else {
+        return `
+          <div style="
+            width: 120px; 
+            height: 120px; 
+            border: 2px dashed #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            margin-bottom: 5px;
+          ">
+            <div style="font-size: 32px; color: #666; margin-bottom: 5px;">📱</div>
+            <div style="font-size: 10px; text-align: center; color: #666; padding: 0 5px;">
+              Add QR Code in Settings
+            </div>
+          </div>
+        `;
+      }
+    };
+
+    // YOUR STATIC QR CODE URL
+    const staticQRCodeUrl = "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
+    
+    // Create placeholder signature as fallback
+    const placeholderSignature = createPlaceholderSignature();
+    
+    // Use a more reliable signature URL (the provided URL might have CORS issues)
+    // Alternative reliable green checkmark signature
+    const signatureImageUrl = "https://img.icons8.com/color/96/000000/checked--v1.png";
+    
+    // Or use a data URL for guaranteed loading
+    const signatureDataUrl = `data:image/svg+xml;base64,${btoa(`
+      <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" fill="#10B981" opacity="0.1"/>
+        <circle cx="40" cy="40" r="36" fill="white" stroke="#10B981" stroke-width="2"/>
+        <circle cx="40" cy="40" r="32" fill="#10B981" fill-opacity="0.2"/>
+        <path d="M30 40 L38 48 L52 32" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M30 40 L38 48 L52 32" stroke="#059669" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="40" y="70" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="7" font-weight="bold">
+          APPROVED
+        </text>
+      </svg>
+    `)}`;
+
+    // Generate QR code HTML based on available data
+    let qrCodeHTML = '';
+    
+    // Always use the static QR code URL you've provided
+    qrCodeHTML = `
+      <img
+        src="${staticQRCodeUrl}"
+        alt="Payment QR Code"
+        style="width: 120px; height: 120px; object-fit: contain; border: 1px solid #eee;"
+        crossorigin="anonymous"
+      />
+      <p style="font-size: 9px; margin-top: 4px; color: #666;">
+        Scan to Pay via UPI
+      </p>
+    `;
+
+    console.log("📱 Using static QR code URL:", staticQRCodeUrl);
+    console.log("✍️ Using data URL signature for guaranteed loading");
+
+    // Determine which logo to use
+    let logoSrc = '';
+    let useBase64 = false;
+    let useProxy = false;
+
+    if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+      // Use the base64 we already have
+      logoSrc = logoBase64;
+      useBase64 = true;
+      console.log("✅ Using existing base64 logo");
+    } else if (vendor?.logo_url) {
+      // Use server proxy for the vendor URL
+      const encodedUrl = encodeURIComponent(vendor.logo_url);
+      logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
+      useProxy = true;
+      console.log("⚠️ Using server proxy for vendor logo");
+    } else {
+      // Create placeholder
+      logoSrc = createPlaceholderLogo();
+      console.log("❌ No logo available, using placeholder");
+    }
+
+    // Create the signature HTML with fallback
+    const signatureHTML = `
+      <div style="text-align: center; margin-bottom: 15px;">
+        <img src="${signatureDataUrl}" 
+             alt="Authorized Signature" 
+             style="width: 80px; height: 80px; object-fit: contain;"
+             crossorigin="anonymous"
+             onerror="
+               console.error('Signature image failed to load');
+               this.onerror = null;
+               this.src = '${placeholderSignature}';
+             ">
+      </div>
+    `;
+
+    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
+    console.log("Signature HTML using data URL");
+
+    // Invoice data
+    const invoiceDate = formatDate(invoiceData.issue_date);
+    const dueDate = formatDate(invoiceData.due_date);
+
+    // Generate products table rows
+    let tableRows = '';
+    let totalItems = 0;
+    let totalQuantity = 0;
+    let subtotalAmount = 0;
+
+    console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
+
+    if (invoiceData.products && invoiceData.products.length > 0) {
+      console.log(`Processing ${invoiceData.products.length} products`);
+
+      invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+        const productGrossAmt = parseFloat(product.gross_amt) || 0;
+        const productGst = parseFloat(product.gst || '0') || 0;
+        const productDiscount = parseFloat(product.discount || '0') || 0;
+        const productTotal = parseFloat(product.total) || 0;
+        const productQty = product.qty || 1;
+        const unitPrice = productGrossAmt / productQty;
+        const originalPrice = productGrossAmt + productDiscount;
+
+        console.log(`Product ${index + 1} (${product.product_name}):`, {
+          qty: productQty,
+          unitPrice,
+          gross: productGrossAmt,
+          gst: productGst,
+          discount: productDiscount,
+          total: productTotal
+        });
+
+        tableRows += `
+          <tr>
+            <td style="border: none; border-bottom: 1px solid #666; padding: 8px;">${index + 1}</td>
+            <td>
+              <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
+              ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
+            </td>
+            <td>${product.product_sku || 'N/A'}</td>
+            <td>
+              ₹${formatCurrency(unitPrice)}<br>
+              ${productDiscount > 0 ?
+                `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
+                : ''}
+            </td>
+            <td>
+              <div>${productQty}</div>
+            </td>
+            <td>
+              <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
+            </td>
+          </tr>
+        `;
+        totalItems++;
+        totalQuantity += productQty;
+        subtotalAmount += productTotal;
+      });
+
+      console.log("📊 Table totals:", {
+        totalItems,
+        totalQuantity,
+        subtotalAmount
+      });
+    } else {
+      // Single product fallback
+      console.log("Using single product fallback");
+      const unitPrice = grossAmtNum / (invoiceData.qty || 1);
+      const originalPrice = grossAmtNum + discountNum;
+
+      tableRows = `
         <tr>
-          <td style="border: none; border-bottom: 1px solid #666; padding: 8px;">
-  ${index + 1}
-</td>
-
+          <td>1</td>
           <td>
-            <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
-            ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
+            <div style="font-weight: bold; margin-bottom: 2px;">${invoiceData.product_name || 'Product/Service'}</div>
+            ${invoiceData.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${invoiceData.product_sku}</div>` : ''}
           </td>
-          <td>${product.product_sku || 'N/A'}</td>
+          <td>${invoiceData.product_sku || 'N/A'}</td>
           <td>
             ₹${formatCurrency(unitPrice)}<br>
-            ${productDiscount > 0 ?
-              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
+            ${discountNum > 0 ?
+              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
               : ''}
           </td>
           <td>
-            <div>${productQty}</div>
-       
+            <div>${invoiceData.qty || 1}</div>
+            <div style="font-size: 9px; color: #666;">${(invoiceData.qty || 1) > 1 ? 'PCS' : 'PC'}</div>
           </td>
           <td>
-            <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
-            
+            <div style="font-weight: bold;">₹${formatCurrency(grandTotalNum)}</div>
+            ${gstNum > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(gstNum)}</div>` : ''}
           </td>
         </tr>
       `;
-          totalItems++;
-          totalQuantity += productQty;
-          subtotalAmount += productTotal;
-        });
-
-        console.log("📊 Table totals:", {
-          totalItems,
-          totalQuantity,
-          subtotalAmount
-        });
-      } else {
-        // Single product fallback
-        console.log("Using single product fallback");
-        const unitPrice = grossAmtNum / (invoiceData.qty || 1);
-        const originalPrice = grossAmtNum + discountNum;
-
-        tableRows = `
-      <tr>
-        <td>1</td>
-        <td>
-          <div style="font-weight: bold; margin-bottom: 2px;">${invoiceData.product_name || 'Product/Service'}</div>
-          ${invoiceData.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${invoiceData.product_sku}</div>` : ''}
-        </td>
-        <td>${invoiceData.product_sku || 'N/A'}</td>
-        <td>
-          ₹${formatCurrency(unitPrice)}<br>
-          ${discountNum > 0 ?
-            `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
-            : ''}
-        </td>
-        <td>
-          <div>${invoiceData.qty || 1}</div>
-          <div style="font-size: 9px; color: #666;">${(invoiceData.qty || 1) > 1 ? 'PCS' : 'PC'}</div>
-        </td>
-        <td>
-          <div style="font-weight: bold;">₹${formatCurrency(grandTotalNum)}</div>
-          ${gstNum > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(gstNum)}</div>` : ''}
-        </td>
-      </tr>
-    `;
-        totalItems = 1;
-        totalQuantity = invoiceData.qty || 1;
-        subtotalAmount = grandTotalNum;
-      }
-
-      // Create the logo HTML with fallback
-      let logoHTML = '';
-
-      if (useBase64) {
-        logoHTML = `<img src="${logoSrc}" 
-                    alt="Vendor Logo" 
-                    style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
-                    crossorigin="anonymous">`;
-      } else if (useProxy) {
-        const directUrl = getDirectLogoUrl(vendor!.logo_url);
-        const placeholder = createPlaceholderLogo();
-
-        logoHTML = `<img src="${logoSrc}" 
-                    alt="Vendor Logo" 
-                    style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
-                    crossorigin="anonymous"
-                    onerror="
-                      this.onerror=null;
-                      console.log('Proxy failed, trying direct URL');
-                      this.src='${directUrl}';
-                      this.onerror=function() {
-                        console.log('Direct URL also failed, using placeholder');
-                        this.src='${placeholder}';
-                        this.onerror=null;
-                      }
-                    ">`;
-      } else {
-        logoHTML = `<img src="${logoSrc}" 
-                    alt="Vendor Logo" 
-                    style="width: 60px; height: 60px; object-fit: contain;">`;
-      }
-
-      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
-
-      // Create a temporary iframe for perfect rendering
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = `
-    position: fixed;
-    left: -9999px;
-    top: 0;
-    width: 210mm;
-    height: 297mm;
-    border: none;
-    visibility: hidden;
-  `;
-      document.body.appendChild(iframe);
-
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) {
-        throw new Error('Could not create iframe document');
-      }
-
-      // Write the exact HTML structure with API data
-      iframeDoc.open();
-      iframeDoc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: Arial, Helvetica, sans-serif;
-          }
-          body { 
-            width: 210mm; 
-            min-height: 297mm; 
-            padding: 7mm 7mm 7mm 7mm; 
-            background: white; 
-            color: black;
-            line-height: 1.4;
-            position: relative;
-          }
-          .invoice-container {
-            width: 100%;
-            background: white;
-            border: 1px solid #666;
-            position: relative;
-            min-height: 260mm;
-            padding-bottom: 40mm; /* Space for fixed footer */
-          }
-          .border-bottom {
-            border-bottom: 1px solid #666;
-            padding-bottom: 8px;
-            margin-bottom: 8px;
-          }
-          .text-center { text-align: center; 
-          padding:-4px 0 important;  }
-          .text-right { text-align: right; }
-          .font-bold { font-weight: bold; }
-          .text-sm { font-size: 12px; }
-          .text-base { font-size: 13px; }
-          .text-lg { font-size: 14px; }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 12px;
-            border-top: 1px solid #666;
-           
-          }
-          th, td {
-            border-bottom: 1px solid #666;
-            border-left: 1px solid #666;
-            padding: 8px;
-            text-align: left;
-            vertical-align: top;
-          }
-          th {
-            background-color: #f5f5f5;
-            font-weight: bold;
-            text-align: center;
-      
-          }
-          .invoice-table {
-           
-          }
-          .invoice-table th,
-          .invoice-table td {
-          
-          }
-          .invoice-table td:nth-child(1),
-          .invoice-table td:nth-child(3),
-          .invoice-table td:nth-child(4),
-          .invoice-table td:nth-child(5),
-          .invoice-table td:nth-child(6) {
-            text-align: center;
-          }
-          .invoice-table th:nth-child(2),
-          .invoice-table td:nth-child(2) {
-            text-align: left;
-          }
-          .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            margin: 15px 0;
-          }
-          .border-all {
-            border: 1px solid #666;
-            padding-bottom: 10px;
-          }
-          .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .signature-box {
-            margin-top: 20px;
-            text-align: right;
-          }
-          .logo {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-          }
-          .logo-placeholder {
-            width: 60px;
-            height: 60px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: #666;
-            border-radius: 4px;
-          }
-          .status-paid { color: green; }
-          .status-pending { color: orange; }
-          .status-unpaid { color: red; }
-          
-          /* Footer Styles */
-          .footer-fixed {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            border-top: 2px solid #666;
-            background: white;
-            padding: 0;
-            height: 115px;
-            display: flex;
-            align-items: stretch;
-          }
-          .footer-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 12px;
-            color: #1e40af;
-          }
-          .bank-details {
-            font-size: 11px;
-            line-height: 1.4;
-          }
-          .terms-conditions {
-            font-size: 10px;
-            line-height: 1.2;
-          }
-          .final-signature {
-            margin-top: 20px;
-            text-align: right;
-            border-top: 1px solid #000;
-            padding-top: 10px;
-          }
-          .page-break {
-            page-break-inside: avoid;
-          }
-          .footer-columns {
-            display: flex;
-            width: 100%;
-            height: 100%;
-          }
-          .terms-column {
-            flex: 1;
-            border-right: 1px solid #666;
-            padding: 10px 15px 10px 10px;
-          }
-          .bank-column {
-            flex: 1;
-            padding: 10px 10px 10px 15px;
-          }
-          
-          /* Bank & Signature Section Styles */
-          .bank-signature-section {
-            margin: 20px 0 25px 0;
-            border-top: 1px solid #666;
-            border-bottom: 1px solid #666;
-            padding: 0;
-            background-color: #fff;
-            page-break-inside: avoid;
-            display: flex;
-          }
-          .bank-details-column {
-            flex: 1;
-            border-right: 1px solid #666;
-            padding: 15px;
-          }
-          .signature-column {
-            flex: 1;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-          }
-          .thank-you-note {
-            font-size: 11px;
-            line-height: 1.4;
-            color: #1e40af;
-            text-align: center;
-            padding: 10px;
-            font-style: italic;
-            border: 1px dashed #1e40af;
-            background-color: #f0f8ff;
-            margin-bottom: 10px;
-          }
-          .signature-space {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-          }
-          .signature-line {
-            width: 100%;
-            border-top: 1px solid #000;
-            margin-top: 20px;
-            padding-top: 5px;
-            text-align: center;
-          }
-          
-          /* Remove old footer styles */
-          .footer-section {
-            display: none;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="invoice-container">
-          <!-- Invoice Title -->
-          <div class="text-center">
-            <h1
-class="text-lg font-bold"
-style="
-  color: #1e40af;
-  letter-spacing: 2px;
-  margin: 0;
-  padding: -4px 0px important;
-"
->
-TAX INVOICE
-</h1>
-
-          </div>
-
-          <!-- Header Section -->
-          <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
-            <!-- Left Box -->
-            <div style="border-right: 1px solid #666; padding: 10px;">
-              <!-- Logo and Details -->
-              <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-                ${logoHTML}
-              
-                <div>
-                  <h2 class="font-bold text-base">${vendorName}</h2>
-                  <p class="text-sm">${vendorAddress}</p>
-                  <p class="text-sm">Mobile: ${vendorPhone}</p>
-                  ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
-                </div>
-              </div>
-              
-              <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
-                <p class="font-bold text-sm">Customer Details:</p>
-                <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
-                ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
-                ${invoiceData.email ? `<p class="text-sm">${invoiceData.email}</p>` : ''}
-              </div>
-            </div>
-
-            <!-- Right Box -->
-            <div style="
-  padding-right: 0px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
- 
-  font-size: 12px;
-">
-
-  <!-- Invoice Number -->
-  <div style="padding: 6px; border-right: 1px solid #666; border-bottom: 1px solid #666;">
-    <div class="font-bold">Invoice #</div>
-    <div>
-      ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
-    </div>
-  </div>
-
-  <!-- Invoice Date -->
-  <div style="padding: 6px; border-bottom: 1px solid #666;">
-    <div class="font-bold">Invoice Date</div>
-    <div>${invoiceDate}</div>
-  </div>
-
-  <!-- Due Date -->
-  <div style="padding: 6px; border-right: 1px solid #666;">
-    <div class="font-bold">Due Date</div>
-    <div>${dueDate}</div>
-  </div>
-
-  <!-- Status -->
-  <div style="padding: 6px;">
-    <div class="font-bold">Status</div>
-    <div class="status-${invoiceData.payment_status}">
-      ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
-    </div>
-  </div>
-
-</div>
-
-          </div>
-
-          <!-- Items Table -->
-          <table class="invoice-table page-break">
-            <thead>
-              <tr>
-                <th style="width: 40px; padding: 8px; border: none; border-bottom: 1px solid #666;">
-  #
-</th>
-
-                <th style="padding: 8px;">Item Description</th>
-                <th style="width: 80px; padding: 8px;">HSN/SAC</th>
-                <th style="width: 100px; padding: 8px;">Rate / Item</th>
-                <th style="width: 70px; padding: 8px;">Qty</th>
-                <th style="width: 120px; padding: 8px;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
-          </table>
-
-          <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
-            Total Items / Qty : ${totalItems} / ${totalQuantity}
-          </p>
-
-          <!-- Totals Box -->
-          <div class="page-break" style=" border-top: 1px solid #666;  margin-top: 20px; ">
-            <div class="flex-between border-bottom">
-              <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
-              <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
-            </div>
-            ${gstNum > 0 ? `
-            <div class="flex-between border-bottom" style="margin-top: 8px;">
-              <div class="font-bold text-sm" style="padding-left: 5px;">GST</div>
-              <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
-            </div>
-            ` : ''}
-            ${discountNum > 0 ? `
-            <div class="flex-between border-bottom" style="margin-top: 8px;">
-              <span class="font-bold text-sm">Total Discount</span>
-              <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
-            </div>
-            ` : ''}
-            
-
-            
-            <div class="flex-between" style=" padding-top: 2px;">
-              <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
-              <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
-            </div>
-          </div>
-
-          <!-- Bank Details & Authorized Signatory Section (NEW) -->
-          <div class="bank-signature-section page-break">
-            <!-- Left Column: Bank Details -->
-            <div style="
-  display: flex;
-  border-right: 1px solid #666;
-">
-
-  <!-- Left: Bank Details -->
-  <div style="
-    width: 50%;
-    padding: 10px;
-  ">
-    <div style="font-weight: bold; margin-bottom: 6px;">
-      Bank Details
-    </div>
-    <div>
-      <p><b>Account Number:</b> 234000991111899</p>
-      <p><b>Bank:</b> ICICI</p>
-      <p><b>IFSC:</b> ICICI560000078</p>
-      <p><b>Branch:</b> Meerut</p>
-      <p><b>Account Name:</b> Kamal</p>
-    </div>
-  </div>
-
-  <!-- Right: QR Code -->
-  <div style="
-    width: 50%;
-    padding: 10px;
-    border-left: 1px solid #666;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  ">
-    <div style="font-weight: bold; margin-bottom: 6px;">
-      QR Code
-    </div>
-    <img
-      src="/images/QRCode.png"
-      alt="Payment QR Code"
-      style="width: 120px; height: 120px; object-fit: contain;"
-    />
-  </div>
-
-</div>
-
-            
-            <!-- Right Column: Signature -->
-            <div class="signature-column">
-              <!-- Thank You Note -->
-             
-              
-              <!-- Signature Space -->
-              <div class="signature-space">
-                <div class="signature-line">
-                  <p class="text-sm font-bold">For ${vendorName}</p>
-                  <p class="text-sm">Authorized Signatory</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fixed Footer Section with Terms & Conditions -->
-          <div class="footer-fixed page-break">
-            <!-- Two-column layout for Terms & Conditions -->
-            <div class="footer-columns">
-              <!-- Terms and Conditions -->
-              <div class="terms-column">
-                <div class="footer-title">Terms and Conditions</div>
-                <div class="terms-conditions">
-                  <p><b>E & O.E</b></p>
-                  <p>1. Goods once sold will not be taken back.</p>
-                  <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
-                  <p>3. Subject to 'Delhi' Jurisdiction only.</p>
-                </div>
-              </div>
-
-              <!-- Empty column for alignment -->
-              <div class="bank-column" style="background-color: #f9f9f9;">
-                 <div class="thank-you-note">
-                Thank you for your business! We appreciate your trust in us and look forward to serving you again.
-              </div>
-              </div>
-            </div>
-          </div>
-          
-        </div>
-      </body>
-    </html>
-  `);
-      iframeDoc.close();
-
-      // Wait for iframe to render and images to load
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Check if images are loaded in the iframe
-      const images = iframeDoc.images;
-      let allImagesLoaded = true;
-
-      for (let i = 0; i < images.length; i++) {
-        if (!images[i].complete) {
-          allImagesLoaded = false;
-          console.log(`Image ${i} not yet loaded:`, images[i].src);
-        }
-      }
-
-      if (!allImagesLoaded) {
-        console.log("Waiting additional time for images to load...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-
-      // Generate PDF from iframe with improved settings
-      const canvas = await html2canvas(iframeDoc.body, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 210 * 3.78,
-        height: 297 * 3.78,
-        windowWidth: 210 * 3.78,
-        windowHeight: 297 * 3.78,
-        logging: true,
-        imageTimeout: 15000,
-        onclone: (clonedDoc, element) => {
-          // Ensure all images have crossOrigin attribute
-          const images = element.getElementsByTagName('img');
-          Array.from(images).forEach(img => {
-            img.setAttribute('crossOrigin', 'anonymous');
-
-            // If image is from our proxy, add enhanced error handling
-            if (img.src.includes('/api/vendor/logo')) {
-              console.log('🔗 Found proxy image, adding enhanced error handler');
-
-              const initial = (vendorName || 'V').charAt(0).toUpperCase();
-              const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
-
-              img.onerror = function () {
-                console.log('❌ Proxy image failed in clone');
-                this.src = placeholderSvg;
-                this.onerror = null;
-              };
-            }
-          });
-        }
-      });
-
-      // Clean up
-      document.body.removeChild(iframe);
-
-      // Create PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      const pdfBlob = pdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-
-      console.log("✅ Classic template PDF generated successfully");
-      console.log("📄 PDF details:", {
-        totalItems,
-        totalQuantity,
-        subtotalAmount,
-        gst: gstNum,
-        discount: discountNum,
-        grandTotal: grandTotalNum
-      });
-
-      return pdfUrl;
-
-    } catch (err) {
-      console.error('❌ Error generating classic template PDF:', err);
-      // Fallback: generate PDF without logo
-      return await generateSimplePDF(invoiceData);
-    } finally {
-      setIsGeneratingPDF(false);
+      totalItems = 1;
+      totalQuantity = invoiceData.qty || 1;
+      subtotalAmount = grandTotalNum;
     }
-  };
 
+    // Create the logo HTML with fallback
+    let logoHTML = '';
+
+    if (useBase64) {
+      logoHTML = `<img src="${logoSrc}" 
+                alt="Vendor Logo" 
+                style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
+                crossorigin="anonymous">`;
+    } else if (useProxy) {
+      const directUrl = getDirectLogoUrl(vendor!.logo_url);
+      const placeholder = createPlaceholderLogo();
+
+      logoHTML = `<img src="${logoSrc}" 
+                alt="Vendor Logo" 
+                style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
+                crossorigin="anonymous"
+                onerror="
+                  this.onerror=null;
+                  console.log('Proxy failed, trying direct URL');
+                  this.src='${directUrl}';
+                  this.onerror=function() {
+                    console.log('Direct URL also failed, using placeholder');
+                    this.src='${placeholder}';
+                    this.onerror=null;
+                  }
+                ">`;
+    } else {
+      logoHTML = `<img src="${logoSrc}" 
+                alt="Vendor Logo" 
+                style="width: 60px; height: 60px; object-fit: contain;">`;
+    }
+
+    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
+
+    // Create a temporary iframe for perfect rendering
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = `
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 210mm;
+      height: 297mm;
+      border: none;
+      visibility: hidden;
+    `;
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      throw new Error('Could not create iframe document');
+    }
+
+    // Write the exact HTML structure with API data
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+              font-family: Arial, Helvetica, sans-serif;
+            }
+            body { 
+              width: 210mm; 
+              min-height: 297mm; 
+              padding: 7mm 7mm 7mm 7mm; 
+              background: white; 
+              color: black;
+              line-height: 1.4;
+              position: relative;
+            }
+            .invoice-container {
+              width: 100%;
+              background: white;
+              border: 1px solid #666;
+              position: relative;
+              min-height: 260mm;
+              padding-bottom: 40mm; /* Space for fixed footer */
+            }
+            .border-bottom {
+              border-bottom: 1px solid #666;
+              padding-bottom: 8px;
+              margin-bottom: 8px;
+            }
+            .text-center { text-align: center; padding: -4px 0 important; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            .text-sm { font-size: 12px; }
+            .text-base { font-size: 13px; }
+            .text-lg { font-size: 14px; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 12px;
+              border-top: 1px solid #666;
+            }
+            th, td {
+              border-bottom: 1px solid #666;
+              border-left: 1px solid #666;
+              padding: 8px;
+              text-align: left;
+              vertical-align: top;
+            }
+            th {
+              background-color: #f5f5f5;
+              font-weight: bold;
+              text-align: center;
+            }
+            .invoice-table th,
+            .invoice-table td {
+            }
+            .invoice-table td:nth-child(1),
+            .invoice-table td:nth-child(3),
+            .invoice-table td:nth-child(4),
+            .invoice-table td:nth-child(5),
+            .invoice-table td:nth-child(6) {
+              text-align: center;
+            }
+            .invoice-table th:nth-child(2),
+            .invoice-table td:nth-child(2) {
+              text-align: left;
+            }
+            .grid-2 {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              margin: 15px 0;
+            }
+            .border-all {
+              border: 1px solid #666;
+              padding-bottom: 10px;
+            }
+            .flex-between {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .signature-box {
+              margin-top: 20px;
+              text-align: right;
+            }
+            .logo {
+              width: 60px;
+              height: 60px;
+              object-fit: contain;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+            }
+            .logo-placeholder {
+              width: 60px;
+              height: 60px;
+              background: #f5f5f5;
+              border: 1px solid #ddd;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 24px;
+              font-weight: bold;
+              color: #666;
+              border-radius: 4px;
+            }
+            .status-paid { color: green; }
+            .status-pending { color: orange; }
+            .status-unpaid { color: red; }
+            
+            /* Footer Styles */
+            .footer-fixed {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              border-top: 2px solid #666;
+              background: white;
+              padding: 0;
+              height: 115px;
+              display: flex;
+              align-items: stretch;
+            }
+            .footer-title {
+              font-weight: bold;
+              margin-bottom: 5px;
+              font-size: 12px;
+              color: #1e40af;
+            }
+            .bank-details {
+              font-size: 11px;
+              line-height: 1.4;
+            }
+            .terms-conditions {
+              font-size: 10px;
+              line-height: 1.2;
+            }
+            .final-signature {
+              margin-top: 20px;
+              text-align: right;
+              border-top: 1px solid #000;
+              padding-top: 10px;
+            }
+            .page-break {
+              page-break-inside: avoid;
+            }
+            .footer-columns {
+              display: flex;
+              width: 100%;
+              height: 100%;
+            }
+            .terms-column {
+              flex: 1;
+              border-right: 1px solid #666;
+              padding: 10px 15px 10px 10px;
+            }
+            .bank-column {
+              flex: 1;
+              padding: 10px 10px 10px 15px;
+            }
+            
+            /* Bank & Signature Section Styles */
+            .bank-signature-section {
+              margin: 20px 0 25px 0;
+              border-top: 1px solid #666;
+              border-bottom: 1px solid #666;
+              padding: 0;
+              background-color: #fff;
+              page-break-inside: avoid;
+              display: flex;
+            }
+            .bank-details-column {
+              flex: 1;
+              border-right: 1px solid #666;
+              padding: 15px;
+            }
+            .signature-column {
+              flex: 1;
+              padding: 15px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+            }
+            .thank-you-note {
+              font-size: 11px;
+              line-height: 1.4;
+              color: #1e40af;
+              text-align: center;
+              padding: 10px;
+              font-style: italic;
+              border: 1px dashed #1e40af;
+              background-color: #f0f8ff;
+              margin-bottom: 10px;
+            }
+            .signature-space {
+              flex-grow: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-end;
+            }
+            .signature-line {
+              width: 100%;
+              border-top: 1px solid #000;
+              margin-top: 10px;
+              padding-top: 5px;
+              text-align: center;
+            }
+            .signature-image-container {
+              text-align: center;
+              margin-bottom: 10px;
+            }
+            .signature-image {
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+              margin: 0 auto 10px auto;
+              display: block;
+            }
+            
+            /* Remove old footer styles */
+            .footer-section {
+              display: none;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <!-- Invoice Title -->
+            <div class="text-center">
+              <h1
+                class="text-lg font-bold"
+                style="
+                  color: #1e40af;
+                  letter-spacing: 2px;
+                  margin: 0;
+                  padding: -4px 0px important;
+                "
+              >
+                TAX INVOICE
+              </h1>
+            </div>
+
+            <!-- Header Section -->
+            <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
+              <!-- Left Box -->
+              <div style="border-right: 1px solid #666; padding: 10px;">
+                <!-- Logo and Details -->
+                <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
+                  ${logoHTML}
+                
+                  <div>
+                    <h2 class="font-bold text-base">${vendorName}</h2>
+                    <p class="text-sm">${vendorAddress}</p>
+                    <p class="text-sm">Mobile: ${vendorPhone}</p>
+                    ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
+                  </div>
+                </div>
+                
+                <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
+                  <p class="font-bold text-sm">Customer Details:</p>
+                  <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
+                  ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
+                  ${invoiceData.to_email ? `<p class="text-sm">${invoiceData.to_email}</p>` : ''}
+                </div>
+              </div>
+
+              <!-- Right Box -->
+              <div style="
+                padding-right: 0px;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                font-size: 12px;
+              ">
+                <!-- Invoice Number -->
+                <div style="padding: 6px; border-right: 1px solid #666; border-bottom: 1px solid #666;">
+                  <div class="font-bold">Invoice #</div>
+                  <div>
+                    ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
+                  </div>
+                </div>
+
+                <!-- Invoice Date -->
+                <div style="padding: 6px; border-bottom: 1px solid #666;">
+                  <div class="font-bold">Invoice Date</div>
+                  <div>${invoiceDate}</div>
+                </div>
+
+                <!-- Due Date -->
+                <div style="padding: 6px; border-right: 1px solid #666;">
+                  <div class="font-bold">Due Date</div>
+                  <div>${dueDate}</div>
+                </div>
+
+                <!-- Status -->
+                <div style="padding: 6px;">
+                  <div class="font-bold">Status</div>
+                  <div class="status-${invoiceData.payment_status}">
+                    ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Items Table -->
+            <table class="invoice-table page-break">
+              <thead>
+                <tr>
+                  <th style="width: 40px; padding: 8px; border: none; border-bottom: 1px solid #666;">#</th>
+                  <th style="padding: 8px;">Item Description</th>
+                  <th style="width: 80px; padding: 8px;">HSN/SAC</th>
+                  <th style="width: 100px; padding: 8px;">Rate / Item</th>
+                  <th style="width: 70px; padding: 8px;">Qty</th>
+                  <th style="width: 120px; padding: 8px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+              </tbody>
+            </table>
+
+            <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
+              Total Items / Qty : ${totalItems} / ${totalQuantity}
+            </p>
+
+            <!-- Totals Box -->
+            <div class="page-break" style="border-top: 1px solid #666; margin-top: 20px;">
+              <div class="flex-between border-bottom">
+                <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
+                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
+              </div>
+              ${gstNum > 0 ? `
+              <div class="flex-between border-bottom" style="margin-top: 8px;">
+                <div class="font-bold text-sm" style="padding-left: 5px;">GST</div>
+                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
+              </div>
+              ` : ''}
+              ${discountNum > 0 ? `
+              <div class="flex-between border-bottom" style= " padding-left: 5px;  padding-right: 5px; margin-top: 8px;">
+                <span class="font-bold text-sm">Total Discount</span>
+                <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
+              </div>
+              ` : ''}
+              
+              <div class="flex-between" style="padding-top: 2px;">
+                <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
+                <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
+              </div>
+            </div>
+
+            <!-- Bank Details & Authorized Signatory Section -->
+            <div class="bank-signature-section page-break">
+              <!-- Left Column: Bank Details -->
+              <div style="display: flex; border-right: 1px solid #666;">
+
+                <!-- Left: Bank Details -->
+                <div style="width: 80%; font-size: 13px; padding: 10px;">
+                  <div style="font-weight: bold; margin-bottom: 6px;">
+                    Bank Details
+                  </div>
+                  <div>
+                    <p><b>Account Number:</b> ${classicTemplate.data.acc_number || 'N/A'}</p>
+                    <p><b>Bank:</b> ${classicTemplate.data.bank_name || 'N/A'}</p>
+                    <p><b>IFSC:</b> ${classicTemplate.data.ifsc_code || 'N/A'}</p>
+                    <p><b>UPI:</b> ${classicTemplate.data.upi_id || 'N/A'}</p>
+                    <p><b>Account Name:</b> ${classicTemplate.data.acc_holder_name || 'N/A'}</p>
+                  </div>
+                </div>
+
+                <!-- Right: QR Code -->
+                <div style="
+                  width: 50%;
+                  padding: 10px;
+                  border-left: 1px solid #666;
+                  text-align: center;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                ">
+                  
+                  ${qrCodeHTML}
+                </div>
+              </div>
+              
+              <!-- Right Column: Signature -->
+              <div class="signature-column">
+                <!-- Signature Space -->
+                <div class="signature-space">
+                  <!-- Signature Image -->
+                  ${signatureHTML}
+                  
+                  <div class="signature-line">
+                    <p class="text-sm font-bold" style="margin-bottom: 2px;">For ${vendorName}</p>
+                    <p class="text-sm">Authorized Signatory</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fixed Footer Section with Terms & Conditions -->
+            <div class="footer-fixed page-break">
+              <!-- Two-column layout for Terms & Conditions -->
+              <div class="footer-columns">
+                <!-- Terms and Conditions -->
+                <div class="terms-column">
+                  <div class="footer-title">Terms and Conditions</div>
+                  <div class="terms-conditions">
+                    <p><b>E & O.E</b></p>
+                    <p>1. Goods once sold will not be taken back.</p>
+                    <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
+                    <p>3. Subject to 'Delhi' Jurisdiction only.</p>
+                  </div>
+                </div>
+
+                <!-- Empty column for alignment -->
+                <div class="bank-column" style="background-color: #f9f9f9;">
+                  <div class="thank-you-note">
+                    Thank you for your business! We appreciate your trust in us and look forward to serving you again.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // Wait for iframe to render and images to load
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Check if images are loaded in the iframe
+    const images = iframeDoc.images;
+    let allImagesLoaded = true;
+
+    for (let i = 0; i < images.length; i++) {
+      if (!images[i].complete) {
+        allImagesLoaded = false;
+        console.log(`Image ${i} not yet loaded:`, images[i].src);
+      }
+    }
+
+    if (!allImagesLoaded) {
+      console.log("Waiting additional time for images to load...");
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    // Generate PDF from iframe with improved settings
+    const canvas = await html2canvas(iframeDoc.body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 210 * 3.78,
+      height: 297 * 3.78,
+      windowWidth: 210 * 3.78,
+      windowHeight: 297 * 3.78,
+      logging: true,
+      imageTimeout: 15000,
+      onclone: (clonedDoc, element) => {
+        // Ensure all images have crossOrigin attribute
+        const images = element.getElementsByTagName('img');
+        Array.from(images).forEach(img => {
+          img.setAttribute('crossOrigin', 'anonymous');
+
+          // If image is from our proxy, add enhanced error handling
+          if (img.src.includes('/api/vendor/logo')) {
+            console.log('🔗 Found proxy image, adding enhanced error handler');
+
+            const initial = (vendorName || 'V').charAt(0).toUpperCase();
+            const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
+
+            img.onerror = function () {
+              console.log('❌ Proxy image failed in clone');
+              this.src = placeholderSvg;
+              this.onerror = null;
+            };
+          }
+        });
+      }
+    });
+
+    // Clean up
+    document.body.removeChild(iframe);
+
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
+
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+    const pdfBlob = pdf.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    console.log("✅ Classic template PDF generated successfully");
+    console.log("📄 PDF details:", {
+      totalItems,
+      totalQuantity,
+      subtotalAmount,
+      gst: gstNum,
+      discount: discountNum,
+      grandTotal: grandTotalNum
+    });
+
+    return pdfUrl;
+
+  } catch (err) {
+    console.error('❌ Error generating classic template PDF:', err);
+    // Fallback: generate PDF without logo
+    return await generateSimplePDF(invoiceData);
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
   // Simple fallback PDF
   const generateSimplePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
