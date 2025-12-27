@@ -3659,10 +3659,10 @@ return mappedInvoice
 
     // Helper function to create a placeholder signature
     const createPlaceholderSignature = () => {
-      const initial = (vendorName || 'V').charAt(0).toUpperCase();
-      const colors = ['#1e40af', '#000000', '#374151'];
-      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-      const color = colors[colorIndex];
+  
+
+      
+
 
       const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <circle cx="40" cy="40" r="38" fill="#10B981" stroke="#047857" stroke-width="2"/>
@@ -3683,51 +3683,7 @@ return mappedInvoice
     };
 
     // Helper function to generate QR code placeholder HTML
-    const generateQRPlaceholderHtml = (upiId: string, vendorName: string) => {
-      if (upiId) {
-        return `
-          <div style="
-            width: 120px; 
-            height: 120px; 
-            border: 2px dashed #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f9f9f9;
-            margin-bottom: 5px;
-          ">
-            <div style="font-size: 32px; color: #666; margin-bottom: 5px;">📱</div>
-            <div style="font-size: 10px; text-align: center; color: #666; padding: 0 5px;">
-              QR Code Placeholder
-            </div>
-          </div>
-          <p style="font-size: 9px; margin-top: 4px; color: #666;">
-            UPI: ${upiId}
-          </p>
-        `;
-      } else {
-        return `
-          <div style="
-            width: 120px; 
-            height: 120px; 
-            border: 2px dashed #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f9f9f9;
-            margin-bottom: 5px;
-          ">
-            <div style="font-size: 32px; color: #666; margin-bottom: 5px;">📱</div>
-            <div style="font-size: 10px; text-align: center; color: #666; padding: 0 5px;">
-              Add QR Code in Settings
-            </div>
-          </div>
-        `;
-      }
-    };
-
+    
     // YOUR STATIC QR CODE URL
     const staticQRCodeUrl = "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
     
@@ -3736,7 +3692,7 @@ return mappedInvoice
     
     // Use a more reliable signature URL (the provided URL might have CORS issues)
     // Alternative reliable green checkmark signature
-    const signatureImageUrl = "https://img.icons8.com/color/96/000000/checked--v1.png";
+
     
     // Or use a data URL for guaranteed loading
     const signatureDataUrl = `data:image/svg+xml;base64,${btoa(`
