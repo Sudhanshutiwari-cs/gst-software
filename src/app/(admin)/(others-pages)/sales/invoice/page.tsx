@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Settings, Plus, Eye, Send, MoreVertical, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
+import { ChevronDown, Play, Settings, Plus, Eye, Send,  ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

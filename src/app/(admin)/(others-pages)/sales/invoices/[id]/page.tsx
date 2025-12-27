@@ -824,7 +824,7 @@ export default function InvoiceViewer({ params }: PageProps) {
           const errorData = await response.text();
           console.error("❌ Error response body:", errorData);
           errorMessage = `Failed to fetch invoice (${response.status}): ${errorData}`;
-        } catch (e) {
+        } catch  {
           console.error("❌ Could not read error response");
         }
         
