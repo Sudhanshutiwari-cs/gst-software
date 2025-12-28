@@ -1378,7 +1378,7 @@ return mappedInvoice
       const discountAmount = formatCurrency(discountNum);
       const gstAmount = formatCurrency(gstNum);
       const grossAmount = formatCurrency(grossAmtNum);
-      const amountInWords = numberToWords(grandTotalNum);
+      
 
       // Generate products table rows
       let tableRows = '';
