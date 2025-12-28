@@ -29,6 +29,7 @@ interface Customer {
   gstin: string
   email: string
   phone: string
+  mobile: string
   address: string
   city?: string
   pincode?: string
@@ -903,7 +904,7 @@ export default function CreateInvoice() {
     return {
       biller_name: vendorProfile.shop_name || vendorProfile.name,
       billing_to: selectedCustomerData.company || selectedCustomerData.name,
-      mobile: selectedCustomerData.phone || undefined,
+      mobile: selectedCustomerData.mobile || undefined,
       email: selectedCustomerData.email || undefined,
       whatsapp_number: selectedCustomerData.phone || undefined,
       products: productsArray,

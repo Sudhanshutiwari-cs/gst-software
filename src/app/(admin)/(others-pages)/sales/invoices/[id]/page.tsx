@@ -900,7 +900,7 @@ const mappedInvoice: Invoice = {
   from_address: '',
   from_email: '',
   billing_address: invoiceData.billing_address || '',
-  mobile: invoiceData.mobile || null,
+  mobile: invoiceData.invoice.mobile || null,
   to_name: invoiceData.billing_to || '',
   to_address: invoiceData.shipping_address || null,
   email: invoiceData.email || '',
