@@ -1555,18 +1555,14 @@ return mappedInvoice
             margin-bottom: 5px;
           }
           table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-          }
-          th {
-            background: #f5a623;
-            color: #fff;
-            padding: 10px;
-            text-align: center;
-           
-            font-weight: 600;
-          }
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0;
+  padding: 0;
+}
+
+        
           th:nth-child(1) { width: 30px; }
           th:nth-child(4), th:nth-child(5), th:nth-child(6) { text-align: right; }
           td {
@@ -1781,16 +1777,17 @@ return mappedInvoice
         </div>
 
         <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Item</th>
-              <th>HSN/SAC</th>
-              <th>Rate/Item</th>
-              <th>Qty</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
+         <thead style="background-color:#f97316; color:#ffffff; margin:0; padding:0;">
+  <tr style="height:36px; margin:0; padding:0;">
+    <th style="padding:6px 8px 6px 4px; line-height:16px; vertical-align:middle;">#</th>
+    <th style="padding:6px 8px; line-height:16px; vertical-align:middle;">Item</th>
+    <th style="padding:6px 8px; line-height:16px; text-align:center; vertical-align:middle;">HSN/SAC</th>
+    <th style="padding:6px 8px; line-height:16px; text-align:right; vertical-align:middle;">Rate/Item</th>
+    <th style="padding:6px 8px; line-height:16px; text-align:center; vertical-align:middle;">Qty</th>
+    <th style="padding:6px 8px; line-height:16px; text-align:right; vertical-align:middle;">Amount</th>
+  </tr>
+</thead>
+
           <tbody>
             ${tableRows}
           </tbody>
