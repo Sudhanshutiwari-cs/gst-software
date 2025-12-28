@@ -123,7 +123,7 @@ const fetchTemplateByName = async (templateName: string): Promise<Template> => {
   }
 };
 
-// Create new template (assumed endpoint)
+// Create new template
 const createTemplateApi = async (data: Partial<Template>): Promise<Template> => {
   try {
     const token = getAuthToken();
@@ -176,9 +176,9 @@ const createTemplateApi = async (data: Partial<Template>): Promise<Template> => 
   }
 };
 
-// Update template (assumed endpoint - adjust as needed)
+// Update template by id
 const updateTemplateApi = async (
-  templateName: string,
+  id: number,
   data: Partial<Template>
 ): Promise<Template> => {
   try {
@@ -186,7 +186,8 @@ const updateTemplateApi = async (
     if (!token) {
       throw new Error('No authentication token found');
     }
-    
+    console.log('Updating template with data:', data);
+
     const requestData = {
       template_name: data.template_name || null,
       name: data.name || null,
@@ -202,7 +203,7 @@ const updateTemplateApi = async (
       status: data.status !== undefined ? data.status : null,
     };
 
-    const response = await fetch(`${API_BASE_URL}/update/${templateName}`, {
+    const response = await fetch(`${API_BASE_URL}/update/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -227,20 +228,20 @@ const updateTemplateApi = async (
       throw new Error(result.message || 'Failed to update template');
     }
   } catch (error) {
-    console.error(`Error updating template ${templateName}:`, error);
+    console.error(`Error updating template ${id}:`, error);
     throw error;
   }
 };
 
-// Delete template (assumed endpoint)
-const deleteTemplateApi = async (templateName: string): Promise<boolean> => {
+// Delete template by id
+const deleteTemplateApi = async (id: number): Promise<boolean> => {
   try {
     const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/delete/${templateName}`, {
+    const response = await fetch(`${API_BASE_URL}/delete/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -259,7 +260,7 @@ const deleteTemplateApi = async (templateName: string): Promise<boolean> => {
     const result: ApiResponse<null> = await response.json();
     return result.success;
   } catch (error) {
-    console.error(`Error deleting template ${templateName}:`, error);
+    console.error(`Error deleting template ${id}:`, error);
     throw error;
   }
 };
@@ -395,9 +396,6 @@ export default function TemplatesPage() {
     }
   };
 
-  // Handle file URL input for QR code and signature
-  
-
   // Save template (create or update)
   const handleSaveTemplate = async () => {
     if (!formData.name?.trim()) {
@@ -411,13 +409,13 @@ export default function TemplatesPage() {
       
       let updatedTemplate: Template;
       
-      if (selectedTemplate && selectedTemplate.template_name) {
-        // Update existing template using template_name
-        updatedTemplate = await updateTemplateApi(selectedTemplate.template_name, formData);
+      if (selectedTemplate && selectedTemplate.id) {
+        // Update existing template using id
+        updatedTemplate = await updateTemplateApi(selectedTemplate.id, formData);
         
         // Update local state
         setTemplates(prev => prev.map(t => 
-          t.template_name === selectedTemplate.template_name ? updatedTemplate : t
+          t.id === selectedTemplate.id ? updatedTemplate : t
         ));
         
         setSuccessMessage('Template updated successfully');
@@ -442,14 +440,14 @@ export default function TemplatesPage() {
   };
 
   // Delete template
-  const handleDeleteTemplate = async (templateName: string) => {
+  const handleDeleteTemplate = async (id: number) => {
     if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) return;
     
     try {
-      await deleteTemplateApi(templateName);
+      await deleteTemplateApi(id);
       
       // Remove from local state
-      setTemplates(prev => prev.filter(t => t.template_name !== templateName));
+      setTemplates(prev => prev.filter(t => t.id !== id));
       setSuccessMessage('Template deleted successfully');
       handleCloseModal();
     } catch (err) {
@@ -462,6 +460,7 @@ export default function TemplatesPage() {
   const handleDuplicateTemplate = (template: Template) => {
     const duplicatedTemplate: Partial<Template> = {
       ...template,
+      id: undefined, // Clear id for new template
       template_name: `${template.template_name}_copy_${Date.now()}`,
       name: `${template.name} (Copy)`,
     };
@@ -1206,9 +1205,9 @@ export default function TemplatesPage() {
                 <div className="border-t border-gray-200 p-6 bg-gray-50/50 rounded-b-2xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {isEditing && selectedTemplate.template_name && (
+                      {isEditing && selectedTemplate.id && (
                         <button
-                          onClick={() => handleDeleteTemplate(selectedTemplate.template_name!)}
+                          onClick={() => handleDeleteTemplate(selectedTemplate.id!)}
                           className="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 border border-red-200"
                           disabled={loading.saving}
                         >

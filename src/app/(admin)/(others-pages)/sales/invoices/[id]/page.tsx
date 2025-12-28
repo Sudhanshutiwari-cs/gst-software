@@ -1563,7 +1563,8 @@ return mappedInvoice
             background: #f5a623;
             color: #fff;
             padding: 10px;
-            text-align: left;
+            text-align: center;
+           
             font-weight: 600;
           }
           th:nth-child(1) { width: 30px; }
@@ -1585,13 +1586,13 @@ return mappedInvoice
           .totals {
             display: flex;
             justify-content: flex-end;
-            margin-top: 20px;
+           
           }
           .totals-table {
             width: 300px;
           }
           .totals-table tr td {
-            padding: 5px 10px;
+            
             border: none;
           }
           .totals-table tr td:first-child {
@@ -1604,8 +1605,7 @@ return mappedInvoice
           }
           .totals-table .total-row {
             font-size: 18px;
-            border-top: 2px solid #333;
-            padding-top: 10px;
+            
           }
           .amount-words {
             display: flex;
@@ -1618,10 +1618,11 @@ return mappedInvoice
           .amount-payable {
             display: flex;
             justify-content: flex-end;
-            padding: 10px 0;
+            
+            padding-bottom: 15px;
             background: #f5f5f5;
             font-weight: bold;
-            margin-top: 10px;
+          
           }
           .amount-payable span:last-child {
             margin-left: 50px;
@@ -1690,15 +1691,42 @@ return mappedInvoice
             text-align: center;
           }
           .status {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: bold;
-          }
-          .status-paid { background: #d1fae5; color: #065f46; }
-          .status-pending { background: #fef3c7; color: #92400e; }
-          .status-unpaid { background: #fee2e2; color: #991b1b; }
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 24px;
+
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  border-radius: 4px;
+  letter-spacing: 0.4px;
+}
+
+/* PENDING */
+.status-pending {
+  background-color: #fff3cd;
+  color: #8a5a00;
+  border: 1px solid #ffe08a;
+}
+
+/* PAID */
+.status-paid {
+  background-color: #e7f6ec;
+  color: #1e7e34;
+  border: 1px solid #bfe5cb;
+}
+
+/* UNPAID */
+.status-unpaid {
+  background-color: #fdecea;
+  color: #9b1c1c;
+  border: 1px solid #f5c2c7;
+}
+
         </style>
       </head>
       <body>
@@ -1742,11 +1770,11 @@ return mappedInvoice
           <div>
             <div class="label">Customer Details:</div>
             <div class="name">${invoiceData.billing_to || 'Customer Name'}</div>
-            ${invoiceData.to_email ? `<div>Ph: ${invoiceData.to_email}</div>` : ''}
+            ${invoiceData.to_email ? `<div> ${invoiceData.to_email}</div>` : ''}
           </div>
           <div>
             <div class="label">Status:</div>
-            <span class="status status-${invoiceData.payment_status || 'pending'}">
+      
               ${(invoiceData.payment_status || 'pending').toUpperCase()}
             </span>
           </div>
@@ -1768,34 +1796,65 @@ return mappedInvoice
           </tbody>
         </table>
 
-        <div class="totals">
-          <table class="totals-table">
-            <tr>
-              <td>Subtotal</td>
-              <td>₹${grossAmount}</td>
-            </tr>
-            ${gstNum > 0 ? `
-            <tr>
-              <td>GST</td>
-              <td>₹${gstAmount}</td>
-            </tr>
-            ` : ''}
-            ${discountNum > 0 ? `
-            <tr>
-              <td>Discount</td>
-              <td>-₹${discountAmount}</td>
-            </tr>
-            ` : ''}
-            <tr class="total-row">
-              <td>Total</td>
-              <td>₹${totalAmount}</td>
-            </tr>
-          </table>
-        </div>
+        <div style="width: 100%; margin-top: 10px; display: flex; justify-content: flex-end;">
+  <table style="width: 45%; border-collapse: collapse; font-size: 13px; border: none;">
+    
+    <!-- Subtotal -->
+    <tr style="border: none;">
+      <td style="padding: 6px 0; color: #444; border: none;">
+        Subtotal
+      </td>
+      <td style="padding: 6px 0; text-align: right; color: #444; border: none;">
+        ₹${grossAmount}
+      </td>
+    </tr>
+
+    <!-- GST -->
+    ${gstNum > 0 ? `
+    <tr style="border: none;">
+      <td style="padding: 6px 0; color: #444; border: none;">
+        GST
+      </td>
+      <td style="padding: 6px 0; text-align: right; color: #444; border: none;">
+        ₹${gstAmount}
+      </td>
+    </tr>
+    ` : ''}
+
+    <!-- Discount -->
+    ${discountNum > 0 ? `
+    <tr style="border: none;">
+      <td style="padding: 6px 0; color: #b91c1c; border: none;">
+        Discount
+      </td>
+      <td style="padding: 6px 0; text-align: right; color: #b91c1c; border: none;">
+        -₹${discountAmount}
+      </td>
+    </tr>
+    ` : ''}
+
+    <!-- Spacer (gap before total border) -->
+    <tr style="border: none;">
+      <td colspan="2" style="height: 6px; border: none;"></td>
+    </tr>
+
+    <!-- TOTAL (ONLY border in entire table) -->
+    <tr style="border: none;">
+      <td style="padding-top: 8px; font-weight: bold; border-top: 2px solid #333;">
+        Total
+      </td>
+      <td style="padding-top: 8px; text-align: right; font-weight: bold; border-top: 2px solid #333;">
+        ₹${totalAmount}
+      </td>
+    </tr>
+
+  </table>
+</div>
+
 
         <div class="amount-words">
           <span>Total Items / Qty : ${totalItems} / ${totalQuantity}</span>
-          <span>Total amount (in words): ${amountInWords}</span>
+     
         </div>
 
         <div class="amount-payable">
@@ -3947,7 +4006,7 @@ return mappedInvoice
               background: white;
               border: 1px solid #666;
               position: relative;
-              min-height: 260mm;
+              min-height: 280mm;
               padding-bottom: 40mm; /* Space for fixed footer */
             }
             .border-bottom {
