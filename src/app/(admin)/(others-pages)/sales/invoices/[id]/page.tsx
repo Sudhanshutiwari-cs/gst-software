@@ -924,7 +924,7 @@ const mappedInvoice: Invoice = {
     (parseFloat(invoiceData.discount) || 0).toString(),
   grand_total: hasProductsArray ? totalGrandTotal.toString() :
     (parseFloat(invoiceData.grand_total) || 0).toString(),
-  payment_status: invoiceData.payment_status || 'pending',
+  payment_status: invoiceData.invoice.payment_status || 'pending',
   payment_mode: invoiceData.payment_mode || null,
   utr_number: invoiceData.utr_number || null,
   created_at: invoiceData.created_at || new Date().toISOString(),
