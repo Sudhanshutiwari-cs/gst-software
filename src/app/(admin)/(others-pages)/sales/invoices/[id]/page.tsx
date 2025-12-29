@@ -1722,6 +1722,9 @@ return mappedInvoice
             <div class="label">Customer Details:</div>
             <div class="name">${invoiceData.billing_to || 'Customer Name'}</div>
             ${invoiceData.to_email ? `<div> ${invoiceData.to_email}</div>` : ''}
+            ${invoiceData.mobile? `<div> ${invoiceData.mobile}</div>` : ''}
+
+            
           </div>
           <div>
             <div class="label">Status:</div>
