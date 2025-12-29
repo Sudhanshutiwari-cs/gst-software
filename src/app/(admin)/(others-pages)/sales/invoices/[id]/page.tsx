@@ -249,24 +249,7 @@ const sendWhatsAppMessage = () => {
 };
 
 // Also add this alternative function if you want to use the chat.whatsapp.com API
-const sendWhatsAppMessageAlternative = () => {
-  if (!invoice) return;
-  
-  const customerMobile = invoice.mobile || invoice.whatsapp_number;
-  if (!customerMobile) {
-    alert("Customer mobile number is not available");
-    return;
-  }
-  
-  const formattedNumber = customerMobile.replace(/\D/g, '');
-  const message = `Hello from ${vendor?.shop_name || 'Our Store'}! Your invoice #${invoice.invoice_number || 'N/A'} is ready.`;
-  const encodedMessage = encodeURIComponent(message);
-  
-  // Alternative WhatsApp Web URL
-  const whatsappUrl = `https://web.whatsapp.com/send?phone=${formattedNumber}&text=${encodedMessage}`;
-  
-  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-};
+
   // Helper function to parse invoice string values to numbers for calculations
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
