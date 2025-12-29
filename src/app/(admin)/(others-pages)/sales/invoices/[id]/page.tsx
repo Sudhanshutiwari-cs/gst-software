@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react"
 import { sampleInvoice } from "@/components/data/sampleInvoice"
 import { jsPDF } from "jspdf"
 import html2canvas from "html2canvas"
+import emailjs from '@emailjs/browser';
 import {
   Download,
   Printer,
@@ -33,6 +34,12 @@ import {
   ChevronLeft
 } from "lucide-react"
 
+
+interface EmailJSConfig {
+  serviceId: string;
+  templateId: string;
+  publicKey: string;
+}
 interface VendorProfile {
   id: number
   business_name: string
@@ -42,6 +49,7 @@ interface VendorProfile {
   address_line2: string
   signature_url: string
   city: string
+  email: string
   state: string
   pincode: string
   country: string
@@ -158,7 +166,11 @@ export default function InvoiceViewer({ params }: PageProps) {
   const [showThermalPreview, setShowThermalPreview] = useState(false)
   const [thermalPreviewHtml, setThermalPreviewHtml] = useState<string | null>(null)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
-
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
   const invoicePreviewRef = useRef<HTMLDivElement>(null)
 
   // Initialize theme from localStorage and system preference
@@ -181,8 +193,8 @@ export default function InvoiceViewer({ params }: PageProps) {
     }
 
     updateResolvedTheme()
-   
-    
+
+
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleSystemThemeChange = () => {
@@ -208,47 +220,210 @@ export default function InvoiceViewer({ params }: PageProps) {
     setTheme(newTheme)
     localStorage.setItem('invoice-theme', newTheme)
   }
-  
-  // Add this function to your component
-const sendWhatsAppMessage = () => {
+
+const sendInvoiceEmail = async () => {
   if (!invoice) {
-    alert("No invoice data available for WhatsApp");
+    setEmailStatus({
+      type: 'error',
+      message: "No invoice data available for email"
+    });
     return;
   }
 
-  // Get customer's mobile number from invoice
-  const customerMobile = invoice.mobile || invoice.whatsapp_number;
-  
-  if (!customerMobile) {
-    alert("Customer mobile number is not available");
-    return;
-  }
+  try {
+    setIsSendingEmail(true);
+    setEmailStatus({ type: null, message: '' });
 
-  // Format the mobile number (remove any spaces, dashes, etc.)
-  const formattedNumber = customerMobile.replace(/\D/g, ''); // Remove non-numeric characters
-  
-  // Create the message content
-  const vendorName = vendor?.shop_name || invoice.biller_name || 'Our Store';
-  const invoiceNumber = invoice.invoice_number || invoice.invoice_id || 'N/A';
-  const totalAmount = invoice.grand_total ? `₹${parseInvoiceNumber(invoice.grand_total).toFixed(2)}` : 'N/A';
-  
-  const message = `Hello! This is a message from ${vendorName}. Your invoice #${invoiceNumber} for ${totalAmount} is ready. Thank you for your business!`;
-  
-  // Encode the message for URL
-  const encodedMessage = encodeURIComponent(message);
-  
-  // WhatsApp Web API URL with the pre-filled message
-  // Note: You need to use the international format without the leading '+'
-  const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodedMessage}`;
-  
-  // Open WhatsApp Web in a new window
-  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-  
-  // Alternative: Open in same tab (less recommended)
-  // window.location.href = whatsappUrl;
+    console.log('📧 Starting email sending process...');
+    
+    // Get customer email - more reliable method
+    const customerEmail = (invoice.to_email || invoice.email || '').trim();
+    
+    console.log('Raw email value:', customerEmail);
+    console.log('Email length:', customerEmail.length);
+    console.log('Email includes @?', customerEmail.includes('@'));
+    
+    if (!customerEmail) {
+      throw new Error('Customer email address is empty');
+    }
+    
+    if (!customerEmail.includes('@')) {
+      throw new Error(`Invalid email format (no @ symbol): ${customerEmail}`);
+    }
+
+    // First, generate PDF
+    console.log('🔄 Generating PDF...');
+    const pdfUrl = await generatePDFByTemplate(invoice, selectedTemplate);
+    if (!pdfUrl) {
+      throw new Error('Failed to generate PDF');
+    }
+    console.log('✅ PDF generated successfully');
+
+    // Create a temporary download link for the PDF
+    const response = await fetch(pdfUrl);
+    const pdfBlob = await response.blob();
+    const pdfDownloadUrl = URL.createObjectURL(pdfBlob);
+    console.log('📄 PDF download URL created');
+
+    // Prepare email template parameters - MAKE SURE VARIABLES MATCH TEMPLATE
+    const templateParams = {
+      to_name: invoice.billing_to || 'Customer',
+      to_email: customerEmail, // ← THIS MUST BE SET
+      user_email: customerEmail, // ← Some templates use user_email instead
+      email: customerEmail, // ← Some templates use just 'email'
+      from_name: vendor?.shop_name || invoice.biller_name || 'Our Store',
+      invoice_number: invoice.invoice_number || invoice.invoice_id || 'N/A',
+      invoice_date: new Date(invoice.issue_date).toLocaleDateString(),
+      total_amount: `₹${parseInvoiceNumber(invoice.grand_total).toFixed(2)}`,
+      customer_name: invoice.billing_to|| 'Customer',
+      company_name: vendor?.shop_name || 'Our Store',
+      company_email: vendor?.email || 'contact@example.com',
+      company_phone: vendor?.contact_number || '+91 00000 00000',
+      invoice_pdf_url: pdfDownloadUrl,
+      current_year: new Date().getFullYear().toString(),
+      reply_to: vendor?.email || 'contact@example.com' // Important for some services
+    };
+
+    console.log('📋 FINAL Template parameters:', JSON.stringify(templateParams, null, 2));
+
+    // EmailJS configuration - MUST BE YOUR ACTUAL CREDENTIALS
+    const emailConfig = {
+      serviceId: 'service_3crfro6', // ← YOUR SERVICE ID
+      templateId: 'template_t4zhw8m', // ← YOUR TEMPLATE ID
+      publicKey: 'aQTeM2qvw28N3cot1' // ← REPLACE THIS
+    };
+
+    console.log('🔑 Using EmailJS config:', {
+      serviceId: emailConfig.serviceId?.substring(0, 10) + '...',
+      templateId: emailConfig.templateId?.substring(0, 10) + '...',
+      publicKey: emailConfig.publicKey?.substring(0, 10) + '...'
+    });
+
+    // CRITICAL: If you're still using placeholder credentials, it won't work
+    if (emailConfig.serviceId.includes('xxxx') || 
+        emailConfig.templateId.includes('xxxx') || 
+        emailConfig.publicKey.includes('xxxx')) {
+      throw new Error('Please replace EmailJS placeholder credentials with your actual credentials');
+    }
+
+    // Initialize EmailJS
+    console.log('🚀 Initializing EmailJS with public key...');
+    
+    // Try different initialization methods
+    try {
+      emailjs.init(emailConfig.publicKey);
+      console.log('✅ EmailJS initialized');
+    } catch (initError) {
+      console.error('❌ EmailJS init error:', initError);
+     
+    }
+    
+    // Test EmailJS connection first
+    console.log('🧪 Testing EmailJS connection...');
+    
+    // Send email with timeout
+    console.log('📤 Sending email to:', customerEmail);
+    
+    const sendPromise = emailjs.send(
+      emailConfig.serviceId,
+      emailConfig.templateId,
+      templateParams
+    );
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Email sending timeout (30s)')), 30000);
+    });
+    
+    const result = await Promise.race([sendPromise, timeoutPromise]) as any;
+    
+    console.log('✅ Email sent successfully!');
+    console.log('Response status:', result.status);
+    console.log('Response text:', result.text);
+
+    setEmailStatus({
+      type: 'success',
+      message: `✅ Invoice email sent to ${customerEmail}`
+    });
+
+    // Clean up the blob URL
+    setTimeout(() => {
+      URL.revokeObjectURL(pdfDownloadUrl);
+      console.log('🗑️ Cleared PDF download URL');
+    }, 30000);
+
+    // Clear status after 5 seconds
+    setTimeout(() => {
+      setEmailStatus({ type: null, message: '' });
+    }, 5000);
+
+  } catch (error: any) {
+    console.error('❌ FULL Error sending email:', error);
+    console.error('Error object:', JSON.stringify(error, null, 2));
+    
+    let errorMessage = 'Failed to send email';
+    
+    if (error?.text?.includes('recipients address is empty')) {
+      errorMessage = `EmailJS: Recipient address empty. Check if 'to_email' exists in template.`;
+    } else if (error?.text?.includes('Invalid email')) {
+      errorMessage = `Invalid email address format`;
+    } else if (error?.message?.includes('credentials')) {
+      errorMessage = 'EmailJS credentials not configured. Please add your Service ID, Template ID, and Public Key.';
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+    
+    // Show detailed error in alert for debugging
+    alert(`Email Error:\n${errorMessage}\n\nCheck console for details.`);
+    
+    setEmailStatus({
+      type: 'error',
+      message: errorMessage
+    });
+  } finally {
+    setIsSendingEmail(false);
+  }
 };
+  // Add this function to your component
+  const sendWhatsAppMessage = () => {
+    if (!invoice) {
+      alert("No invoice data available for WhatsApp");
+      return;
+    }
 
-// Also add this alternative function if you want to use the chat.whatsapp.com API
+    // Get customer's mobile number from invoice
+    const customerMobile = invoice.mobile || invoice.whatsapp_number;
+
+    if (!customerMobile) {
+      alert("Customer mobile number is not available");
+      return;
+    }
+
+    // Format the mobile number (remove any spaces, dashes, etc.)
+    const formattedNumber = customerMobile.replace(/\D/g, ''); // Remove non-numeric characters
+
+    // Create the message content
+    const vendorName = vendor?.shop_name || invoice.biller_name || 'Our Store';
+    const invoiceNumber = invoice.invoice_number || invoice.invoice_id || 'N/A';
+    const totalAmount = invoice.grand_total ? `₹${parseInvoiceNumber(invoice.grand_total).toFixed(2)}` : 'N/A';
+
+    const message = `Hello! This is a message from ${vendorName}. Your invoice #${invoiceNumber} for ${totalAmount} is ready. Thank you for your business!`;
+
+    // Encode the message for URL
+    const encodedMessage = encodeURIComponent(message);
+
+    // WhatsApp Web API URL with the pre-filled message
+    // Note: You need to use the international format without the leading '+'
+    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodedMessage}`;
+
+    // Open WhatsApp Web in a new window
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+    // Alternative: Open in same tab (less recommended)
+    // window.location.href = whatsappUrl;
+  };
+
+  // Also add this alternative function if you want to use the chat.whatsapp.com API
 
   // Helper function to parse invoice string values to numbers for calculations
   const parseInvoiceNumber = (value: string): number => {
@@ -636,41 +811,41 @@ const sendWhatsAppMessage = () => {
 
   // Fetch vendor profile
   const fetchVendorTemplate = async () => {
-  try {
-    const token = getAuthToken()
-    if (!token) {
-      console.error("No auth token found")
-      return null
-    }
-
-    const response = await fetch(
-      "https://manhemdigitalsolutions.com/pos-admin/api/vendor/templates/view/classic",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error("No auth token found")
+        return null
       }
-    )
 
-    if (!response.ok) {
-      console.error("Failed to fetch vendor template", response.status)
+      const response = await fetch(
+        "https://manhemdigitalsolutions.com/pos-admin/api/vendor/templates/view/classic",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      )
+
+      if (!response.ok) {
+        console.error("Failed to fetch vendor template", response.status)
+        return null
+      }
+
+      const Classicdata = await response.json()
+
+      // ✅ PRINT RESPONSE
+
+
+      return Classicdata
+    } catch (error) {
+      console.error("Error fetching vendor template:", error)
       return null
     }
-
-    const Classicdata = await response.json()
-
-    // ✅ PRINT RESPONSE
-    
-
-    return Classicdata
-  } catch (error) {
-    console.error("Error fetching vendor template:", error)
-    return null
   }
-}
 
 
 
@@ -706,6 +881,7 @@ const sendWhatsAppMessage = () => {
         business_name: vendorData.business_name || '',
         shop_name: vendorData.shop_name || '',
         owner_name: vendorData.owner_name || '',
+        email: vendorData.email || '',
         address_line1: vendorData.address_line1 || '',
         signature_url: vendorData.signature_url || '',
         address_line2: vendorData.address_line2 || '',
@@ -922,77 +1098,77 @@ const sendWhatsAppMessage = () => {
 
       // Map API fields to your invoice structure with all required fields
       // Map API fields to your invoice structure with all required fields
-const mappedInvoice: Invoice = {
+      const mappedInvoice: Invoice = {
 
-  id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
-  invoice_id: invoiceData.invoice.invoice_id || '',
-  invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
-  vendor_id: invoiceData.vendor_id?.toString() || '',
-  currency: invoiceData.currency || 'INR',
-  biller_name: invoiceData.biller_name || '',
-  issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
-  from_name: '',
-  description: invoiceData.product_name || (hasProductsArray ?
-    `${invoiceData.products.length} items` : ''),
-  due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  billing_to: invoiceData.invoice.billing_to || '',
-  to_email: invoiceData.invoice.email || '',
-  from_address: '',
-  from_email: '',
-  billing_address: invoiceData.billing_address || '',
-  mobile: invoiceData.invoice.mobile || null,
-  to_name: invoiceData.billing_to || '',
-  to_address: invoiceData.shipping_address || null,
-  email: invoiceData.email || '',
-  whatsapp_number: invoiceData.whatsapp_number || null,
-  product_name: hasProductsArray ?
-    `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
-    invoiceData.product_name || '',
-  terms: invoiceData.terms || null,
-  notes: invoiceData.notes || null,
-  product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
-    parseInt(invoiceData.product_id) || 0,
-  product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
-    invoiceData.product_sku || '',
-  qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
-  gross_amt: hasProductsArray ? totalGrossAmt.toString() :
-    (parseFloat(invoiceData.gross_amt) || 0).toString(),
-  gst: hasProductsArray ? totalGst.toString() :
-    (parseFloat(invoiceData.gst) || 0).toString(),
-  tax_inclusive: invoiceData.tax_inclusive || 0,
-  discount: hasProductsArray ? totalDiscount.toString() :
-    (parseFloat(invoiceData.discount) || 0).toString(),
-  grand_total: hasProductsArray ? totalGrandTotal.toString() :
-    (parseFloat(invoiceData.grand_total) || 0).toString(),
-  payment_status: invoiceData.invoice.payment_status || 'pending',
-  payment_mode: invoiceData.payment_mode || null,
-  utr_number: invoiceData.utr_number || null,
-  created_at: invoiceData.created_at || new Date().toISOString(),
-  updated_at: invoiceData.updated_at || new Date().toISOString(),
-  shipping_address: invoiceData.shipping_address || null,
-  // Add products array - IMPORTANT: Map all product fields
-  products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
-    id: parseInt(product.id?.toString() || '0') || 0,
-    invoice_id: product.invoice_id || '',
-    product_name: product.product_name || '',
-    product_id: parseInt(product.product_id?.toString() || '0') || 0,
-    product_sku: product.product_sku || '',
-    qty: product.qty || 0,
-    gross_amt: product.gross_amt || '0',
-    gst: product.gst || '0',
-    tax_inclusive: product.tax_inclusive || 0,
-    discount: product.discount || '0',
-    total: product.total || '0',
-    created_at: product.created_at || new Date().toISOString(),
-    updated_at: product.updated_at || new Date().toISOString()
-  })) : undefined
-}
+        id: parseInt(invoiceData.id) || parseInt(invoiceData.invoice_id) || 0,
+        invoice_id: invoiceData.invoice.invoice_id || '',
+        invoice_number: invoiceData.invoice_id || invoiceData.invoice_number || '',
+        vendor_id: invoiceData.vendor_id?.toString() || '',
+        currency: invoiceData.currency || 'INR',
+        biller_name: invoiceData.biller_name || '',
+        issue_date: invoiceData.created_at || invoiceData.issue_date || new Date().toISOString(),
+        from_name: '',
+        description: invoiceData.product_name || (hasProductsArray ?
+          `${invoiceData.products.length} items` : ''),
+        due_date: invoiceData.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        billing_to: invoiceData.invoice.billing_to || '',
+        to_email: invoiceData.invoice.email || '',
+        from_address: '',
+        from_email: '',
+        billing_address: invoiceData.billing_address || '',
+        mobile: invoiceData.invoice.mobile || null,
+        to_name: invoiceData.billing_to || '',
+        to_address: invoiceData.shipping_address || null,
+        email: invoiceData.email || '',
+        whatsapp_number: invoiceData.whatsapp_number || null,
+        product_name: hasProductsArray ?
+          `${invoiceData.products[0]?.product_name}${invoiceData.products.length > 1 ? ` + ${invoiceData.products.length - 1} more` : ''}` :
+          invoiceData.product_name || '',
+        terms: invoiceData.terms || null,
+        notes: invoiceData.notes || null,
+        product_id: hasProductsArray ? parseInt(invoiceData.products[0]?.product_id?.toString() || '0') || 0 :
+          parseInt(invoiceData.product_id) || 0,
+        product_sku: hasProductsArray ? invoiceData.products[0]?.product_sku || '' :
+          invoiceData.product_sku || '',
+        qty: hasProductsArray ? totalQty : parseInt(invoiceData.qty) || 1,
+        gross_amt: hasProductsArray ? totalGrossAmt.toString() :
+          (parseFloat(invoiceData.gross_amt) || 0).toString(),
+        gst: hasProductsArray ? totalGst.toString() :
+          (parseFloat(invoiceData.gst) || 0).toString(),
+        tax_inclusive: invoiceData.tax_inclusive || 0,
+        discount: hasProductsArray ? totalDiscount.toString() :
+          (parseFloat(invoiceData.discount) || 0).toString(),
+        grand_total: hasProductsArray ? totalGrandTotal.toString() :
+          (parseFloat(invoiceData.grand_total) || 0).toString(),
+        payment_status: invoiceData.invoice.payment_status || 'pending',
+        payment_mode: invoiceData.payment_mode || null,
+        utr_number: invoiceData.utr_number || null,
+        created_at: invoiceData.created_at || new Date().toISOString(),
+        updated_at: invoiceData.updated_at || new Date().toISOString(),
+        shipping_address: invoiceData.shipping_address || null,
+        // Add products array - IMPORTANT: Map all product fields
+        products: hasProductsArray ? invoiceData.products.map((product: InvoiceProduct) => ({
+          id: parseInt(product.id?.toString() || '0') || 0,
+          invoice_id: product.invoice_id || '',
+          product_name: product.product_name || '',
+          product_id: parseInt(product.product_id?.toString() || '0') || 0,
+          product_sku: product.product_sku || '',
+          qty: product.qty || 0,
+          gross_amt: product.gross_amt || '0',
+          gst: product.gst || '0',
+          tax_inclusive: product.tax_inclusive || 0,
+          discount: product.discount || '0',
+          total: product.total || '0',
+          created_at: product.created_at || new Date().toISOString(),
+          updated_at: product.updated_at || new Date().toISOString()
+        })) : undefined
+      }
 
-console.log("✅ Mapped Invoice:", mappedInvoice)
-console.log("📦 Mapped Products:", mappedInvoice.products)
+      console.log("✅ Mapped Invoice:", mappedInvoice)
+      console.log("📦 Mapped Products:", mappedInvoice.products)
 
-setInvoice(mappedInvoice)
-return mappedInvoice
+      setInvoice(mappedInvoice)
+      return mappedInvoice
     } catch (err) {
       console.error('❌ Error fetching invoice:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch invoice')
@@ -1330,7 +1506,7 @@ return mappedInvoice
       };
 
       // Number to words function (simplified)
-      
+
       // Use vendor data for company info
       const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
       const vendorAddress = vendor?.address_line1 ?
@@ -1373,7 +1549,7 @@ return mappedInvoice
       const discountAmount = formatCurrency(discountNum);
       const gstAmount = formatCurrency(gstNum);
       const grossAmount = formatCurrency(grossAmtNum);
-      
+
 
       // Generate products table rows
       let tableRows = '';
@@ -1762,7 +1938,7 @@ return mappedInvoice
             <div class="label">Customer Details:</div>
             <div class="name">${invoiceData.billing_to || 'Customer Name'}</div>
             ${invoiceData.to_email ? `<div> ${invoiceData.to_email}</div>` : ''}
-            ${invoiceData.mobile? `<div> ${invoiceData.mobile}</div>` : ''}
+            ${invoiceData.mobile ? `<div> ${invoiceData.mobile}</div>` : ''}
 
             
           </div>
@@ -2365,7 +2541,7 @@ return mappedInvoice
 
       // Generate products table rows
       let tableRows = ''
-     
+
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -2400,8 +2576,8 @@ return mappedInvoice
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
-      
-        
+
+
       }
 
       // Create a temporary iframe for perfect rendering
@@ -2804,7 +2980,7 @@ return mappedInvoice
 
       // Generate products table rows
       let tableRows = ''
-  
+
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -2824,8 +3000,8 @@ return mappedInvoice
               <td><strong>₹${formatCurrency(productTotal)}</strong></td>
             </tr>
           `
-        
-         
+
+
         })
       } else {
         // Single product fallback
@@ -2842,8 +3018,8 @@ return mappedInvoice
             <td><strong>₹${formatCurrency(grandTotalNum)}</strong></td>
           </tr>
         `
-       
- 
+
+
       }
 
       // Create a temporary iframe for perfect rendering
@@ -3240,8 +3416,8 @@ return mappedInvoice
 
       // Generate products table rows
       let tableRows = ''
-     
-     
+
+
 
 
       if (invoiceData.products && invoiceData.products.length > 0) {
@@ -3261,7 +3437,7 @@ return mappedInvoice
               <td>₹${formatCurrency(productTotal)}</td>
             </tr>
           `
-        
+
 
         })
       } else {
@@ -3279,8 +3455,8 @@ return mappedInvoice
             <td>₹${formatCurrency(grandTotalNum)}</td>
           </tr>
         `
-      
-      
+
+
       }
 
       // Create a temporary iframe for perfect rendering
@@ -3637,88 +3813,88 @@ return mappedInvoice
 
   // Classic Template PDF (existing code)
   const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
-  try {
-    // ✅ AUTO CALL (Client Side Only)
-    const classicTemplate = await fetchVendorTemplate()
-    
-    setIsGeneratingPDF(true);
-    console.log("📦 Invoice data for PDF:", invoiceData);
-    console.log("📦 Vendor Template Response:", classicTemplate.data.template_name)
-    console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
-    console.log("📦 Products data for PDF:", invoiceData.products);
-    console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
-    
-    // Calculate totals from products array or single product
-    const totals = calculateInvoiceTotals(invoiceData);
-    const grossAmtNum = totals.totalGrossAmt;
-    const gstNum = totals.totalGst;
-    const discountNum = totals.totalDiscount;
-    const grandTotalNum = totals.totalGrandTotal;
+    try {
+      // ✅ AUTO CALL (Client Side Only)
+      const classicTemplate = await fetchVendorTemplate()
 
-    // Format date
-    const formatDate = (dateString: string) => {
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      } catch {
-        return new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      }
-    };
+      setIsGeneratingPDF(true);
+      console.log("📦 Invoice data for PDF:", invoiceData);
+      console.log("📦 Vendor Template Response:", classicTemplate.data.template_name)
+      console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
+      console.log("📦 Products data for PDF:", invoiceData.products);
+      console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
 
-    // Format currency
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount);
-    };
+      // Calculate totals from products array or single product
+      const totals = calculateInvoiceTotals(invoiceData);
+      const grossAmtNum = totals.totalGrossAmt;
+      const gstNum = totals.totalGst;
+      const discountNum = totals.totalDiscount;
+      const grandTotalNum = totals.totalGrandTotal;
 
-    // Use vendor data for company info
-    const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
-    const vendorAddress = vendor?.address_line1 ?
-      `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
-      : '123 Business St, City, State, PIN';
-    const vendorPhone = vendor?.contact_number || '+91 9856314765';
+      // Format date
+      const formatDate = (dateString: string) => {
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        } catch {
+          return new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        }
+      };
 
-    console.log("=== PDF LOGO DEBUG ===");
-    console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
-    console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
-    console.log("logoBase64 length:", logoBase64?.length);
-    console.log("Vendor logo URL:", vendor?.logo_url);
+      // Format currency
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      };
 
-    // Helper function to create a placeholder logo
-    const createPlaceholderLogo = () => {
-      const initial = (vendorName || 'V').charAt(0).toUpperCase();
-      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-      const color = colors[colorIndex];
+      // Use vendor data for company info
+      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
+      const vendorAddress = vendor?.address_line1 ?
+        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
+        : '123 Business St, City, State, PIN';
+      const vendorPhone = vendor?.contact_number || '+91 9856314765';
 
-      const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      console.log("=== PDF LOGO DEBUG ===");
+      console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
+      console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
+      console.log("logoBase64 length:", logoBase64?.length);
+      console.log("Vendor logo URL:", vendor?.logo_url);
+
+      // Helper function to create a placeholder logo
+      const createPlaceholderLogo = () => {
+        const initial = (vendorName || 'V').charAt(0).toUpperCase();
+        const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+        const color = colors[colorIndex];
+
+        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
         <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
         <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
           ${initial}
         </text>
       </svg>`;
 
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
-    };
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
+      };
 
-    // Helper function to create a placeholder signature
-    const createPlaceholderSignature = () => {
-  
-
-      
+      // Helper function to create a placeholder signature
+      const createPlaceholderSignature = () => {
 
 
-      const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+
+
+
+        const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <circle cx="40" cy="40" r="38" fill="#10B981" stroke="#047857" stroke-width="2"/>
         <circle cx="40" cy="40" r="34" fill="white" stroke="#059669" stroke-width="1"/>
         <path d="M25 40 L35 50 L55 30" stroke="#059669" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -3727,29 +3903,29 @@ return mappedInvoice
         </text>
       </svg>`;
 
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
-    };
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
+      };
 
-    // Get direct URL with cache busting
-    const getDirectLogoUrl = (url: string): string => {
-      const timestamp = new Date().getTime();
-      return `${url}?t=${timestamp}`;
-    };
+      // Get direct URL with cache busting
+      const getDirectLogoUrl = (url: string): string => {
+        const timestamp = new Date().getTime();
+        return `${url}?t=${timestamp}`;
+      };
 
-    // Helper function to generate QR code placeholder HTML
-    
-    // YOUR STATIC QR CODE URL
-    const staticQRCodeUrl = "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
-    
-    // Create placeholder signature as fallback
-    const placeholderSignature = createPlaceholderSignature();
-    
-    // Use a more reliable signature URL (the provided URL might have CORS issues)
-    // Alternative reliable green checkmark signature
+      // Helper function to generate QR code placeholder HTML
 
-    
-    // Or use a data URL for guaranteed loading
-    const signatureDataUrl = `data:image/svg+xml;base64,${btoa(`
+      // YOUR STATIC QR CODE URL
+      const staticQRCodeUrl = "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
+
+      // Create placeholder signature as fallback
+      const placeholderSignature = createPlaceholderSignature();
+
+      // Use a more reliable signature URL (the provided URL might have CORS issues)
+      // Alternative reliable green checkmark signature
+
+
+      // Or use a data URL for guaranteed loading
+      const signatureDataUrl = `data:image/svg+xml;base64,${btoa(`
       <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <circle cx="40" cy="40" r="38" fill="#10B981" opacity="0.1"/>
         <circle cx="40" cy="40" r="36" fill="white" stroke="#10B981" stroke-width="2"/>
@@ -3762,11 +3938,11 @@ return mappedInvoice
       </svg>
     `)}`;
 
-    // Generate QR code HTML based on available data
-    let qrCodeHTML = '';
-    
-    // Always use the static QR code URL you've provided
-    qrCodeHTML = `
+      // Generate QR code HTML based on available data
+      let qrCodeHTML = '';
+
+      // Always use the static QR code URL you've provided
+      qrCodeHTML = `
       <img
         src="${staticQRCodeUrl}"
         alt="Payment QR Code"
@@ -3778,33 +3954,33 @@ return mappedInvoice
       </p>
     `;
 
-    console.log("📱 Using static QR code URL:", staticQRCodeUrl);
-    console.log("✍️ Using data URL signature for guaranteed loading");
+      console.log("📱 Using static QR code URL:", staticQRCodeUrl);
+      console.log("✍️ Using data URL signature for guaranteed loading");
 
-    // Determine which logo to use
-    let logoSrc = '';
-    let useBase64 = false;
-    let useProxy = false;
+      // Determine which logo to use
+      let logoSrc = '';
+      let useBase64 = false;
+      let useProxy = false;
 
-    if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
-      // Use the base64 we already have
-      logoSrc = logoBase64;
-      useBase64 = true;
-      console.log("✅ Using existing base64 logo");
-    } else if (vendor?.logo_url) {
-      // Use server proxy for the vendor URL
-      const encodedUrl = encodeURIComponent(vendor.logo_url);
-      logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
-      useProxy = true;
-      console.log("⚠️ Using server proxy for vendor logo");
-    } else {
-      // Create placeholder
-      logoSrc = createPlaceholderLogo();
-      console.log("❌ No logo available, using placeholder");
-    }
+      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+        // Use the base64 we already have
+        logoSrc = logoBase64;
+        useBase64 = true;
+        console.log("✅ Using existing base64 logo");
+      } else if (vendor?.logo_url) {
+        // Use server proxy for the vendor URL
+        const encodedUrl = encodeURIComponent(vendor.logo_url);
+        logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
+        useProxy = true;
+        console.log("⚠️ Using server proxy for vendor logo");
+      } else {
+        // Create placeholder
+        logoSrc = createPlaceholderLogo();
+        console.log("❌ No logo available, using placeholder");
+      }
 
-    // Create the signature HTML with fallback
-    const signatureHTML = `
+      // Create the signature HTML with fallback
+      const signatureHTML = `
       <div style="text-align: center; margin-bottom: 15px;">
         <img src="${signatureDataUrl}" 
              alt="Authorized Signature" 
@@ -3818,43 +3994,43 @@ return mappedInvoice
       </div>
     `;
 
-    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
-    console.log("Signature HTML using data URL");
+      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
+      console.log("Signature HTML using data URL");
 
-    // Invoice data
-    const invoiceDate = formatDate(invoiceData.issue_date);
-    const dueDate = formatDate(invoiceData.due_date);
+      // Invoice data
+      const invoiceDate = formatDate(invoiceData.issue_date);
+      const dueDate = formatDate(invoiceData.due_date);
 
-    // Generate products table rows
-    let tableRows = '';
-    let totalItems = 0;
-    let totalQuantity = 0;
-    let subtotalAmount = 0;
+      // Generate products table rows
+      let tableRows = '';
+      let totalItems = 0;
+      let totalQuantity = 0;
+      let subtotalAmount = 0;
 
-    console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
+      console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
 
-    if (invoiceData.products && invoiceData.products.length > 0) {
-      console.log(`Processing ${invoiceData.products.length} products`);
+      if (invoiceData.products && invoiceData.products.length > 0) {
+        console.log(`Processing ${invoiceData.products.length} products`);
 
-      invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
-        const productGrossAmt = parseFloat(product.gross_amt) || 0;
-        const productGst = parseFloat(product.gst || '0') || 0;
-        const productDiscount = parseFloat(product.discount || '0') || 0;
-        const productTotal = parseFloat(product.total) || 0;
-        const productQty = product.qty || 1;
-        const unitPrice = productGrossAmt / productQty;
-        const originalPrice = productGrossAmt + productDiscount;
+        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+          const productGrossAmt = parseFloat(product.gross_amt) || 0;
+          const productGst = parseFloat(product.gst || '0') || 0;
+          const productDiscount = parseFloat(product.discount || '0') || 0;
+          const productTotal = parseFloat(product.total) || 0;
+          const productQty = product.qty || 1;
+          const unitPrice = productGrossAmt / productQty;
+          const originalPrice = productGrossAmt + productDiscount;
 
-        console.log(`Product ${index + 1} (${product.product_name}):`, {
-          qty: productQty,
-          unitPrice,
-          gross: productGrossAmt,
-          gst: productGst,
-          discount: productDiscount,
-          total: productTotal
-        });
+          console.log(`Product ${index + 1} (${product.product_name}):`, {
+            qty: productQty,
+            unitPrice,
+            gross: productGrossAmt,
+            gst: productGst,
+            discount: productDiscount,
+            total: productTotal
+          });
 
-        tableRows += `
+          tableRows += `
           <tr>
             <td style="border: none; border-bottom: 1px solid #666; padding: 8px;">${index + 1}</td>
             <td>
@@ -3865,8 +4041,8 @@ return mappedInvoice
             <td>
               ₹${formatCurrency(unitPrice)}<br>
               ${productDiscount > 0 ?
-                `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
-                : ''}
+              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
+              : ''}
             </td>
             <td>
               <div>${productQty}</div>
@@ -3876,23 +4052,23 @@ return mappedInvoice
             </td>
           </tr>
         `;
-        totalItems++;
-        totalQuantity += productQty;
-        subtotalAmount += productTotal;
-      });
+          totalItems++;
+          totalQuantity += productQty;
+          subtotalAmount += productTotal;
+        });
 
-      console.log("📊 Table totals:", {
-        totalItems,
-        totalQuantity,
-        subtotalAmount
-      });
-    } else {
-      // Single product fallback
-      console.log("Using single product fallback");
-      const unitPrice = grossAmtNum / (invoiceData.qty || 1);
-      const originalPrice = grossAmtNum + discountNum;
+        console.log("📊 Table totals:", {
+          totalItems,
+          totalQuantity,
+          subtotalAmount
+        });
+      } else {
+        // Single product fallback
+        console.log("Using single product fallback");
+        const unitPrice = grossAmtNum / (invoiceData.qty || 1);
+        const originalPrice = grossAmtNum + discountNum;
 
-      tableRows = `
+        tableRows = `
         <tr>
           <td>1</td>
           <td>
@@ -3903,8 +4079,8 @@ return mappedInvoice
           <td>
             ₹${formatCurrency(unitPrice)}<br>
             ${discountNum > 0 ?
-              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
-              : ''}
+            `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
+            : ''}
           </td>
           <td>
             <div>${invoiceData.qty || 1}</div>
@@ -3916,24 +4092,24 @@ return mappedInvoice
           </td>
         </tr>
       `;
-      totalItems = 1;
-      totalQuantity = invoiceData.qty || 1;
-      subtotalAmount = grandTotalNum;
-    }
+        totalItems = 1;
+        totalQuantity = invoiceData.qty || 1;
+        subtotalAmount = grandTotalNum;
+      }
 
-    // Create the logo HTML with fallback
-    let logoHTML = '';
+      // Create the logo HTML with fallback
+      let logoHTML = '';
 
-    if (useBase64) {
-      logoHTML = `<img src="${logoSrc}" 
+      if (useBase64) {
+        logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
                 style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
                 crossorigin="anonymous">`;
-    } else if (useProxy) {
-      const directUrl = getDirectLogoUrl(vendor!.logo_url);
-      const placeholder = createPlaceholderLogo();
+      } else if (useProxy) {
+        const directUrl = getDirectLogoUrl(vendor!.logo_url);
+        const placeholder = createPlaceholderLogo();
 
-      logoHTML = `<img src="${logoSrc}" 
+        logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
                 style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
                 crossorigin="anonymous"
@@ -3947,17 +4123,17 @@ return mappedInvoice
                     this.onerror=null;
                   }
                 ">`;
-    } else {
-      logoHTML = `<img src="${logoSrc}" 
+      } else {
+        logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
                 style="width: 60px; height: 60px; object-fit: contain;">`;
-    }
+      }
 
-    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
+      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
 
-    // Create a temporary iframe for perfect rendering
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = `
+      // Create a temporary iframe for perfect rendering
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = `
       position: fixed;
       left: -9999px;
       top: 0;
@@ -3966,16 +4142,16 @@ return mappedInvoice
       border: none;
       visibility: hidden;
     `;
-    document.body.appendChild(iframe);
+      document.body.appendChild(iframe);
 
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) {
-      throw new Error('Could not create iframe document');
-    }
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Could not create iframe document');
+      }
 
-    // Write the exact HTML structure with API data
-    iframeDoc.open();
-    iframeDoc.write(`
+      // Write the exact HTML structure with API data
+      iframeDoc.open();
+      iframeDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -4406,102 +4582,102 @@ return mappedInvoice
         </body>
       </html>
     `);
-    iframeDoc.close();
+      iframeDoc.close();
 
-    // Wait for iframe to render and images to load
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Check if images are loaded in the iframe
-    const images = iframeDoc.images;
-    let allImagesLoaded = true;
-
-    for (let i = 0; i < images.length; i++) {
-      if (!images[i].complete) {
-        allImagesLoaded = false;
-        console.log(`Image ${i} not yet loaded:`, images[i].src);
-      }
-    }
-
-    if (!allImagesLoaded) {
-      console.log("Waiting additional time for images to load...");
+      // Wait for iframe to render and images to load
       await new Promise(resolve => setTimeout(resolve, 3000));
-    }
 
-    // Generate PDF from iframe with improved settings
-    const canvas = await html2canvas(iframeDoc.body, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: 210 * 3.78,
-      height: 297 * 3.78,
-      windowWidth: 210 * 3.78,
-      windowHeight: 297 * 3.78,
-      logging: true,
-      imageTimeout: 15000,
-      onclone: (clonedDoc, element) => {
-        // Ensure all images have crossOrigin attribute
-        const images = element.getElementsByTagName('img');
-        Array.from(images).forEach(img => {
-          img.setAttribute('crossOrigin', 'anonymous');
+      // Check if images are loaded in the iframe
+      const images = iframeDoc.images;
+      let allImagesLoaded = true;
 
-          // If image is from our proxy, add enhanced error handling
-          if (img.src.includes('/api/vendor/logo')) {
-            console.log('🔗 Found proxy image, adding enhanced error handler');
-
-            const initial = (vendorName || 'V').charAt(0).toUpperCase();
-            const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
-
-            img.onerror = function () {
-              console.log('❌ Proxy image failed in clone');
-              this.src = placeholderSvg;
-              this.onerror = null;
-            };
-          }
-        });
+      for (let i = 0; i < images.length; i++) {
+        if (!images[i].complete) {
+          allImagesLoaded = false;
+          console.log(`Image ${i} not yet loaded:`, images[i].src);
+        }
       }
-    });
 
-    // Clean up
-    document.body.removeChild(iframe);
+      if (!allImagesLoaded) {
+        console.log("Waiting additional time for images to load...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
 
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
+      // Generate PDF from iframe with improved settings
+      const canvas = await html2canvas(iframeDoc.body, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 210 * 3.78,
+        height: 297 * 3.78,
+        windowWidth: 210 * 3.78,
+        windowHeight: 297 * 3.78,
+        logging: true,
+        imageTimeout: 15000,
+        onclone: (clonedDoc, element) => {
+          // Ensure all images have crossOrigin attribute
+          const images = element.getElementsByTagName('img');
+          Array.from(images).forEach(img => {
+            img.setAttribute('crossOrigin', 'anonymous');
 
-    const imgData = canvas.toDataURL('image/png', 1.0);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            // If image is from our proxy, add enhanced error handling
+            if (img.src.includes('/api/vendor/logo')) {
+              console.log('🔗 Found proxy image, adding enhanced error handler');
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+              const initial = (vendorName || 'V').charAt(0).toUpperCase();
+              const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
 
-    const pdfBlob = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
+              img.onerror = function () {
+                console.log('❌ Proxy image failed in clone');
+                this.src = placeholderSvg;
+                this.onerror = null;
+              };
+            }
+          });
+        }
+      });
 
-    console.log("✅ Classic template PDF generated successfully");
-    console.log("📄 PDF details:", {
-      totalItems,
-      totalQuantity,
-      subtotalAmount,
-      gst: gstNum,
-      discount: discountNum,
-      grandTotal: grandTotalNum
-    });
+      // Clean up
+      document.body.removeChild(iframe);
 
-    return pdfUrl;
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
 
-  } catch (err) {
-    console.error('❌ Error generating classic template PDF:', err);
-    // Fallback: generate PDF without logo
-    return await generateSimplePDF(invoiceData);
-  } finally {
-    setIsGeneratingPDF(false);
-  }
-};
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      console.log("✅ Classic template PDF generated successfully");
+      console.log("📄 PDF details:", {
+        totalItems,
+        totalQuantity,
+        subtotalAmount,
+        gst: gstNum,
+        discount: discountNum,
+        grandTotal: grandTotalNum
+      });
+
+      return pdfUrl;
+
+    } catch (err) {
+      console.error('❌ Error generating classic template PDF:', err);
+      // Fallback: generate PDF without logo
+      return await generateSimplePDF(invoiceData);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
   // Simple fallback PDF
   const generateSimplePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
@@ -4814,18 +4990,19 @@ return mappedInvoice
         onClick: () => window.print(),
         variant: "secondary" as const
       },
+     {
+  icon: <Mail size={18} />,
+  label: "Email",
+  onClick: sendInvoiceEmail,
+  variant: "secondary" as const,
+  loading: isSendingEmail
+},
       {
-        icon: <Mail size={18} />,
-        label: "Email",
-        onClick: () => alert("Email functionality would be implemented here"),
+        icon: <MessageSquare size={18} />,
+        label: "WhatsApp",
+        onClick: sendWhatsAppMessage, // Use the function we just created
         variant: "secondary" as const
       },
-      {
-  icon: <MessageSquare size={18} />,
-  label: "WhatsApp",
-  onClick: sendWhatsAppMessage, // Use the function we just created
-  variant: "secondary" as const
-},
       {
         icon: <Copy size={18} />,
         label: "Duplicate",
@@ -5219,7 +5396,31 @@ return mappedInvoice
             </div>
           </div>
         )}
-
+        {/* Email Status Display */}
+{emailStatus.type && (
+  <div className={`mx-4 mt-4 p-3 ${emailStatus.type === 'success' 
+    ? 'bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-800' 
+    : 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800'
+  } rounded-lg`}>
+    <div className="flex items-center justify-between">
+      <span className={`${emailStatus.type === 'success' 
+        ? 'text-green-700 dark:text-green-400' 
+        : 'text-red-700 dark:text-red-400'
+      } text-sm`}>
+        {emailStatus.message}
+      </span>
+      <button
+        onClick={() => setEmailStatus({ type: null, message: '' })}
+        className={`${emailStatus.type === 'success' 
+          ? 'text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300' 
+          : 'text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
+        }`}
+      >
+        ×
+      </button>
+    </div>
+  </div>
+)}
         {/* Logo Error Display */}
         {logoError && (
           <div className="mx-4 mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg">
