@@ -209,7 +209,64 @@ export default function InvoiceViewer({ params }: PageProps) {
     localStorage.setItem('invoice-theme', newTheme)
   }
   
+  // Add this function to your component
+const sendWhatsAppMessage = () => {
+  if (!invoice) {
+    alert("No invoice data available for WhatsApp");
+    return;
+  }
+
+  // Get customer's mobile number from invoice
+  const customerMobile = invoice.mobile || invoice.whatsapp_number;
   
+  if (!customerMobile) {
+    alert("Customer mobile number is not available");
+    return;
+  }
+
+  // Format the mobile number (remove any spaces, dashes, etc.)
+  const formattedNumber = customerMobile.replace(/\D/g, ''); // Remove non-numeric characters
+  
+  // Create the message content
+  const vendorName = vendor?.shop_name || invoice.biller_name || 'Our Store';
+  const invoiceNumber = invoice.invoice_number || invoice.invoice_id || 'N/A';
+  const totalAmount = invoice.grand_total ? `₹${parseInvoiceNumber(invoice.grand_total).toFixed(2)}` : 'N/A';
+  
+  const message = `Hello! This is a message from ${vendorName}. Your invoice #${invoiceNumber} for ${totalAmount} is ready. Thank you for your business!`;
+  
+  // Encode the message for URL
+  const encodedMessage = encodeURIComponent(message);
+  
+  // WhatsApp Web API URL with the pre-filled message
+  // Note: You need to use the international format without the leading '+'
+  const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodedMessage}`;
+  
+  // Open WhatsApp Web in a new window
+  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  
+  // Alternative: Open in same tab (less recommended)
+  // window.location.href = whatsappUrl;
+};
+
+// Also add this alternative function if you want to use the chat.whatsapp.com API
+const sendWhatsAppMessageAlternative = () => {
+  if (!invoice) return;
+  
+  const customerMobile = invoice.mobile || invoice.whatsapp_number;
+  if (!customerMobile) {
+    alert("Customer mobile number is not available");
+    return;
+  }
+  
+  const formattedNumber = customerMobile.replace(/\D/g, '');
+  const message = `Hello from ${vendor?.shop_name || 'Our Store'}! Your invoice #${invoice.invoice_number || 'N/A'} is ready.`;
+  const encodedMessage = encodeURIComponent(message);
+  
+  // Alternative WhatsApp Web URL
+  const whatsappUrl = `https://web.whatsapp.com/send?phone=${formattedNumber}&text=${encodedMessage}`;
+  
+  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+};
   // Helper function to parse invoice string values to numbers for calculations
   const parseInvoiceNumber = (value: string): number => {
     return parseFloat(value) || 0
@@ -4781,11 +4838,11 @@ return mappedInvoice
         variant: "secondary" as const
       },
       {
-        icon: <MessageSquare size={18} />,
-        label: "WhatsApp",
-        onClick: () => alert("WhatsApp functionality would be implemented here"),
-        variant: "secondary" as const
-      },
+  icon: <MessageSquare size={18} />,
+  label: "WhatsApp",
+  onClick: sendWhatsAppMessage, // Use the function we just created
+  variant: "secondary" as const
+},
       {
         icon: <Copy size={18} />,
         label: "Duplicate",
