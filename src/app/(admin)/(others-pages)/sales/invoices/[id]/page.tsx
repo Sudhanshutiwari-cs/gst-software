@@ -3812,89 +3812,91 @@ const sendInvoiceEmail = async () => {
   }
 
   // Classic Template PDF (existing code)
-  const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
-    try {
-      // ✅ AUTO CALL (Client Side Only)
-      const classicTemplate = await fetchVendorTemplate()
+ const generateClassicTemplatePDF = async (invoiceData: Invoice): Promise<string | null> => {
+  try {
+    // ✅ AUTO CALL (Client Side Only)
+    const classicTemplate = await fetchVendorTemplate()
 
-      setIsGeneratingPDF(true);
-      console.log("📦 Invoice data for PDF:", invoiceData);
-      console.log("📦 Vendor Template Response:", classicTemplate.data.template_name)
-      console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
-      console.log("📦 Products data for PDF:", invoiceData.products);
-      console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
+    setIsGeneratingPDF(true);
+    console.log("📦 Invoice data for PDF:", invoiceData);
+    console.log("📦 Vendor Template Response:", classicTemplate.data.template_name);
+    console.log("💰 QR Code URL:", classicTemplate.data.qr_code || "Not provided, using fallback");
+    console.log("✍️ Signature URL:", classicTemplate.data.signature || "Not provided, using fallback");
+    console.log("🏦 Bank Details:", {
+      bank_name: classicTemplate.data.bank_name,
+      acc_number: classicTemplate.data.acc_number,
+      upi_id: classicTemplate.data.upi_id
+    });
+    console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
+    console.log("📦 Products data for PDF:", invoiceData.products);
+    console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
 
-      // Calculate totals from products array or single product
-      const totals = calculateInvoiceTotals(invoiceData);
-      const grossAmtNum = totals.totalGrossAmt;
-      const gstNum = totals.totalGst;
-      const discountNum = totals.totalDiscount;
-      const grandTotalNum = totals.totalGrandTotal;
+    // Calculate totals from products array or single product
+    const totals = calculateInvoiceTotals(invoiceData);
+    const grossAmtNum = totals.totalGrossAmt;
+    const gstNum = totals.totalGst;
+    const discountNum = totals.totalDiscount;
+    const grandTotalNum = totals.totalGrandTotal;
 
-      // Format date
-      const formatDate = (dateString: string) => {
-        try {
-          const date = new Date(dateString);
-          return date.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          });
-        } catch {
-          return new Date().toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          });
-        }
-      };
+    // Format date
+    const formatDate = (dateString: string) => {
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      } catch {
+        return new Date().toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+    };
 
-      // Format currency
-      const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(amount);
-      };
+    // Format currency
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    };
 
-      // Use vendor data for company info
-      const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
-      const vendorAddress = vendor?.address_line1 ?
-        `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
-        : '123 Business St, City, State, PIN';
-      const vendorPhone = vendor?.contact_number || '+91 9856314765';
+    // Use vendor data for company info
+    const vendorName = vendor?.shop_name || invoiceData.biller_name || 'My Company';
+    const vendorAddress = vendor?.address_line1 ?
+      `${vendor.address_line1}${vendor.address_line2 ? ', ' + vendor.address_line2 : ''}, ${vendor.city}, ${vendor.state}, ${vendor.pincode}`
+      : '123 Business St, City, State, PIN';
+    const vendorPhone = vendor?.contact_number || '+91 9856314765';
 
-      console.log("=== PDF LOGO DEBUG ===");
-      console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
-      console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
-      console.log("logoBase64 length:", logoBase64?.length);
-      console.log("Vendor logo URL:", vendor?.logo_url);
+    console.log("=== PDF LOGO DEBUG ===");
+    console.log("logoBase64 available:", logoBase64 ? "Yes" : "No");
+    console.log("logoBase64 is data URL?", logoBase64?.startsWith('data:image'));
+    console.log("logoBase64 length:", logoBase64?.length);
+    console.log("Vendor logo URL:", vendor?.logo_url);
 
-      // Helper function to create a placeholder logo
-      const createPlaceholderLogo = () => {
-        const initial = (vendorName || 'V').charAt(0).toUpperCase();
-        const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-        const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
-        const color = colors[colorIndex];
+    // Helper function to create a placeholder logo
+    const createPlaceholderLogo = () => {
+      const initial = (vendorName || 'V').charAt(0).toUpperCase();
+      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+      const colorIndex = vendorName ? vendorName.charCodeAt(0) % colors.length : 0;
+      const color = colors[colorIndex];
 
-        const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      const svg = `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
         <circle cx="30" cy="30" r="28" fill="${color}" stroke="#e5e7eb" stroke-width="2"/>
         <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
           ${initial}
         </text>
       </svg>`;
 
-        return `data:image/svg+xml;base64,${btoa(svg)}`;
-      };
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
 
-      // Helper function to create a placeholder signature
-      const createPlaceholderSignature = () => {
-
-
-
-
-
-        const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    // Helper function to create a placeholder signature
+    const createPlaceholderSignature = () => {
+      const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <circle cx="40" cy="40" r="38" fill="#10B981" stroke="#047857" stroke-width="2"/>
         <circle cx="40" cy="40" r="34" fill="white" stroke="#059669" stroke-width="1"/>
         <path d="M25 40 L35 50 L55 30" stroke="#059669" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -3903,30 +3905,61 @@ const sendInvoiceEmail = async () => {
         </text>
       </svg>`;
 
-        return `data:image/svg+xml;base64,${btoa(svg)}`;
-      };
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
 
-      // Get direct URL with cache busting
-      const getDirectLogoUrl = (url: string): string => {
-        const timestamp = new Date().getTime();
-        return `${url}?t=${timestamp}`;
-      };
+    // Get direct URL with cache busting
+    const getDirectLogoUrl = (url: string): string => {
+      const timestamp = new Date().getTime();
+      return `${url}?t=${timestamp}`;
+    };
 
-      // Helper function to generate QR code placeholder HTML
+    // Helper function for proxy URLs
+    const getProxyImageUrl = (url: string, type: 'logo' | 'qr' | 'signature' = 'logo'): string => {
+      const encodedUrl = encodeURIComponent(url);
+      return `/api/vendor/logo?url=${encodedUrl}&type=${type}`;
+    };
 
-      // YOUR STATIC QR CODE URL
-      const staticQRCodeUrl = "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
+    // Get QR code URL from API response or use fallback
+    const qrCodeUrl = classicTemplate.data.qr_code || 
+                      "https://res.cloudinary.com/doficc2yl/image/upload/v1766860481/QRCode_xpgmka.png";
 
-      // Create placeholder signature as fallback
-      const placeholderSignature = createPlaceholderSignature();
+    // Use proxy server for QR code
+    const qrProxyUrl = getProxyImageUrl(qrCodeUrl, 'qr');
 
-      // Use a more reliable signature URL (the provided URL might have CORS issues)
-      // Alternative reliable green checkmark signature
+    // Get signature URL from API response
+    const signatureUrl = classicTemplate.data.signature;
+    
+    // Use proxy server for signature if available
+    const signatureProxyUrl = signatureUrl ? getProxyImageUrl(signatureUrl, 'signature') : null;
 
+    // Create fallback QR code as SVG
+    const createFallbackQRCode = (): string => {
+      const svg = `<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <rect width="120" height="120" fill="#f8fafc"/>
+        <rect x="10" y="10" width="100" height="100" fill="white" stroke="#e2e8f0" stroke-width="2" rx="4"/>
+        <rect x="25" y="25" width="20" height="20" fill="#1e40af"/>
+        <rect x="75" y="25" width="20" height="20" fill="#1e40af"/>
+        <rect x="25" y="75" width="20" height="20" fill="#1e40af"/>
+        <rect x="45" y="45" width="30" height="30" fill="#f1f5f9"/>
+        <path d="M45 45 L75 75" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2"/>
+        <path d="M75 45 L45 75" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="60" y="105" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="9" font-weight="500">
+          SCAN TO PAY
+        </text>
+        <text x="60" y="58" text-anchor="middle" fill="#475569" font-family="Arial, sans-serif" font-size="8">
+          UPI
+        </text>
+      </svg>`;
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
 
-      // Or use a data URL for guaranteed loading
-      const signatureDataUrl = `data:image/svg+xml;base64,${btoa(`
-      <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    const fallbackQR = createFallbackQRCode();
+    const placeholderSignature = createPlaceholderSignature();
+
+    // Create fallback signature as SVG
+    const createFallbackSignature = (): string => {
+      const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <circle cx="40" cy="40" r="38" fill="#10B981" opacity="0.1"/>
         <circle cx="40" cy="40" r="36" fill="white" stroke="#10B981" stroke-width="2"/>
         <circle cx="40" cy="40" r="32" fill="#10B981" fill-opacity="0.2"/>
@@ -3935,102 +3968,138 @@ const sendInvoiceEmail = async () => {
         <text x="40" y="70" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="7" font-weight="bold">
           APPROVED
         </text>
-      </svg>
-    `)}`;
+      </svg>`;
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
 
-      // Generate QR code HTML based on available data
-      let qrCodeHTML = '';
+    const fallbackSignature = createFallbackSignature();
 
-      // Always use the static QR code URL you've provided
-      qrCodeHTML = `
-      <img
-        src="${staticQRCodeUrl}"
-        alt="Payment QR Code"
-        style="width: 120px; height: 120px; object-fit: contain; border: 1px solid #eee;"
-        crossorigin="anonymous"
-      />
-      <p style="font-size: 9px; margin-top: 4px; color: #666;">
-        Scan to Pay via UPI
-      </p>
-    `;
-
-      console.log("📱 Using static QR code URL:", staticQRCodeUrl);
-      console.log("✍️ Using data URL signature for guaranteed loading");
-
-      // Determine which logo to use
-      let logoSrc = '';
-      let useBase64 = false;
-      let useProxy = false;
-
-      if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
-        // Use the base64 we already have
-        logoSrc = logoBase64;
-        useBase64 = true;
-        console.log("✅ Using existing base64 logo");
-      } else if (vendor?.logo_url) {
-        // Use server proxy for the vendor URL
-        const encodedUrl = encodeURIComponent(vendor.logo_url);
-        logoSrc = `/api/vendor/logo?url=${encodedUrl}`;
-        useProxy = true;
-        console.log("⚠️ Using server proxy for vendor logo");
-      } else {
-        // Create placeholder
-        logoSrc = createPlaceholderLogo();
-        console.log("❌ No logo available, using placeholder");
-      }
-
-      // Create the signature HTML with fallback
-      const signatureHTML = `
-      <div style="text-align: center; margin-bottom: 15px;">
-        <img src="${signatureDataUrl}" 
-             alt="Authorized Signature" 
-             style="width: 80px; height: 80px; object-fit: contain;"
-             crossorigin="anonymous"
-             onerror="
-               console.error('Signature image failed to load');
-               this.onerror = null;
-               this.src = '${placeholderSignature}';
-             ">
+    // Generate QR code HTML with proxy and fallbacks
+    let qrCodeHTML = `
+      <div style="text-align: center;">
+        <img
+          src="${qrProxyUrl}"
+          alt="Payment QR Code"
+          style="width: 120px; height: 120px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 4px; background: white;"
+          crossorigin="anonymous"
+          onerror="
+            console.warn('QR proxy failed, trying direct URL');
+            this.onerror = null;
+            this.src = '${qrCodeUrl}';
+            this.onerror = function() {
+              console.warn('Direct QR URL also failed, using fallback');
+              this.src = '${fallbackQR}';
+              this.onerror = null;
+            }
+          "
+        />
+        <p style="font-size: 9px; margin-top: 4px; color: #4b5563; font-weight: 500;">
+          Scan to Pay via UPI
+        </p>
       </div>
     `;
 
-      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
-      console.log("Signature HTML using data URL");
+    // Generate signature HTML with proxy and fallbacks
+    let signatureHTML = '';
+    
+    if (signatureProxyUrl) {
+      // Use proxy for signature
+      signatureHTML = `
+        <div style="text-align: center; margin-bottom: 15px;">
+          <img
+            src="${signatureProxyUrl}"
+            alt="Authorized Signature"
+            style="width: 80px; height: 80px; object-fit: contain;"
+            crossorigin="anonymous"
+            onerror="
+              console.warn('Signature proxy failed, trying direct URL');
+              this.onerror = null;
+              ${signatureUrl ? `this.src = '${signatureUrl}';` : `this.src = '${fallbackSignature}';`}
+              this.onerror = function() {
+                console.warn('Direct signature URL also failed, using fallback');
+                this.src = '${fallbackSignature}';
+                this.onerror = null;
+              }
+            "
+          />
+        </div>
+      `;
+    } else {
+      // Use fallback signature
+      signatureHTML = `
+        <div style="text-align: center; margin-bottom: 15px;">
+          <img
+            src="${fallbackSignature}"
+            alt="Authorized Signature"
+            style="width: 80px; height: 80px; object-fit: contain;"
+            crossorigin="anonymous"
+          />
+        </div>
+      `;
+    }
 
-      // Invoice data
-      const invoiceDate = formatDate(invoiceData.issue_date);
-      const dueDate = formatDate(invoiceData.due_date);
+    console.log("📱 Using QR Code URL:", qrCodeUrl);
+    console.log("📱 QR Code Proxy URL:", qrProxyUrl);
+    console.log("✍️ Signature URL:", signatureUrl || "Using fallback");
+    console.log("✍️ Signature Proxy URL:", signatureProxyUrl || "Not using proxy");
 
-      // Generate products table rows
-      let tableRows = '';
-      let totalItems = 0;
-      let totalQuantity = 0;
-      let subtotalAmount = 0;
+    // Determine which logo to use
+    let logoSrc = '';
+    let useBase64 = false;
+    let useProxy = false;
 
-      console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
+    if (logoBase64 && logoBase64.startsWith('data:image/') && logoBase64.length > 1000) {
+      // Use the base64 we already have
+      logoSrc = logoBase64;
+      useBase64 = true;
+      console.log("✅ Using existing base64 logo");
+    } else if (vendor?.logo_url) {
+      // Use server proxy for the vendor URL
+      logoSrc = getProxyImageUrl(vendor.logo_url, 'logo');
+      useProxy = true;
+      console.log("⚠️ Using server proxy for vendor logo");
+    } else {
+      // Create placeholder
+      logoSrc = createPlaceholderLogo();
+      console.log("❌ No logo available, using placeholder");
+    }
 
-      if (invoiceData.products && invoiceData.products.length > 0) {
-        console.log(`Processing ${invoiceData.products.length} products`);
+    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
 
-        invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
-          const productGrossAmt = parseFloat(product.gross_amt) || 0;
-          const productGst = parseFloat(product.gst || '0') || 0;
-          const productDiscount = parseFloat(product.discount || '0') || 0;
-          const productTotal = parseFloat(product.total) || 0;
-          const productQty = product.qty || 1;
-          const unitPrice = productGrossAmt / productQty;
-          const originalPrice = productGrossAmt + productDiscount;
+    // Invoice data
+    const invoiceDate = formatDate(invoiceData.issue_date);
+    const dueDate = formatDate(invoiceData.due_date);
 
-          console.log(`Product ${index + 1} (${product.product_name}):`, {
-            qty: productQty,
-            unitPrice,
-            gross: productGrossAmt,
-            gst: productGst,
-            discount: productDiscount,
-            total: productTotal
-          });
+    // Generate products table rows
+    let tableRows = '';
+    let totalItems = 0;
+    let totalQuantity = 0;
+    let subtotalAmount = 0;
 
-          tableRows += `
+    console.log("📝 Generating PDF table rows for products:", invoiceData.products?.length || 0);
+
+    if (invoiceData.products && invoiceData.products.length > 0) {
+      console.log(`Processing ${invoiceData.products.length} products`);
+
+      invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
+        const productGrossAmt = parseFloat(product.gross_amt) || 0;
+        const productGst = parseFloat(product.gst || '0') || 0;
+        const productDiscount = parseFloat(product.discount || '0') || 0;
+        const productTotal = parseFloat(product.total) || 0;
+        const productQty = product.qty || 1;
+        const unitPrice = productGrossAmt / productQty;
+        const originalPrice = productGrossAmt + productDiscount;
+
+        console.log(`Product ${index + 1} (${product.product_name}):`, {
+          qty: productQty,
+          unitPrice,
+          gross: productGrossAmt,
+          gst: productGst,
+          discount: productDiscount,
+          total: productTotal
+        });
+
+        tableRows += `
           <tr>
             <td style="border: none; border-bottom: 1px solid #666; padding: 8px;">${index + 1}</td>
             <td>
@@ -4041,8 +4110,8 @@ const sendInvoiceEmail = async () => {
             <td>
               ₹${formatCurrency(unitPrice)}<br>
               ${productDiscount > 0 ?
-              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
-              : ''}
+                `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
+                : ''}
             </td>
             <td>
               <div>${productQty}</div>
@@ -4052,23 +4121,23 @@ const sendInvoiceEmail = async () => {
             </td>
           </tr>
         `;
-          totalItems++;
-          totalQuantity += productQty;
-          subtotalAmount += productTotal;
-        });
+        totalItems++;
+        totalQuantity += productQty;
+        subtotalAmount += productTotal;
+      });
 
-        console.log("📊 Table totals:", {
-          totalItems,
-          totalQuantity,
-          subtotalAmount
-        });
-      } else {
-        // Single product fallback
-        console.log("Using single product fallback");
-        const unitPrice = grossAmtNum / (invoiceData.qty || 1);
-        const originalPrice = grossAmtNum + discountNum;
+      console.log("📊 Table totals:", {
+        totalItems,
+        totalQuantity,
+        subtotalAmount
+      });
+    } else {
+      // Single product fallback
+      console.log("Using single product fallback");
+      const unitPrice = grossAmtNum / (invoiceData.qty || 1);
+      const originalPrice = grossAmtNum + discountNum;
 
-        tableRows = `
+      tableRows = `
         <tr>
           <td>1</td>
           <td>
@@ -4079,8 +4148,8 @@ const sendInvoiceEmail = async () => {
           <td>
             ₹${formatCurrency(unitPrice)}<br>
             ${discountNum > 0 ?
-            `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
-            : ''}
+              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
+              : ''}
           </td>
           <td>
             <div>${invoiceData.qty || 1}</div>
@@ -4092,26 +4161,26 @@ const sendInvoiceEmail = async () => {
           </td>
         </tr>
       `;
-        totalItems = 1;
-        totalQuantity = invoiceData.qty || 1;
-        subtotalAmount = grandTotalNum;
-      }
+      totalItems = 1;
+      totalQuantity = invoiceData.qty || 1;
+      subtotalAmount = grandTotalNum;
+    }
 
-      // Create the logo HTML with fallback
-      let logoHTML = '';
+    // Create the logo HTML with fallback
+    let logoHTML = '';
 
-      if (useBase64) {
-        logoHTML = `<img src="${logoSrc}" 
+    if (useBase64) {
+      logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
                 style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
                 crossorigin="anonymous">`;
-      } else if (useProxy) {
-        const directUrl = getDirectLogoUrl(vendor!.logo_url);
-        const placeholder = createPlaceholderLogo();
+    } else if (useProxy) {
+      const directUrl = getDirectLogoUrl(vendor!.logo_url);
+      const placeholder = createPlaceholderLogo();
 
-        logoHTML = `<img src="${logoSrc}" 
+      logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
-                style="width: 60px; height: 60px; object-fit: contain;  border-radius: 4px;"
+                style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
                 crossorigin="anonymous"
                 onerror="
                   this.onerror=null;
@@ -4123,17 +4192,17 @@ const sendInvoiceEmail = async () => {
                     this.onerror=null;
                   }
                 ">`;
-      } else {
-        logoHTML = `<img src="${logoSrc}" 
+    } else {
+      logoHTML = `<img src="${logoSrc}" 
                 alt="Vendor Logo" 
                 style="width: 60px; height: 60px; object-fit: contain;">`;
-      }
+    }
 
-      console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
+    console.log("Final logo HTML using:", useBase64 ? "Base64" : useProxy ? "Proxy" : "Placeholder");
 
-      // Create a temporary iframe for perfect rendering
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = `
+    // Create a temporary iframe for perfect rendering
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = `
       position: fixed;
       left: -9999px;
       top: 0;
@@ -4142,16 +4211,16 @@ const sendInvoiceEmail = async () => {
       border: none;
       visibility: hidden;
     `;
-      document.body.appendChild(iframe);
+    document.body.appendChild(iframe);
 
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) {
-        throw new Error('Could not create iframe document');
-      }
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      throw new Error('Could not create iframe document');
+    }
 
-      // Write the exact HTML structure with API data
-      iframeDoc.open();
-      iframeDoc.write(`
+    // Write the exact HTML structure with API data
+    iframeDoc.open();
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -4582,102 +4651,120 @@ const sendInvoiceEmail = async () => {
         </body>
       </html>
     `);
-      iframeDoc.close();
+    iframeDoc.close();
 
-      // Wait for iframe to render and images to load
+    // Wait for iframe to render and images to load
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Check if images are loaded in the iframe
+    const images = iframeDoc.images;
+    let allImagesLoaded = true;
+
+    for (let i = 0; i < images.length; i++) {
+      if (!images[i].complete) {
+        allImagesLoaded = false;
+        console.log(`Image ${i} not yet loaded:`, images[i].src);
+      }
+    }
+
+    if (!allImagesLoaded) {
+      console.log("Waiting additional time for images to load...");
       await new Promise(resolve => setTimeout(resolve, 3000));
+    }
 
-      // Check if images are loaded in the iframe
-      const images = iframeDoc.images;
-      let allImagesLoaded = true;
+    // Generate PDF from iframe with improved settings
+    const canvas = await html2canvas(iframeDoc.body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 210 * 3.78,
+      height: 297 * 3.78,
+      windowWidth: 210 * 3.78,
+      windowHeight: 297 * 3.78,
+      logging: true,
+      imageTimeout: 20000, // Increased timeout for proxy images
+      onclone: (clonedDoc, element) => {
+        // Ensure all images have crossOrigin attribute
+        const images = element.getElementsByTagName('img');
+        Array.from(images).forEach(img => {
+          img.setAttribute('crossOrigin', 'anonymous');
 
-      for (let i = 0; i < images.length; i++) {
-        if (!images[i].complete) {
-          allImagesLoaded = false;
-          console.log(`Image ${i} not yet loaded:`, images[i].src);
-        }
-      }
-
-      if (!allImagesLoaded) {
-        console.log("Waiting additional time for images to load...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-
-      // Generate PDF from iframe with improved settings
-      const canvas = await html2canvas(iframeDoc.body, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 210 * 3.78,
-        height: 297 * 3.78,
-        windowWidth: 210 * 3.78,
-        windowHeight: 297 * 3.78,
-        logging: true,
-        imageTimeout: 15000,
-        onclone: (clonedDoc, element) => {
-          // Ensure all images have crossOrigin attribute
-          const images = element.getElementsByTagName('img');
-          Array.from(images).forEach(img => {
-            img.setAttribute('crossOrigin', 'anonymous');
-
-            // If image is from our proxy, add enhanced error handling
-            if (img.src.includes('/api/vendor/logo')) {
-              console.log('🔗 Found proxy image, adding enhanced error handler');
-
+          // Handle proxy images (logo, QR, and signature)
+          if (img.src.includes('/api/vendor/logo')) {
+            const isQR = img.alt.toLowerCase().includes('qr') || img.src.includes('qr');
+            const isSignature = img.alt.toLowerCase().includes('signature');
+            
+            if (isQR) {
+              // QR code fallback
+              img.onerror = function() {
+                console.log('QR proxy image failed in clone, using fallback');
+                this.src = fallbackQR;
+                this.onerror = null;
+              };
+            } else if (isSignature) {
+              // Signature fallback
+              img.onerror = function() {
+                console.log('Signature proxy image failed in clone, using fallback');
+                this.src = fallbackSignature;
+                this.onerror = null;
+              };
+            } else {
+              // Logo fallback
               const initial = (vendorName || 'V').charAt(0).toUpperCase();
               const placeholderSvg = `data:image/svg+xml;base64,${btoa(`<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="28" fill="#3B82F6" stroke="#e5e7eb" stroke-width="2"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">${initial}</text></svg>`)}`;
-
-              img.onerror = function () {
-                console.log('❌ Proxy image failed in clone');
+              
+              img.onerror = function() {
+                console.log('Logo proxy failed in clone');
                 this.src = placeholderSvg;
                 this.onerror = null;
               };
             }
-          });
-        }
-      });
+          }
+        });
+      }
+    });
 
-      // Clean up
-      document.body.removeChild(iframe);
+    // Clean up
+    document.body.removeChild(iframe);
 
-      // Create PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
 
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      const pdfBlob = pdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+    const pdfBlob = pdf.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      console.log("✅ Classic template PDF generated successfully");
-      console.log("📄 PDF details:", {
-        totalItems,
-        totalQuantity,
-        subtotalAmount,
-        gst: gstNum,
-        discount: discountNum,
-        grandTotal: grandTotalNum
-      });
+    console.log("✅ Classic template PDF generated successfully");
+    console.log("📄 PDF details:", {
+      totalItems,
+      totalQuantity,
+      subtotalAmount,
+      gst: gstNum,
+      discount: discountNum,
+      grandTotal: grandTotalNum
+    });
 
-      return pdfUrl;
+    return pdfUrl;
 
-    } catch (err) {
-      console.error('❌ Error generating classic template PDF:', err);
-      // Fallback: generate PDF without logo
-      return await generateSimplePDF(invoiceData);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
+  } catch (err) {
+    console.error('❌ Error generating classic template PDF:', err);
+    // Fallback: generate PDF without logo
+    return await generateSimplePDF(invoiceData);
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
   // Simple fallback PDF
   const generateSimplePDF = async (invoiceData: Invoice): Promise<string | null> => {
     try {
