@@ -4633,9 +4633,8 @@ const sendInvoiceEmail = async () => {
                   <div class="footer-title">Terms and Conditions</div>
                   <div class="terms-conditions">
                     <p><b>E & O.E</b></p>
-                    <p>1. Goods once sold will not be taken back.</p>
-                    <p>2. Interest @ 18% p.a. will be charged if the payment for ${vendorName} is not made within the stipulated time.</p>
-                    <p>3. Subject to 'Delhi' Jurisdiction only.</p>
+                    <p> ${classicTemplate.data.terms_conditions || 'N/A'}</p>
+                   
                   </div>
                 </div>
 
