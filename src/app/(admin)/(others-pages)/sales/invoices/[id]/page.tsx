@@ -3960,7 +3960,7 @@ const sendInvoiceEmail = async () => {
     const fallbackSignature = createFallbackSignature();
 
     // Generate QR code HTML with proxy and fallbacks
-    let qrCodeHTML = `
+    const qrCodeHTML = `
       <div style="text-align: center;">
         <img
           src="${qrProxyUrl}"
