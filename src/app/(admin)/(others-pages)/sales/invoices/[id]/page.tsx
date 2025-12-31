@@ -335,7 +335,7 @@ const sendInvoiceEmail = async () => {
     const result = await Promise.race([sendPromise, timeoutPromise]) as {
       status: number;
       text: string;
-      [key: string]: any; // For any additional properties
+      // For any additional properties
     };
     
     console.log('✅ Email sent successfully!');
@@ -368,7 +368,7 @@ const sendInvoiceEmail = async () => {
       const errorObj = error as { 
         text?: string; 
         message?: string;
-        [key: string]: any;
+      
       };
       
       if (errorObj.text?.includes('recipients address is empty')) {
