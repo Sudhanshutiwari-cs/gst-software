@@ -331,7 +331,12 @@ const sendInvoiceEmail = async () => {
       setTimeout(() => reject(new Error('Email sending timeout (30s)')), 30000);
     });
     
-    const result = await Promise.race([sendPromise, timeoutPromise]) as any;
+    // Fixed: Type assertion for the result
+    const result = await Promise.race([sendPromise, timeoutPromise]) as {
+      status: number;
+      text: string;
+      [key: string]: any; // For any additional properties
+    };
     
     console.log('✅ Email sent successfully!');
     console.log('Response status:', result.status);
@@ -353,20 +358,28 @@ const sendInvoiceEmail = async () => {
       setEmailStatus({ type: null, message: '' });
     }, 5000);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ FULL Error sending email:', error);
-    console.error('Error object:', JSON.stringify(error, null, 2));
     
     let errorMessage = 'Failed to send email';
     
-    if (error?.text?.includes('recipients address is empty')) {
-      errorMessage = `EmailJS: Recipient address empty. Check if 'to_email' exists in template.`;
-    } else if (error?.text?.includes('Invalid email')) {
-      errorMessage = `Invalid email address format`;
-    } else if (error?.message?.includes('credentials')) {
-      errorMessage = 'EmailJS credentials not configured. Please add your Service ID, Template ID, and Public Key.';
-    } else if (error?.message) {
-      errorMessage = error.message;
+    // Type-safe error handling
+    if (error && typeof error === 'object') {
+      const errorObj = error as { 
+        text?: string; 
+        message?: string;
+        [key: string]: any;
+      };
+      
+      if (errorObj.text?.includes('recipients address is empty')) {
+        errorMessage = `EmailJS: Recipient address empty. Check if 'to_email' exists in template.`;
+      } else if (errorObj.text?.includes('Invalid email')) {
+        errorMessage = `Invalid email address format`;
+      } else if (errorObj.message?.includes('credentials')) {
+        errorMessage = 'EmailJS credentials not configured. Please add your Service ID, Template ID, and Public Key.';
+      } else if (errorObj.message) {
+        errorMessage = errorObj.message;
+      }
     }
     
     // Show detailed error in alert for debugging
