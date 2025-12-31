@@ -3891,18 +3891,7 @@ const sendInvoiceEmail = async () => {
     };
 
     // Helper function to create a placeholder signature
-    const createPlaceholderSignature = () => {
-      const svg = `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="38" fill="#10B981" stroke="#047857" stroke-width="2"/>
-        <circle cx="40" cy="40" r="34" fill="white" stroke="#059669" stroke-width="1"/>
-        <path d="M25 40 L35 50 L55 30" stroke="#059669" stroke-width="4" fill="none" stroke-linecap="round"/>
-        <text x="40" y="70" text-anchor="middle" fill="#047857" font-family="Arial, sans-serif" font-size="8" font-weight="bold">
-          APPROVED
-        </text>
-      </svg>`;
-
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
-    };
+   
 
     // Get direct URL with cache busting
     const getDirectLogoUrl = (url: string): string => {
