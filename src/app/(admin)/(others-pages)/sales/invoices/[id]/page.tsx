@@ -35,11 +35,7 @@ import {
 } from "lucide-react"
 
 
-interface EmailJSConfig {
-  serviceId: string;
-  templateId: string;
-  publicKey: string;
-}
+
 interface VendorProfile {
   id: number
   business_name: string
@@ -3955,7 +3951,7 @@ const sendInvoiceEmail = async () => {
     };
 
     const fallbackQR = createFallbackQRCode();
-    const placeholderSignature = createPlaceholderSignature();
+
 
     // Create fallback signature as SVG
     const createFallbackSignature = (): string => {
