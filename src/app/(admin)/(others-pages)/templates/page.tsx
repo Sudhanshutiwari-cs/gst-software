@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Edit2, Save, X, Trash2, Eye, Plus, Search, Filter, 
-  CheckCircle, FileText, Upload,
+  CheckCircle, FileText,
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
@@ -552,23 +552,24 @@ export default function TemplatesPage() {
       }
       
       handleCloseModal();
-    } catch (err: any) {
-      console.error('Save error details:', err);
-      
-      // Handle specific error cases
-      if (err.message.includes('401')) {
-        setError('Authentication failed. Please login again.');
-      } else if (err.message.includes('404')) {
-        setError('Template not found. It may have been deleted.');
-      } else if (err.message.includes('409')) {
-        setError('A template with this name already exists.');
-      } else if (err.message.includes('422')) {
-        setError(err.message);
-      } else {
-        const errorMessage = err.message || 'Failed to save template';
-        setError(errorMessage);
-      }
-    } finally {
+    // Change this catch block in handleSaveTemplate function:
+} catch (err: any) { // ❌ Remove this line
+  console.error('Save error details:', err);
+  
+  // Handle specific error cases
+  if (err.message.includes('401')) {
+    setError('Authentication failed. Please login again.');
+  } else if (err.message.includes('404')) {
+    setError('Template not found. It may have been deleted.');
+  } else if (err.message.includes('409')) {
+    setError('A template with this name already exists.');
+  } else if (err.message.includes('422')) {
+    setError(err.message);
+  } else {
+    const errorMessage = err.message || 'Failed to save template';
+    setError(errorMessage);
+  }
+} finally {
       setLoading(prev => ({ ...prev, saving: false }));
       setTimeout(() => setSuccessMessage(null), 3000);
     }
