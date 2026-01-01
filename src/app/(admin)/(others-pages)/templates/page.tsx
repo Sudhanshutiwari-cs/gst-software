@@ -553,20 +553,23 @@ export default function TemplatesPage() {
       
       handleCloseModal();
     // Change this catch block in handleSaveTemplate function:
-} catch (err: any) { // ❌ Remove this line
+} catch (err: unknown) { // ✅ Use unknown instead of any
   console.error('Save error details:', err);
   
   // Handle specific error cases
-  if (err.message.includes('401')) {
+  const errorMessage = err instanceof Error 
+    ? err.message 
+    : 'Failed to save template';
+  
+  if (errorMessage.includes('401')) {
     setError('Authentication failed. Please login again.');
-  } else if (err.message.includes('404')) {
+  } else if (errorMessage.includes('404')) {
     setError('Template not found. It may have been deleted.');
-  } else if (err.message.includes('409')) {
+  } else if (errorMessage.includes('409')) {
     setError('A template with this name already exists.');
-  } else if (err.message.includes('422')) {
-    setError(err.message);
+  } else if (errorMessage.includes('422')) {
+    setError(errorMessage);
   } else {
-    const errorMessage = err.message || 'Failed to save template';
     setError(errorMessage);
   }
 } finally {
