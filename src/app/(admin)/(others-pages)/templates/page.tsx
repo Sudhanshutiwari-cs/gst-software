@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Edit2, Save, X, Trash2, Eye, Plus, Search, Filter, 
-  CheckCircle, FileText,
+  CheckCircle, FileText, Upload,
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
@@ -123,37 +123,23 @@ const fetchTemplateByName = async (templateName: string): Promise<Template> => {
   }
 };
 
-// Create new template
-const createTemplateApi = async (data: Partial<Template>): Promise<Template> => {
+// Create new template with file uploads
+const createTemplateApi = async (data: FormData): Promise<Template> => {
   try {
     const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
-    
-    const requestData = {
-      template_name: data.template_name || null,
-      name: data.name || null,
-      notes: data.notes || null,
-      terms_conditions: data.terms_conditions || null,
-      bank_name: data.bank_name || null,
-      ifsc_code: data.ifsc_code || null,
-      acc_number: data.acc_number || null,
-      upi_id: data.upi_id || null,
-      qr_code: data.qr_code || null,
-      signature: data.signature || null,
-      acc_holder_name: data.acc_holder_name || null,
-      status: data.status !== undefined ? data.status : 1,
-    };
+
+    console.log('Creating template with FormData:', Array.from(data.entries()));
 
     const response = await fetch(`${API_BASE_URL}/create`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        // Note: Don't set Content-Type for FormData, browser will set it automatically with boundary
       },
-      body: JSON.stringify(requestData),
+      body: data,
     });
 
     if (!response.ok) {
@@ -176,51 +162,55 @@ const createTemplateApi = async (data: Partial<Template>): Promise<Template> => 
   }
 };
 
-// Update template by id
+// Update template by id with file uploads
 const updateTemplateApi = async (
   id: number,
-  data: Partial<Template>
+  data: FormData
 ): Promise<Template> => {
   try {
     const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
-    console.log('Updating template with data:', data);
 
-    const requestData = {
-      template_name: data.template_name || null,
-      name: data.name || null,
-      notes: data.notes || null,
-      terms_conditions: data.terms_conditions || null,
-      bank_name: data.bank_name || null,
-      ifsc_code: data.ifsc_code || null,
-      acc_number: data.acc_number || null,
-      upi_id: data.upi_id || null,
-      qr_code: data.qr_code || null,
-      signature: data.signature || null,
-      acc_holder_name: data.acc_holder_name || null,
-      status: data.status !== undefined ? data.status : null,
-    };
+    console.log('Updating template with FormData:', Array.from(data.entries()));
 
-    const response = await fetch(`${API_BASE_URL}/update/${id}`, {
-      method: 'PUT',
+    const response = await fetch(`${API_BASE_URL}/edit/${id}`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        // Note: Don't set Content-Type for FormData, browser will set it automatically with boundary
       },
-      body: JSON.stringify(requestData),
+      body: data,
     });
 
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      
       if (response.status === 401) {
         throw new Error('Authentication failed. Please login again.');
       }
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.status === 404) {
+        throw new Error(`Template with ID ${id} not found`);
+      }
+      if (response.status === 422) {
+        // Handle validation errors
+        try {
+          const errorData = JSON.parse(errorText);
+          const errors = errorData.errors ? Object.values(errorData.errors).flat().join(', ') : errorData.message;
+          throw new Error(`Validation error: ${errors}`);
+        } catch {
+          throw new Error(`Validation error: ${errorText}`);
+        }
+      }
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
     const result: ApiResponse<Template> = await response.json();
+    console.log('API Success Response:', result);
     
     if (result.success && result.data) {
       return result.data;
@@ -273,6 +263,10 @@ export default function TemplatesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Template>>({});
+  const [qrCodeFile, setQrCodeFile] = useState<File | null>(null);
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [qrCodePreview, setQrCodePreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [loading, setLoading] = useState({
@@ -282,6 +276,10 @@ export default function TemplatesPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Refs for file inputs
+  const qrCodeInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch templates on component mount
   useEffect(() => {
@@ -328,11 +326,26 @@ export default function TemplatesPage() {
       setLoading(prev => ({ ...prev, fetching: true }));
       setError(null);
       
+      // Reset file states
+      setQrCodeFile(null);
+      setSignatureFile(null);
+      setQrCodePreview(null);
+      setSignaturePreview(null);
+      
       // Use template_name to fetch single template
       if (template.template_name) {
         const freshTemplate = await fetchTemplateByName(template.template_name);
         setSelectedTemplate(freshTemplate);
         setFormData({ ...freshTemplate });
+        
+        // Set previews if URLs exist
+        if (freshTemplate.qr_code) {
+          setQrCodePreview(freshTemplate.qr_code);
+        }
+        if (freshTemplate.signature) {
+          setSignaturePreview(freshTemplate.signature);
+        }
+        
         setIsModalOpen(true);
         setIsEditing(false);
       } else {
@@ -348,7 +361,9 @@ export default function TemplatesPage() {
 
   // Open modal for creating new template
   const handleCreateNew = () => {
-    const newTemplate: Partial<Template> = {
+    // Reset all states
+    setSelectedTemplate(null);
+    setFormData({
       template_name: '',
       name: '',
       notes: '',
@@ -357,14 +372,14 @@ export default function TemplatesPage() {
       ifsc_code: '',
       acc_number: '',
       upi_id: '',
-      qr_code: '',
-      signature: '',
       acc_holder_name: '',
       status: 1,
-    };
+    });
+    setQrCodeFile(null);
+    setSignatureFile(null);
+    setQrCodePreview(null);
+    setSignaturePreview(null);
     
-    setSelectedTemplate(newTemplate as Template);
-    setFormData(newTemplate);
     setIsModalOpen(true);
     setIsEditing(true);
   };
@@ -375,6 +390,10 @@ export default function TemplatesPage() {
     setSelectedTemplate(null);
     setIsEditing(false);
     setFormData({});
+    setQrCodeFile(null);
+    setSignatureFile(null);
+    setQrCodePreview(null);
+    setSignaturePreview(null);
     setError(null);
   };
 
@@ -391,9 +410,83 @@ export default function TemplatesPage() {
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: value || null
+        [name]: value || ''
       }));
     }
+  };
+
+  // Handle QR code file selection
+  const handleQrCodeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file for QR code');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('QR code file size should be less than 5MB');
+        return;
+      }
+      
+      setQrCodeFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrCodePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle signature file selection
+  const handleSignatureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file for signature');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Signature file size should be less than 5MB');
+        return;
+      }
+      
+      setSignatureFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove QR code
+  const handleRemoveQrCode = () => {
+    setQrCodeFile(null);
+    setQrCodePreview(null);
+    if (qrCodeInputRef.current) {
+      qrCodeInputRef.current.value = '';
+    }
+    setFormData(prev => ({ ...prev, qr_code: '' }));
+  };
+
+  // Remove signature
+  const handleRemoveSignature = () => {
+    setSignatureFile(null);
+    setSignaturePreview(null);
+    if (signatureInputRef.current) {
+      signatureInputRef.current.value = '';
+    }
+    setFormData(prev => ({ ...prev, signature: '' }));
   };
 
   // Save template (create or update)
@@ -407,11 +500,38 @@ export default function TemplatesPage() {
       setLoading(prev => ({ ...prev, saving: true }));
       setError(null);
       
+      // Create FormData for multipart upload
+      const formDataToSend = new FormData();
+      
+      // Add text fields
+      formDataToSend.append('template_name', formData.template_name?.trim() || formData.name?.trim().toLowerCase().replace(/\s+/g, '-'));
+      formDataToSend.append('name', formData.name?.trim() || '');
+      if (formData.notes) formDataToSend.append('notes', formData.notes);
+      if (formData.terms_conditions) formDataToSend.append('terms_conditions', formData.terms_conditions);
+      if (formData.bank_name) formDataToSend.append('bank_name', formData.bank_name);
+      if (formData.ifsc_code) formDataToSend.append('ifsc_code', formData.ifsc_code);
+      if (formData.acc_number) formDataToSend.append('acc_number', formData.acc_number);
+      if (formData.upi_id) formDataToSend.append('upi_id', formData.upi_id);
+      if (formData.acc_holder_name) formDataToSend.append('acc_holder_name', formData.acc_holder_name);
+      formDataToSend.append('status', formData.status?.toString() || '1');
+      
+      // Add files if they exist
+      if (qrCodeFile) {
+        formDataToSend.append('qr_code', qrCodeFile);
+      }
+      if (signatureFile) {
+        formDataToSend.append('signature', signatureFile);
+      }
+      
+      console.log('Saving template with FormData:', Array.from(formDataToSend.entries()));
+      
       let updatedTemplate: Template;
       
       if (selectedTemplate && selectedTemplate.id) {
         // Update existing template using id
-        updatedTemplate = await updateTemplateApi(selectedTemplate.id, formData);
+        updatedTemplate = await updateTemplateApi(selectedTemplate.id, formDataToSend);
+        
+        console.log('Update successful:', updatedTemplate);
         
         // Update local state
         setTemplates(prev => prev.map(t => 
@@ -421,7 +541,9 @@ export default function TemplatesPage() {
         setSuccessMessage('Template updated successfully');
       } else {
         // Create new template
-        updatedTemplate = await createTemplateApi(formData);
+        updatedTemplate = await createTemplateApi(formDataToSend);
+        
+        console.log('Create successful:', updatedTemplate);
         
         // Add to local state
         setTemplates(prev => [...prev, updatedTemplate]);
@@ -430,9 +552,22 @@ export default function TemplatesPage() {
       }
       
       handleCloseModal();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save template';
-      setError(errorMessage);
+    } catch (err: any) {
+      console.error('Save error details:', err);
+      
+      // Handle specific error cases
+      if (err.message.includes('401')) {
+        setError('Authentication failed. Please login again.');
+      } else if (err.message.includes('404')) {
+        setError('Template not found. It may have been deleted.');
+      } else if (err.message.includes('409')) {
+        setError('A template with this name already exists.');
+      } else if (err.message.includes('422')) {
+        setError(err.message);
+      } else {
+        const errorMessage = err.message || 'Failed to save template';
+        setError(errorMessage);
+      }
     } finally {
       setLoading(prev => ({ ...prev, saving: false }));
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -467,6 +602,15 @@ export default function TemplatesPage() {
     
     setSelectedTemplate(duplicatedTemplate as Template);
     setFormData(duplicatedTemplate);
+    
+    // Set previews for duplicated template
+    if (template.qr_code) {
+      setQrCodePreview(template.qr_code);
+    }
+    if (template.signature) {
+      setSignaturePreview(template.signature);
+    }
+    
     setIsModalOpen(true);
     setIsEditing(true);
   };
@@ -1088,7 +1232,7 @@ export default function TemplatesPage() {
                         </div>
                       </div>
 
-                      {/* QR Code and Signature */}
+                      {/* QR Code and Signature - Updated for file uploads */}
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center gap-2 mb-4">
                           <Settings className="w-5 h-5 text-purple-600" />
@@ -1096,80 +1240,120 @@ export default function TemplatesPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* QR Code */}
+                          {/* QR Code File Upload */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              QR Code URL
+                              QR Code Image
                             </label>
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
                                 <QrCode className="w-5 h-5 text-gray-400" />
                                 <input
-                                  type="url"
-                                  name="qr_code"
-                                  value={formData.qr_code || ''}
-                                  onChange={handleInputChange}
+                                  ref={qrCodeInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleQrCodeFileChange}
                                   disabled={!isEditing}
                                   className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                     isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
                                   }`}
-                                  placeholder="Enter QR code image URL"
                                 />
                               </div>
-                              {formData.qr_code && (
+                              {(qrCodePreview || formData.qr_code) && (
                                 <div className="text-center p-4 border border-gray-200 rounded-lg">
-                                  <div className="text-sm text-gray-600 mb-2">QR Code Preview</div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="text-sm text-gray-600">QR Code Preview</div>
+                                    {isEditing && (
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveQrCode}
+                                        className="text-red-500 hover:text-red-700 text-sm"
+                                      >
+                                        Remove
+                                      </button>
+                                    )}
+                                  </div>
                                   <div className="w-32 h-32 mx-auto border border-gray-300 rounded overflow-hidden bg-gray-50 flex items-center justify-center">
                                     <img 
-                                      src={formData.qr_code} 
+                                      src={qrCodePreview || formData.qr_code || ''} 
                                       alt="QR Code" 
                                       className="max-w-full max-h-full"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = 
+                                          '<div class="text-gray-400">Preview not available</div>';
                                       }}
                                     />
                                   </div>
+                                  {qrCodeFile && (
+                                    <div className="mt-2 text-xs text-gray-500">
+                                      Selected: {qrCodeFile.name} ({Math.round(qrCodeFile.size / 1024)} KB)
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Upload a QR code image (PNG, JPG, max 5MB)
+                            </p>
                           </div>
 
-                          {/* Signature */}
+                          {/* Signature File Upload */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Signature URL
+                              Signature Image
                             </label>
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
                                 <Signature className="w-5 h-5 text-gray-400" />
                                 <input
-                                  type="url"
-                                  name="signature"
-                                  value={formData.signature || ''}
-                                  onChange={handleInputChange}
+                                  ref={signatureInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleSignatureFileChange}
                                   disabled={!isEditing}
                                   className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                     isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
                                   }`}
-                                  placeholder="Enter signature image URL"
                                 />
                               </div>
-                              {formData.signature && (
+                              {(signaturePreview || formData.signature) && (
                                 <div className="text-center p-4 border border-gray-200 rounded-lg">
-                                  <div className="text-sm text-gray-600 mb-2">Signature Preview</div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="text-sm text-gray-600">Signature Preview</div>
+                                    {isEditing && (
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveSignature}
+                                        className="text-red-500 hover:text-red-700 text-sm"
+                                      >
+                                        Remove
+                                      </button>
+                                    )}
+                                  </div>
                                   <div className="h-16 mx-auto flex items-center justify-center">
                                     <img 
-                                      src={formData.signature} 
+                                      src={signaturePreview || formData.signature || ''} 
                                       alt="Signature" 
                                       className="max-w-full max-h-full"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = 
+                                          '<div class="text-gray-400">Preview not available</div>';
                                       }}
                                     />
                                   </div>
+                                  {signatureFile && (
+                                    <div className="mt-2 text-xs text-gray-500">
+                                      Selected: {signatureFile.name} ({Math.round(signatureFile.size / 1024)} KB)
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Upload a signature image (PNG, JPG, max 5MB)
+                            </p>
                           </div>
                         </div>
                       </div>
