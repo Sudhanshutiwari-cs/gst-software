@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Settings, Plus, Eye, Send,  ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
+import { ChevronDown, Play, Settings, Plus, Eye, Send, ChevronLeft, ChevronRight, Filter, Menu, Search, Download, Edit, Trash2, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -75,6 +75,58 @@ const actionOptions = [
   { value: 'bulk_edit', label: 'Bulk Edit', icon: Edit },
   { value: 'bulk_delete', label: 'Bulk Delete', icon: Trash2 }
 ];
+
+// Function to format price with proper comma separation for Indian numbering system
+const formatPrice = (price: string | number): string => {
+  // Convert to number if it's a string
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  // Check if it's a valid number
+  if (isNaN(numPrice)) return '₹0.00';
+  
+  // Format with Indian numbering system (lakhs and crores)
+  // For amounts less than 1 lakh, use standard thousands separator
+  if (numPrice < 100000) {
+    return `₹${numPrice.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  }
+  
+  // For amounts 1 lakh and above, we'll format with lakhs/crores
+  const formatInLakhsCrores = (amount: number): string => {
+    // For crores (1 crore = 100 lakhs = 10,000,000)
+    if (amount >= 10000000) {
+      const crores = amount / 10000000;
+      return `₹${crores.toFixed(2)} Cr`;
+    }
+    
+    // For lakhs (1 lakh = 100,000)
+    if (amount >= 100000) {
+      const lakhs = amount / 100000;
+      return `₹${lakhs.toFixed(2)} L`;
+    }
+    
+    return `₹${amount.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
+  
+  return formatInLakhsCrores(numPrice);
+};
+
+// Function to format price without symbol (just the formatted number)
+const formatPriceNumber = (price: string | number): string => {
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  if (isNaN(numPrice)) return '0.00';
+  
+  return numPrice.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
 
 export default function SalesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -983,10 +1035,10 @@ export default function SalesPage() {
                         </td>
                         <td className={`px-4 py-3 text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                           }`}>
-                          ₹{parseFloat(invoice.grand_total).toFixed(2)}
+                          {formatPrice(invoice.grand_total)}
                           <span className={`block text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                            Tax: ₹{totalGST.toFixed(2)}
+                            Tax: ₹{formatPriceNumber(totalGST)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm whitespace-nowrap">
@@ -1125,7 +1177,7 @@ export default function SalesPage() {
               </p>
               <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}>
-                ₹{total.toFixed(2)}
+                {formatPrice(total)}
               </p>
             </div>
             <div className="text-center sm:text-left">
@@ -1135,7 +1187,7 @@ export default function SalesPage() {
               </p>
               <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}>
-                ₹{paid.toFixed(2)}
+                {formatPrice(paid)}
               </p>
             </div>
             <div className="text-center sm:text-left">
@@ -1145,7 +1197,7 @@ export default function SalesPage() {
               </p>
               <p className={`text-lg font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
                 }`}>
-                ₹{pending.toFixed(2)}
+                {formatPrice(pending)}
               </p>
             </div>
           </div>
