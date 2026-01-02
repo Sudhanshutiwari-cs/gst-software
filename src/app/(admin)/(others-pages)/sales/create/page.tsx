@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu, Sun, Moon, Monitor } from 'lucide-react'
+import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu, Sun, Moon, Monitor, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 // Vendor Profile interface
@@ -1352,6 +1352,15 @@ export default function CreateInvoice() {
       <div className="sticky top-0 z-30 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="flex items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-2">
+            {/* Back Button */}
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-md transition-colors mr-1"
+              title="Go back"
+            >
+              <ArrowLeft className="h-4 w-4 text-slate-600 dark:text-gray-400" />
+            </button>
+            
             {isMobile && (
               <button
                 onClick={toggleMobileSidebar}
