@@ -270,7 +270,7 @@ export default function CreateInvoice() {
 
   const [selectedBank, setSelectedBank] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
-  const [paymentAmount, setPaymentAmount] = useState(0)
+
   const [paymentMode, setPaymentMode] = useState('cash')
   const [paymentStatus, setPaymentStatus] = useState('paid')
   const [utrNumber, setUtrNumber] = useState('')
