@@ -960,10 +960,10 @@ export default function CreateInvoice() {
       // Handle different response formats
       let invoiceId: string | null = null;
 
-      if (result?.data?.invoice_id) {
-        invoiceId = result.data.invoice_id;
-      } else if (result?.invoice_id) {
-        invoiceId = result.invoice_id;
+      if (result?.data?.id) {
+        invoiceId = result.data.id;
+      } else if (result?.id) {
+        invoiceId = result.id;
       } else if (result?.data?.id) {
         invoiceId = result.data.id;
       } else if (result?.id) {
