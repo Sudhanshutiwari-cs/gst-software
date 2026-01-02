@@ -1764,19 +1764,7 @@ export default function CreateInvoice() {
                   )}
                 </div>
               </div>
-              <div className="w-full sm:w-20">
-                <div className="mb-2 text-xs font-medium text-slate-600 dark:text-gray-400">
-                  Qty <RequiredStar />
-                </div>
-                <input
-                  placeholder="0"
-                  type="number"
-                  min="1"
-                  value={productQuantity}
-                  onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-                />
-              </div>
+              
             </div>
 
             {/* Action Buttons */}
