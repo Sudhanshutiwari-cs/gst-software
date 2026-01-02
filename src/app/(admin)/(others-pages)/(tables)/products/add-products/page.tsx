@@ -428,7 +428,7 @@ export default function AddProductsPage() {
     }
 
     if (!formData.product_name.trim()) {
-      setError('Product name is required');
+      setError('Product/service name is required');
       return;
     }
 
@@ -478,7 +478,7 @@ export default function AddProductsPage() {
       );
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Product added successfully!' });
+        setMessage({ type: 'success', text: 'Product/service added successfully!' });
 
         setFormData({
           sku: '',
@@ -504,10 +504,10 @@ export default function AddProductsPage() {
 
         router.push('/products');
       } else {
-        setError(response.data.message || 'Failed to add product');
+        setError(response.data.message || 'Failed to add product/service');
       }
     } catch (error: unknown) {
-      console.error('Error adding product:', error);
+      console.error('Error adding product/service:', error);
       const axiosError = error as AxiosError<ApiError>;
 
       if (axiosError.response?.status === 422) {
@@ -532,7 +532,7 @@ export default function AddProductsPage() {
       } else if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
         setError('Network error. Please check your connection and try again.');
       } else {
-        setError(axiosError.response?.data?.message || 'An error occurred while adding the product');
+        setError(axiosError.response?.data?.message || 'An error occurred while adding the product/service');
       }
     } finally {
       setLoading(false);
@@ -671,8 +671,8 @@ export default function AddProductsPage() {
           {/* Header */}
           <div className={`${headerClass} flex justify-between items-center`}>
             <div>
-              <h2 className={titleClass}>Add New Product</h2>
-              <p className={subtitleClass}>Add a new product to your inventory</p>
+              <h2 className={titleClass}>Add New Product/Service</h2>
+              <p className={subtitleClass}>Add a new product or service to your inventory</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -720,14 +720,14 @@ export default function AddProductsPage() {
               <div className={sectionBorderClass}>
                 <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                   }`}>
-                  Product Image
+                  Product/Service Image
                 </h3>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Image Upload */}
                   <div>
                     <label className={labelClass}>
-                      Product Image
+                      Product/Service Image
                     </label>
                     <div className={imageUploadClass}>
                       <input
@@ -742,7 +742,7 @@ export default function AddProductsPage() {
                           <div className="relative">
                             <Image
                               src={imagePreview}
-                              alt="Product preview"
+                              alt="Product/service preview"
                               width={192}
                               height={192}
                               className="w-full h-48 object-cover rounded-lg"
@@ -765,7 +765,7 @@ export default function AddProductsPage() {
                             </svg>
                             <div className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                               }`}>
-                              <p className="font-medium">Click to upload product image</p>
+                              <p className="font-medium">Click to upload product/service image</p>
                               <p className="text-sm mt-1">PNG, JPG, GIF up to 5MB</p>
                             </div>
                           </div>
@@ -786,7 +786,7 @@ export default function AddProductsPage() {
                         <li>Recommended size: 500x500 pixels</li>
                         <li>Supported formats: JPG, PNG, GIF, WebP</li>
                         <li>Maximum file size: 5MB</li>
-                        <li>Use clear, well-lit product photos</li>
+                        <li>Use clear, well-lit product/service photos</li>
                         <li>Image will be uploaded as &quot;product_image&quot;</li>
                       </ul>
                     </div>
@@ -805,7 +805,7 @@ export default function AddProductsPage() {
                   {/* Product Name */}
                   <div className="lg:col-span-2">
                     <label className={labelClass}>
-                      Product Name *
+                      Product/Service Name *
                     </label>
                     <input
                       type="text"
@@ -814,7 +814,7 @@ export default function AddProductsPage() {
                       onChange={handleInputChange}
                       required
                       className={inputClass}
-                      placeholder="Enter product name"
+                      placeholder="Enter product or service name"
                     />
                   </div>
 
@@ -831,7 +831,7 @@ export default function AddProductsPage() {
                         onChange={handleInputChange}
                         required
                         className={inputClass}
-                        placeholder="Product SKU"
+                        placeholder="Product/Service SKU"
                       />
                       <button
                         type="button"
@@ -954,7 +954,7 @@ export default function AddProductsPage() {
                   {/* Product Description */}
                   <div className="lg:col-span-3">
                     <label className={labelClass}>
-                      Product Description
+                      Product/Service Description
                     </label>
                     <textarea
                       name="product_description"
@@ -962,7 +962,7 @@ export default function AddProductsPage() {
                       onChange={handleInputChange}
                       rows={3}
                       className={inputClass}
-                      placeholder="Enter product description"
+                      placeholder="Enter product or service description"
                     />
                   </div>
                 </div>
@@ -1012,7 +1012,7 @@ export default function AddProductsPage() {
                   {/* Status */}
                   <div>
                     <label className={labelClass}>
-                      Product Status
+                      Product/Service Status
                     </label>
                     <select
                       name="is_active"
@@ -1264,10 +1264,10 @@ export default function AddProductsPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Adding Product...
+                      Adding Product/Service...
                     </span>
                   ) : (
-                    'Add Product'
+                    'Add Product/Service'
                   )}
                 </button>
               </div>
