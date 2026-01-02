@@ -267,7 +267,7 @@ export default function CreateInvoice() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   // Payment State
-  const [isRoundedOff, setIsRoundedOff] = useState(true)
+
   const [selectedBank, setSelectedBank] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
   const [paymentAmount, setPaymentAmount] = useState(0)
@@ -917,7 +917,7 @@ export default function CreateInvoice() {
       email: selectedCustomerData.email || undefined,
       whatsapp_number: selectedCustomerData.phone || undefined,
       products: productsArray,
-      grand_total: isRoundedOff ? Math.round(grandTotal) : grandTotal,
+      grand_total:  grandTotal,
       payment_status: paymentStatus,
       payment_mode: paymentMode !== 'cash' ? paymentMode : undefined,
       utr_number: utrNumber || undefined
@@ -1039,8 +1039,8 @@ export default function CreateInvoice() {
     return sum + (itemTotal * itemTax / 100)
   }, 0)
   const totalAmount = netAmount + totalTax
-  const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
-  const roundOff = roundedAmount - totalAmount
+  const roundedAmount = totalAmount
+  
 
   // Helper function to format tax rate
   const formatTaxRate = (rate: number | undefined): string => {
@@ -2009,19 +2009,7 @@ export default function CreateInvoice() {
                     <span className="font-semibold text-slate-900 dark:text-white">₹ {totalTax.toFixed(2)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-700 dark:text-gray-300">Round Off</span>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isRoundedOff}
-                        onChange={(e) => setIsRoundedOff(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
-                      />
-                      <span className="h-5 w-9 rounded-full bg-blue-500"></span>
-                      <span className="text-xs font-medium text-slate-600 dark:text-gray-400">{roundOff.toFixed(2)}</span>
-                    </label>
-                  </div>
+                  
 
                   <div className="border-t border-green-200 dark:border-green-800 pt-3">
                     <div className="mb-2 flex items-center justify-between">
