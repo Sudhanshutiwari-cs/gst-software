@@ -1780,24 +1780,7 @@ export default function CreateInvoice() {
             </div>
 
             {/* Action Buttons */}
-            <div className="mb-6 flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => {
-                  if (filteredProducts.length > 0) {
-                    addProductToBill(filteredProducts[0])
-                  }
-                }}
-                disabled={filteredProducts.length === 0 || loadingProducts}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4" />
-                Add to Bill
-              </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-300 dark:border-gray-700 rounded-md hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300">
-                ⚡ {isMobile ? 'AI Create' : 'Create with AI'}
-                <span className="rounded bg-blue-100 dark:bg-blue-900/30 px-1 text-xs font-medium text-blue-600 dark:text-blue-400">BETA</span>
-              </button>
-            </div>
+            
 
             {/* Products Table */}
             {selectedProducts.length > 0 ? (
