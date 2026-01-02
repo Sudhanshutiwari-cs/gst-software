@@ -2084,17 +2084,8 @@ export default function CreateInvoice() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">Amount</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-                        value={paymentAmount}
-                        onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-gray-300">
                         Payment Mode <RequiredStar />
