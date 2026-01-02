@@ -1042,6 +1042,12 @@ export default function CreateInvoice() {
   const roundedAmount = isRoundedOff ? Math.round(totalAmount) : totalAmount
   const roundOff = roundedAmount - totalAmount
 
+  // Helper function to format tax rate
+  const formatTaxRate = (rate: number | undefined): string => {
+    if (!rate || rate === 0) return '0%'
+    return `${rate}% GST`
+  }
+
   // Calculate overall discount percentage
   const calculateOverallDiscountPercentage = () => {
     const totalWithoutDiscount = selectedProducts.reduce(
@@ -1052,6 +1058,33 @@ export default function CreateInvoice() {
     if (totalWithoutDiscount === 0) return 0
     
     return ((totalDiscount / totalWithoutDiscount) * 100).toFixed(2)
+  }
+
+  // Calculate average tax rate
+  const calculateAverageTaxRate = () => {
+    if (taxableAmount === 0) return 0
+    return ((totalTax / taxableAmount) * 100).toFixed(2)
+  }
+
+  // Group tax rates
+  const getTaxBreakdown = () => {
+    const taxGroups: Record<number, { amount: number; items: string[] }> = {}
+    
+    selectedProducts.forEach(item => {
+      const taxRate = item.product.taxRate || 0
+      if (taxRate > 0) {
+        const itemTotal = (item.quantity * item.unitPrice) - (item.discount || 0)
+        const taxAmount = itemTotal * taxRate / 100
+        
+        if (!taxGroups[taxRate]) {
+          taxGroups[taxRate] = { amount: 0, items: [] }
+        }
+        taxGroups[taxRate].amount += taxAmount
+        taxGroups[taxRate].items.push(item.product.name)
+      }
+    })
+    
+    return taxGroups
   }
 
   const addProductToBill = (product: Product) => {
@@ -1722,7 +1755,7 @@ export default function CreateInvoice() {
                               ₹{product.price}
                               {product.stock !== undefined && ` • Stock: ${product.stock}`}
                               {product.hsnCode && ` • HSN: ${product.hsnCode}`}
-                              {product.taxRate && ` • Tax: ${product.taxRate}%`}
+                              {product.taxRate !== undefined && ` • Tax: ${formatTaxRate(product.taxRate)}`}
                             </div>
                           </div>
                         ))
@@ -1771,10 +1804,11 @@ export default function CreateInvoice() {
               <>
                 <div className="mb-4 border-b border-slate-200 dark:border-gray-800 pb-3">
                   <div className="grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-slate-700 dark:text-gray-300">
-                    <div className="col-span-4 md:col-span-4">Product</div>
-                    <div className="col-span-2 md:col-span-1">Qty</div>
+                    <div className="col-span-4 md:col-span-3">Product</div>
+                    <div className="col-span-2 md:col-span-1">Tax %</div>
+                    <div className="col-span-1 md:col-span-1">Qty</div>
                     <div className="col-span-2 md:col-span-1">Price</div>
-                    <div className="col-span-2 md:col-span-3">Discount (%)</div>
+                    <div className="col-span-2 md:col-span-2">Discount (%)</div>
                     <div className="col-span-1 md:col-span-2 text-right">Total</div>
                     <div className="col-span-1 text-right"></div>
                   </div>
@@ -1782,18 +1816,22 @@ export default function CreateInvoice() {
 
                 {selectedProducts.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-4 py-3 border-b border-slate-100 dark:border-gray-800 last:border-b-0">
-                    <div className="col-span-4 md:col-span-4">
+                    <div className="col-span-4 md:col-span-3">
                       <div className="font-medium text-slate-900 dark:text-white text-sm">{item.product.name}</div>
                       <div className="text-xs text-slate-600 dark:text-gray-400">
                         {item.product.sku && `SKU: ${item.product.sku}`}
                         {item.product.sku && item.product.hsnCode && ' • '}
                         {item.product.hsnCode && `HSN: ${item.product.hsnCode}`}
-                        {(item.product.sku || item.product.hsnCode) && item.product.taxRate && ' • '}
-                        {item.product.taxRate && `Tax: ${item.product.taxRate}%`}
-                        {!item.product.sku && !item.product.hsnCode && !item.product.taxRate && 'No additional info'}
                       </div>
                     </div>
+                    
                     <div className="col-span-2 md:col-span-1">
+                      <div className="text-sm font-medium text-slate-700 dark:text-gray-300">
+                        {item.product.taxRate || 0}%
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-1 md:col-span-1">
                       <input
                         type="number"
                         min="1"
@@ -1805,7 +1843,7 @@ export default function CreateInvoice() {
                     <div className="col-span-2 md:col-span-1 text-slate-900 dark:text-white text-sm">
                       ₹{item.unitPrice.toFixed(2)}
                     </div>
-                    <div className="col-span-2 md:col-span-3">
+                    <div className="col-span-2 md:col-span-2">
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
@@ -1817,7 +1855,7 @@ export default function CreateInvoice() {
                             const percentage = parseFloat(e.target.value) || 0
                             updateProductDiscount(item.id, percentage)
                           }}
-                          className="w-20 border border-slate-300 dark:border-gray-700 rounded-md px-2 py-1 text-sm dark:bg-gray-800 dark:text-white"
+                          className="w-16 border border-slate-300 dark:border-gray-700 rounded-md px-2 py-1 text-sm dark:bg-gray-800 dark:text-white"
                           placeholder="%"
                         />
                         <span className="text-sm text-slate-500 dark:text-gray-400">%</span>
@@ -1855,6 +1893,33 @@ export default function CreateInvoice() {
                   }
                 </p>
                 
+              </div>
+            )}
+
+            {/* Tax Summary Section */}
+            {selectedProducts.length > 0 && (
+              <div className="mt-6 bg-slate-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 text-sm">Tax Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
+                    <div className="text-xs text-slate-500 dark:text-gray-500">Taxable Amount</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">₹ {netAmount.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
+                    <div className="text-xs text-slate-500 dark:text-gray-500">Total GST</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">₹ {totalTax.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
+                    <div className="text-xs text-slate-500 dark:text-gray-500">Average Tax Rate</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">
+                      {calculateAverageTaxRate()}%
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
+                    <div className="text-xs text-slate-500 dark:text-gray-500">Total Amount</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">₹ {totalAmount.toFixed(2)}</div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1903,8 +1968,44 @@ export default function CreateInvoice() {
                     <span className="font-semibold text-slate-900 dark:text-white">₹ {netAmount.toFixed(2)}</span>
                   </div>
 
+                  {/* GST/Tax Breakdown Section */}
+                  {selectedProducts.length > 0 && (
+                    <div className="border-t border-green-200 dark:border-green-800 pt-3">
+                      <h4 className="text-xs font-semibold text-slate-700 dark:text-gray-300 mb-2">
+                        GST/Tax Breakdown
+                      </h4>
+                      {(() => {
+                        const taxGroups = getTaxBreakdown()
+                        
+                        if (Object.keys(taxGroups).length === 0) {
+                          return (
+                            <div className="text-xs text-slate-500 dark:text-gray-500 mb-1">
+                              No tax applicable
+                            </div>
+                          )
+                        }
+                        
+                        return Object.entries(taxGroups).map(([rate, data]) => (
+                          <div key={rate} className="flex items-center justify-between text-xs mb-1">
+                            <div>
+                              <span className="text-slate-600 dark:text-gray-400">
+                                {rate}% GST
+                              </span>
+                              <span className="text-slate-500 dark:text-gray-500 text-xs ml-2">
+                                ({data.items.length} items)
+                              </span>
+                            </div>
+                            <span className="font-medium text-slate-700 dark:text-gray-300">
+                              ₹ {data.amount.toFixed(2)}
+                            </span>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700 dark:text-gray-300">Total Tax</span>
+                    <span className="text-slate-700 dark:text-gray-300">Total GST</span>
                     <span className="font-semibold text-slate-900 dark:text-white">₹ {totalTax.toFixed(2)}</span>
                   </div>
 
