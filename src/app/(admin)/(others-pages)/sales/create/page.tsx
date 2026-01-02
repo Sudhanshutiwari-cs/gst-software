@@ -1702,7 +1702,7 @@ export default function CreateInvoice() {
             {/* Search Bar */}
             <div className="mb-6 flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <div className="mb-2 text-xs font-medium text-slate-600 dark:text-gray-400">All Categories</div>
+                <div className="mb-2 text-xs font-medium text-slate-600 dark:text-gray-400">All Product & Services</div>
                 <div className="relative">
                   <input
                     placeholder="Search or scan barcode for existing products"
