@@ -2109,23 +2109,7 @@ export default function CreateInvoice() {
               </div>
 
               {/* Signature */}
-              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Select Signature</h3>
-                  <button className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-                    + Add New
-                  </button>
-                </div>
-
-                <select className="w-full border border-slate-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
-                  <option value="none">No Signature</option>
-                  <option value="sig1">Signature 1</option>
-                </select>
-
-                <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20 mt-3">
-                  <span className="text-sm text-slate-600 dark:text-gray-400">Signature on the document</span>
-                </div>
-              </div>
+              
 
               {/* Mobile close sidebar button */}
               {isMobile && showMobileSidebar && (
