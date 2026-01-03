@@ -3838,14 +3838,79 @@ const sendInvoiceEmail = async () => {
     });
     console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
     console.log("📦 Products data for PDF:", invoiceData.products);
-    console.log("📊 Invoice totals from calculateInvoiceTotals:", calculateInvoiceTotals(invoiceData));
+    
+    // Updated calculateInvoiceTotals function to handle GST as percentage
+    const calculateInvoiceTotals = (invoiceData: Invoice) => {
+      let totalGrossAmt = 0;
+      let totalGst = 0;
+      let totalDiscount = 0;
+      let totalGrandTotal = 0;
+      let gstRates: Record<string, number> = {}; // To track different GST rates
 
-    // Calculate totals from products array or single product
+      if (invoiceData.products && invoiceData.products.length > 0) {
+        invoiceData.products.forEach((product: InvoiceProduct) => {
+          const grossAmt = parseFloat(product.gross_amt) || 0;
+          const quantity = product.qty || 1;
+          const discount = parseFloat(product.discount || '0') || 0;
+          const gstPercent = parseFloat(product.gst || '0') || 0; // This should be percentage like 18, 28, etc.
+          
+          // Calculate subtotal after discount
+          const subtotalAfterDiscount = grossAmt - discount;
+          
+          // Calculate GST as percentage of subtotalAfterDiscount
+          const gstAmount = (subtotalAfterDiscount * gstPercent) / 100;
+          
+          // Calculate total for this product
+          const productTotal = subtotalAfterDiscount + gstAmount;
+          
+          // Track GST rates
+          if (gstPercent > 0) {
+            if (!gstRates[gstPercent]) {
+              gstRates[gstPercent] = 0;
+            }
+            gstRates[gstPercent] += gstAmount;
+          }
+          
+          totalGrossAmt += grossAmt;
+          totalGst += gstAmount;
+          totalDiscount += discount;
+          totalGrandTotal += productTotal;
+        });
+      } else {
+        // For single product
+        const grossAmt = parseFloat(invoiceData.gross_amt) || 0;
+        const discount = parseFloat(invoiceData.discount || '0') || 0;
+        const gstPercent = parseFloat(invoiceData.gst || '0') || 0;
+        const quantity = invoiceData.qty || 1;
+        
+        const subtotalAfterDiscount = grossAmt - discount;
+        const gstAmount = (subtotalAfterDiscount * gstPercent) / 100;
+        totalGrandTotal = subtotalAfterDiscount + gstAmount;
+        totalGrossAmt = grossAmt;
+        totalGst = gstAmount;
+        totalDiscount = discount;
+        
+        // Track GST rate
+        if (gstPercent > 0) {
+          gstRates[gstPercent] = gstAmount;
+        }
+      }
+
+      return {
+        totalGrossAmt,
+        totalGst,
+        totalDiscount,
+        totalGrandTotal,
+        gstRates
+      };
+    };
+
     const totals = calculateInvoiceTotals(invoiceData);
     const grossAmtNum = totals.totalGrossAmt;
     const gstNum = totals.totalGst;
     const discountNum = totals.totalDiscount;
     const grandTotalNum = totals.totalGrandTotal;
+    const gstRates = totals.gstRates;
 
     // Format date
     const formatDate = (dateString: string) => {
@@ -3903,9 +3968,6 @@ const sendInvoiceEmail = async () => {
       return `data:image/svg+xml;base64,${btoa(svg)}`;
     };
 
-    // Helper function to create a placeholder signature
-   
-
     // Get direct URL with cache busting
     const getDirectLogoUrl = (url: string): string => {
       const timestamp = new Date().getTime();
@@ -3953,7 +4015,6 @@ const sendInvoiceEmail = async () => {
     };
 
     const fallbackQR = createFallbackQRCode();
-
 
     // Create fallback signature as SVG
     const createFallbackSignature = (): string => {
@@ -4081,18 +4142,30 @@ const sendInvoiceEmail = async () => {
 
       invoiceData.products.forEach((product: InvoiceProduct, index: number) => {
         const productGrossAmt = parseFloat(product.gross_amt) || 0;
-        const productGst = parseFloat(product.gst || '0') || 0;
+        const productGstPercent = parseFloat(product.gst || '0') || 0; // This is percentage
         const productDiscount = parseFloat(product.discount || '0') || 0;
-        const productTotal = parseFloat(product.total) || 0;
         const productQty = product.qty || 1;
+        
+        // Calculate unit price
         const unitPrice = productGrossAmt / productQty;
+        
+        // Calculate subtotal after discount
+        const subtotalAfterDiscount = productGrossAmt - productDiscount;
+        
+        // Calculate GST amount as percentage
+        const productGstAmount = (subtotalAfterDiscount * productGstPercent) / 100;
+        
+        // Calculate final total
+        const productTotal = subtotalAfterDiscount + productGstAmount;
+        
         const originalPrice = productGrossAmt + productDiscount;
 
         console.log(`Product ${index + 1} (${product.product_name}):`, {
           qty: productQty,
           unitPrice,
           gross: productGrossAmt,
-          gst: productGst,
+          gstPercent: productGstPercent,
+          gstAmount: productGstAmount,
           discount: productDiscount,
           total: productTotal
         });
@@ -4103,6 +4176,7 @@ const sendInvoiceEmail = async () => {
             <td>
               <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
               ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
+              ${productGstPercent > 0 ? `<div style="font-size: 10px; color: #666;">GST: ${productGstPercent}%</div>` : ''}
             </td>
             <td>${product.product_sku || 'N/A'}</td>
             <td>
@@ -4116,6 +4190,7 @@ const sendInvoiceEmail = async () => {
             </td>
             <td>
               <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
+              ${productGstAmount > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(productGstAmount)}</div>` : ''}
             </td>
           </tr>
         `;
@@ -4132,8 +4207,24 @@ const sendInvoiceEmail = async () => {
     } else {
       // Single product fallback
       console.log("Using single product fallback");
-      const unitPrice = grossAmtNum / (invoiceData.qty || 1);
-      const originalPrice = grossAmtNum + discountNum;
+      const productGrossAmt = parseFloat(invoiceData.gross_amt) || 0;
+      const productGstPercent = parseFloat(invoiceData.gst || '0') || 0; // Get GST percentage
+      const productDiscount = parseFloat(invoiceData.discount || '0') || 0;
+      const productQty = invoiceData.qty || 1;
+      
+      // Calculate unit price
+      const unitPrice = productGrossAmt / productQty;
+      
+      // Calculate subtotal after discount
+      const subtotalAfterDiscount = productGrossAmt - productDiscount;
+      
+      // Calculate GST amount as percentage
+      const productGstAmount = (subtotalAfterDiscount * productGstPercent) / 100;
+      
+      // Calculate final total
+      const productTotal = subtotalAfterDiscount + productGstAmount;
+      
+      const originalPrice = productGrossAmt + productDiscount;
 
       tableRows = `
         <tr>
@@ -4141,12 +4232,13 @@ const sendInvoiceEmail = async () => {
           <td>
             <div style="font-weight: bold; margin-bottom: 2px;">${invoiceData.product_name || 'Product/Service'}</div>
             ${invoiceData.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${invoiceData.product_sku}</div>` : ''}
+            ${productGstPercent > 0 ? `<div style="font-size: 10px; color: #666;">GST: ${productGstPercent}%</div>` : ''}
           </td>
           <td>${invoiceData.product_sku || 'N/A'}</td>
           <td>
             ₹${formatCurrency(unitPrice)}<br>
-            ${discountNum > 0 ?
-              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(discountNum)})</span>`
+            ${productDiscount > 0 ?
+              `<span style="font-size: 9px; color: #666;">₹${formatCurrency(originalPrice)} (Disc: -₹${formatCurrency(productDiscount)})</span>`
               : ''}
           </td>
           <td>
@@ -4154,14 +4246,14 @@ const sendInvoiceEmail = async () => {
             <div style="font-size: 9px; color: #666;">${(invoiceData.qty || 1) > 1 ? 'PCS' : 'PC'}</div>
           </td>
           <td>
-            <div style="font-weight: bold;">₹${formatCurrency(grandTotalNum)}</div>
-            ${gstNum > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(gstNum)}</div>` : ''}
+            <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
+            ${productGstAmount > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(productGstAmount)}</div>` : ''}
           </td>
         </tr>
       `;
       totalItems = 1;
       totalQuantity = invoiceData.qty || 1;
-      subtotalAmount = grandTotalNum;
+      subtotalAmount = productTotal;
     }
 
     // Create the logo HTML with fallback
@@ -4215,6 +4307,34 @@ const sendInvoiceEmail = async () => {
     if (!iframeDoc) {
       throw new Error('Could not create iframe document');
     }
+
+    // Generate GST breakdown HTML if there are multiple GST rates
+   let gstBreakdownHTML = '';
+
+if (Object.keys(gstRates).length > 0) {
+  gstBreakdownHTML = Object.entries(gstRates)
+    .map(([rate, amount]) => {
+      const gstRate = Number(rate);
+
+      // Split GST equally
+      const halfRate = gstRate / 2;
+      const halfAmount = amount / 2;
+
+      return `
+        <div class="flex-between border-bottom" style="margin-top: 4px;">
+          <div class="text-sm" style="padding-left: 5px;">CGST @ ${halfRate}%</div>
+          <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(halfAmount)}</div>
+        </div>
+
+        <div class="flex-between border-bottom" style="margin-top: 4px;">
+          <div class="text-sm" style="padding-left: 5px;">SGST @ ${halfRate}%</div>
+          <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(halfAmount)}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
 
     // Write the exact HTML structure with API data
     iframeDoc.open();
@@ -4553,14 +4673,19 @@ const sendInvoiceEmail = async () => {
                 <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
                 <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
               </div>
+              
+              <!-- GST Breakdown -->
+              ${gstBreakdownHTML}
+              
               ${gstNum > 0 ? `
               <div class="flex-between border-bottom" style="margin-top: 8px;">
-                <div class="font-bold text-sm" style="padding-left: 5px;">GST</div>
+                <div class="font-bold text-sm" style="padding-left: 5px;">Total GST</div>
                 <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
               </div>
               ` : ''}
+              
               ${discountNum > 0 ? `
-              <div class="flex-between border-bottom" style= " padding-left: 5px;  padding-right: 5px; margin-top: 8px;">
+              <div class="flex-between border-bottom" style=" padding-left: 5px;  padding-right: 5px; margin-top: 8px;">
                 <span class="font-bold text-sm">Total Discount</span>
                 <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
               </div>
@@ -4749,7 +4874,8 @@ const sendInvoiceEmail = async () => {
       subtotalAmount,
       gst: gstNum,
       discount: discountNum,
-      grandTotal: grandTotalNum
+      grandTotal: grandTotalNum,
+      gstRates
     });
 
     return pdfUrl;
