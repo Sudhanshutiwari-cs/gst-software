@@ -4497,7 +4497,7 @@ const sendInvoiceEmail = async () => {
                 font-size: 12px;
               ">
                 <!-- Invoice Number -->
-                <div style="padding: 6px; border-right: 1px solid #666; border-bottom: 1px solid #666;">
+                <div style="padding: 10px;border-right: 1px solid #666; border-bottom: 1px solid #666;">
                   <div class="font-bold">Invoice #</div>
                   <div>
                     ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
