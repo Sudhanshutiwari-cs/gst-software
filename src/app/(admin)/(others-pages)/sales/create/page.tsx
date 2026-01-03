@@ -1882,7 +1882,7 @@ export default function CreateInvoice() {
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-3 text-sm">Tax Summary</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
-                    <div className="text-xs text-slate-500 dark:text-gray-500">Taxable Amount</div>
+                    <div className="text-xs text-slate-500 dark:text-gray-500">Gross Amount</div>
                     <div className="font-semibold text-slate-900 dark:text-white">₹ {netAmount.toFixed(2)}</div>
                   </div>
                   <div className="bg-white dark:bg-gray-900 p-3 rounded-md">
