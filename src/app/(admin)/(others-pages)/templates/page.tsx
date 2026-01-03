@@ -7,7 +7,6 @@ import {
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
-import type { CKEditorProps } from "@ckeditor/ckeditor5-react";
 
 import dynamic from "next/dynamic";
 import type { Editor } from '@ckeditor/ckeditor5-core'
