@@ -3845,7 +3845,7 @@ const sendInvoiceEmail = async () => {
       let totalGst = 0;
       let totalDiscount = 0;
       let totalGrandTotal = 0;
-      let gstRates: Record<string, number> = {}; // To track different GST rates
+      const  gstRates: Record<string, number> = {}; // To track different GST rates
 
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
