@@ -7,6 +7,8 @@ import {
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 // ========== TYPES ==========
 interface Template {
@@ -397,6 +399,15 @@ export default function TemplatesPage() {
     setError(null);
   };
 
+  // Handle CKEditor change for terms_conditions
+  const handleTermsConditionsChange = (event: any, editor: any) => {
+    const data = editor.getData();
+    setFormData(prev => ({
+      ...prev,
+      terms_conditions: data
+    }));
+  };
+
   // Handle form input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -408,10 +419,13 @@ export default function TemplatesPage() {
         [name]: checked ? 1 : 0
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value || ''
-      }));
+      // Don't handle terms_conditions here as it's handled by CKEditor
+      if (name !== 'terms_conditions') {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value || ''
+        }));
+      }
     }
   };
 
@@ -552,27 +566,26 @@ export default function TemplatesPage() {
       }
       
       handleCloseModal();
-    // Change this catch block in handleSaveTemplate function:
-} catch (err: unknown) { // ✅ Use unknown instead of any
-  console.error('Save error details:', err);
-  
-  // Handle specific error cases
-  const errorMessage = err instanceof Error 
-    ? err.message 
-    : 'Failed to save template';
-  
-  if (errorMessage.includes('401')) {
-    setError('Authentication failed. Please login again.');
-  } else if (errorMessage.includes('404')) {
-    setError('Template not found. It may have been deleted.');
-  } else if (errorMessage.includes('409')) {
-    setError('A template with this name already exists.');
-  } else if (errorMessage.includes('422')) {
-    setError(errorMessage);
-  } else {
-    setError(errorMessage);
-  }
-} finally {
+    } catch (err: unknown) {
+      console.error('Save error details:', err);
+      
+      // Handle specific error cases
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to save template';
+      
+      if (errorMessage.includes('401')) {
+        setError('Authentication failed. Please login again.');
+      } else if (errorMessage.includes('404')) {
+        setError('Template not found. It may have been deleted.');
+      } else if (errorMessage.includes('409')) {
+        setError('A template with this name already exists.');
+      } else if (errorMessage.includes('422')) {
+        setError(errorMessage);
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
       setLoading(prev => ({ ...prev, saving: false }));
       setTimeout(() => setSuccessMessage(null), 3000);
     }
@@ -1098,22 +1111,41 @@ export default function TemplatesPage() {
                         />
                       </div>
 
-                      {/* Terms & Conditions */}
+                      {/* Terms & Conditions with CKEditor */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Terms & Conditions
                         </label>
-                        <textarea
-                          name="terms_conditions"
-                          value={formData.terms_conditions || ''}
-                          onChange={handleInputChange}
-                          disabled={!isEditing}
-                          rows={4}
-                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                          }`}
-                          placeholder="Enter terms and conditions that will appear on bills"
-                        />
+                        {isEditing ? (
+                          <div className="border border-gray-300 rounded-lg overflow-hidden">
+                            <CKEditor
+                              editor={ClassicEditor}
+                              data={formData.terms_conditions || ''}
+                              onChange={handleTermsConditionsChange}
+                              config={{
+                                toolbar: [
+                                  'heading', '|',
+                                  'bold', 'italic', 'underline', 'strikethrough', '|',
+                                  'bulletedList', 'numberedList', '|',
+                                  'blockQuote', 'link', '|',
+                                  'undo', 'redo'
+                                ],
+                                placeholder: 'Enter terms and conditions that will appear on bills...',
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          // View mode - display HTML content
+                          <div 
+                            className="px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[200px] overflow-auto prose max-w-none"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formData.terms_conditions || '<p class="text-gray-400 italic">No terms and conditions set</p>' 
+                            }}
+                          />
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Rich text editor for creating detailed terms and conditions
+                        </p>
                       </div>
 
                       {/* Status Field */}
@@ -1440,7 +1472,7 @@ export default function TemplatesPage() {
         </>
       )}
 
-      {/* Add custom animations to the page */}
+      {/* Add custom styles for CKEditor */}
       <style jsx>{`
         @keyframes slide-up {
           from {
@@ -1468,6 +1500,57 @@ export default function TemplatesPage() {
         
         .animate-fade-in {
           animation: fade-in 0.2s ease-out;
+        }
+
+        /* CKEditor custom styles */
+        :global(.ck-editor__editable) {
+          min-height: 200px !important;
+          max-height: 400px !important;
+          overflow-y: auto !important;
+          font-family: inherit !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+        }
+
+        :global(.ck.ck-editor__editable_inline) {
+          border: none !important;
+          padding: 1rem !important;
+        }
+
+        :global(.ck.ck-toolbar) {
+          background: #f9fafb !important;
+          border-bottom: 1px solid #e5e7eb !important;
+        }
+
+        :global(.ck.ck-toolbar .ck.ck-toolbar__separator) {
+          background-color: #e5e7eb !important;
+        }
+
+        /* Prose styling for HTML content */
+        .prose {
+          color: #374151;
+        }
+        .prose p {
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+        .prose ul {
+          list-style-type: disc;
+          padding-left: 1.5em;
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+        .prose ol {
+          list-style-type: decimal;
+          padding-left: 1.5em;
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+        }
+        .prose strong {
+          font-weight: 600;
+        }
+        .prose em {
+          font-style: italic;
         }
       `}</style>
     </div>

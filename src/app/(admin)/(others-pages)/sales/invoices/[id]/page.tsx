@@ -4156,7 +4156,7 @@ const sendInvoiceEmail = async () => {
         const productGstAmount = (subtotalAfterDiscount * productGstPercent) / 100;
         
         // Calculate final total
-        const productTotal = subtotalAfterDiscount + productGstAmount;
+        const productTotal = subtotalAfterDiscount;
         
         const originalPrice = productGrossAmt + productDiscount;
 
@@ -4176,7 +4176,7 @@ const sendInvoiceEmail = async () => {
             <td>
               <div style="font-weight: bold; margin-bottom: 2px;">${product.product_name || 'Product/Service'}</div>
               ${product.product_sku ? `<div style="font-size: 10px; color: #666;">SKU: ${product.product_sku}</div>` : ''}
-              ${productGstPercent > 0 ? `<div style="font-size: 10px; color: #666;">GST: ${productGstPercent}%</div>` : ''}
+ 
             </td>
             <td>${product.product_sku || 'N/A'}</td>
             <td>
@@ -4190,7 +4190,7 @@ const sendInvoiceEmail = async () => {
             </td>
             <td>
               <div style="font-weight: bold;">₹${formatCurrency(productTotal)}</div>
-              ${productGstAmount > 0 ? `<div style="font-size: 9px; color: #666;">GST: ₹${formatCurrency(productGstAmount)}</div>` : ''}
+             
             </td>
           </tr>
         `;
