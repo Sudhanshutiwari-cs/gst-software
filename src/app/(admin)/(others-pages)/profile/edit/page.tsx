@@ -39,6 +39,8 @@ interface Vendor {
   payment_status: string;
   email: string;
   unique_id?: string;
+  logo_url?: string;
+  banner_url?: string;
 }
 
 interface FormData {
@@ -62,6 +64,8 @@ interface FormData {
   status: string;
   payment_status: string;
   email: string;
+  logo_url?: string;
+  banner_url?: string;
 }
 
 interface ApiResponse {
@@ -109,8 +113,14 @@ export default function EditVendorPage() {
     status: "active",
     payment_status: "pending",
     email: "",
+    logo_url: "",
+    banner_url: "",
   });
 
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [bannerPreview, setBannerPreview] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [states, setStates] = useState<State[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,123 +209,132 @@ export default function EditVendorPage() {
   }, [theme, isClient]);
 
   // Fetch vendor data and helper data
-  // Fetch vendor data and helper data
-useEffect(() => {
-  if (!isClient) return;
+  useEffect(() => {
+    if (!isClient) return;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      // Get auth token
-      const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
-      console.log("🔐 Stored auth:", storedAuth);
-      
-      if (!storedAuth) {
-        setError("JWT token not found. Please log in first.");
-        setLoading(false);
-        return;
-      }
-
-      let token = "";
+    const fetchData = async () => {
       try {
-        const parsed = JSON.parse(storedAuth);
-        token = parsed?.access_token || parsed?.token || storedAuth;
-        console.log("✅ Parsed token:", token ? "Token exists" : "No token");
-      } catch {
-        token = storedAuth;
-        console.log("✅ Using raw token");
-      }
-
-      if (!token) {
-        setError("Invalid token format");
-        setLoading(false);
-        return;
-      }
-
-      // Fetch vendor data
-      console.log("🔄 Fetching vendor profile...");
-      const vendorResponse = await axios.get<ApiResponse>(
-        `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("📦 Full API Response:", vendorResponse.data);
-      console.log("📦 Vendor Data:", vendorResponse.data.data);
-
-      if (vendorResponse.data.success && vendorResponse.data.data) {
-        const vendorData = vendorResponse.data.data;
+        setLoading(true);
+        setError("");
         
-        // Set form data directly without using vendor state
-        const newFormData: FormData = {
-          business_name: vendorData.business_name || "",
-          shop_name: vendorData.shop_name || "",
-          shop_type: vendorData.shop_type || "",
-          shop_category: vendorData.shop_category || "",
-          owner_name: vendorData.owner_name || "",
-          gst_number: vendorData.gst_number || "",
-          pan_number: vendorData.pan_number || "",
-          fssai_license: vendorData.fssai_license || "",
-          contact_number: vendorData.contact_number || "",
-          alternate_number: vendorData.alternate_number || "",
-          mobile_number: vendorData.mobile_number || "",
-          address_line1: vendorData.address_line1 || "",
-          address_line2: vendorData.address_line2 || "",
-          city: vendorData.city || "",
-          state: vendorData.state || "",
-          pincode: vendorData.pincode || "",
-          country: vendorData.country || "India",
-          status: vendorData.status || "active",
-          payment_status: vendorData.payment_status || "pending",
-          email: vendorData.email || "",
-        };
+        // Get auth token
+        const storedAuth = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
+        console.log("🔐 Stored auth:", storedAuth);
+        
+        if (!storedAuth) {
+          setError("JWT token not found. Please log in first.");
+          setLoading(false);
+          return;
+        }
 
-        console.log("🎯 Setting form data:", newFormData);
-        setFormData(newFormData);
-      } else {
-        console.warn("⚠️ No vendor data in response");
-        setError("No vendor data received from server");
-      }
+        let token = "";
+        try {
+          const parsed = JSON.parse(storedAuth);
+          token = parsed?.access_token || parsed?.token || storedAuth;
+          console.log("✅ Parsed token:", token ? "Token exists" : "No token");
+        } catch {
+          token = storedAuth;
+          console.log("✅ Using raw token");
+        }
 
-      // Fetch helper data
-      console.log("🔄 Fetching categories and states...");
-      const [catRes, stateRes] = await Promise.all([
-        axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
-        axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
-      ]);
-      
-      console.log("📦 Categories:", catRes.data);
-      console.log("📦 States:", stateRes.data);
-      
-      setCategories(catRes.data?.data ?? catRes.data ?? []);
-      setStates(stateRes.data?.data ?? stateRes.data ?? []);
-      
-    } catch (err: unknown) {
-      console.error("❌ Error fetching data:", err);
-      const apiError = err as ApiError;
-      console.error("❌ Error response:", apiError.response);
-      
-      if (apiError.response) {
-        setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
-      } else if (apiError.request) {
-        setError("Network error: Could not connect to server");
-      } else {
-        setError("Error: " + apiError.message);
+        if (!token) {
+          setError("Invalid token format");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch vendor data
+        console.log("🔄 Fetching vendor profile...");
+        const vendorResponse = await axios.get<ApiResponse>(
+          `https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        console.log("📦 Full API Response:", vendorResponse.data);
+        console.log("📦 Vendor Data:", vendorResponse.data.data);
+
+        if (vendorResponse.data.success && vendorResponse.data.data) {
+          const vendorData = vendorResponse.data.data;
+          
+          // Set form data directly without using vendor state
+          const newFormData: FormData = {
+            business_name: vendorData.business_name || "",
+            shop_name: vendorData.shop_name || "",
+            shop_type: vendorData.shop_type || "",
+            shop_category: vendorData.shop_category || "",
+            owner_name: vendorData.owner_name || "",
+            gst_number: vendorData.gst_number || "",
+            pan_number: vendorData.pan_number || "",
+            fssai_license: vendorData.fssai_license || "",
+            contact_number: vendorData.contact_number || "",
+            alternate_number: vendorData.alternate_number || "",
+            mobile_number: vendorData.mobile_number || "",
+            address_line1: vendorData.address_line1 || "",
+            address_line2: vendorData.address_line2 || "",
+            city: vendorData.city || "",
+            state: vendorData.state || "",
+            pincode: vendorData.pincode || "",
+            country: vendorData.country || "India",
+            status: vendorData.status || "active",
+            payment_status: vendorData.payment_status || "pending",
+            email: vendorData.email || "",
+            logo_url: vendorData.logo_url || "",
+            banner_url: vendorData.banner_url || "",
+          };
+
+          console.log("🎯 Setting form data:", newFormData);
+          setFormData(newFormData);
+          
+          // Set previews if URLs exist
+          if (vendorData.logo_url) {
+            setLogoPreview(vendorData.logo_url);
+          }
+          if (vendorData.banner_url) {
+            setBannerPreview(vendorData.banner_url);
+          }
+        } else {
+          console.warn("⚠️ No vendor data in response");
+          setError("No vendor data received from server");
+        }
+
+        // Fetch helper data
+        console.log("🔄 Fetching categories and states...");
+        const [catRes, stateRes] = await Promise.all([
+          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/categories"),
+          axios.get("https://manhemdigitalsolutions.com/pos-admin/api/helper/states"),
+        ]);
+        
+        console.log("📦 Categories:", catRes.data);
+        console.log("📦 States:", stateRes.data);
+        
+        setCategories(catRes.data?.data ?? catRes.data ?? []);
+        setStates(stateRes.data?.data ?? stateRes.data ?? []);
+        
+      } catch (err: unknown) {
+        console.error("❌ Error fetching data:", err);
+        const apiError = err as ApiError;
+        console.error("❌ Error response:", apiError.response);
+        
+        if (apiError.response) {
+          setError(`Server error: ${apiError.response.status} - ${apiError.response.data?.message || 'Unknown error'}`);
+        } else if (apiError.request) {
+          setError("Network error: Could not connect to server");
+        } else {
+          setError("Error: " + apiError.message);
+        }
+        setFetchError(true);
+      } finally {
+        setLoading(false);
       }
-      setFetchError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  fetchData();
-}, [isClient]);
+    };
+    
+    fetchData();
+  }, [isClient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -323,6 +342,34 @@ useEffect(() => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (files && files[0]) {
+      const file = files[0];
+      const previewUrl = URL.createObjectURL(file);
+      
+      if (name === 'logo') {
+        setLogoFile(file);
+        setLogoPreview(previewUrl);
+      } else if (name === 'banner') {
+        setBannerFile(file);
+        setBannerPreview(previewUrl);
+      }
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview("");
+    setFormData(prev => ({ ...prev, logo_url: "" }));
+  };
+
+  const removeBanner = () => {
+    setBannerFile(null);
+    setBannerPreview("");
+    setFormData(prev => ({ ...prev, banner_url: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -351,28 +398,80 @@ useEffect(() => {
 
       console.log("📤 Submitting form data:", formData);
 
-      const response = await axios.put(
+      // Create FormData object for multipart upload
+      const formDataToSend = new FormData();
+      
+      // Append all form fields
+      Object.keys(formData).forEach(key => {
+        const value = formData[key as keyof FormData];
+        if (value !== undefined && value !== null && value !== "") {
+          formDataToSend.append(key, value.toString());
+        }
+      });
+      
+      // Append files if they exist
+      if (logoFile) {
+        formDataToSend.append('logo_url', logoFile);
+      }
+      
+      if (bannerFile) {
+        formDataToSend.append('banner_url', bannerFile);
+      }
+
+      // Log FormData contents for debugging
+      console.log("📦 FormData contents:");
+      for (const pair of formDataToSend.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      // Using POST method instead of PUT
+      const response = await axios.post(
         `https://manhemdigitalsolutions.com/pos-admin/api/vendor/update-profile`,
-        formData,
+        formDataToSend,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
       console.log("✅ Update response:", response.data);
       
-      toast.success("Profile updated successfully!", {
-        position: "bottom-right",
-      });
-      setMessage("Vendor profile updated successfully!");
+      if (response.data.success) {
+        toast.success("Profile updated successfully!", {
+          position: "bottom-right",
+        });
+        setMessage("Vendor profile updated successfully!");
+
+        // Refresh previews if new files were uploaded
+        if (response.data.data?.logo_url) {
+          setLogoPreview(response.data.data.logo_url);
+          setFormData(prev => ({ ...prev, logo_url: response.data.data.logo_url }));
+        }
+        if (response.data.data?.banner_url) {
+          setBannerPreview(response.data.data.banner_url);
+          setFormData(prev => ({ ...prev, banner_url: response.data.data.banner_url }));
+        }
+
+        // Update other fields if returned in response
+        if (response.data.data) {
+          setFormData(prev => ({
+            ...prev,
+            ...response.data.data
+          }));
+        }
+      } else {
+        throw new Error(response.data.message || "Update failed");
+      }
 
     } catch (error: unknown) {
       console.error("Error:", error);
       const apiError = error as ApiError;
-      const errorMsg = apiError.response?.data?.message || apiError.response?.data?.error || "❌ Failed to update vendor.";
+      const errorMsg = apiError.response?.data?.message || 
+                      apiError.response?.data?.error || 
+                      apiError.message || 
+                      "❌ Failed to update vendor.";
       setError(errorMsg);
       toast.error("Failed to update profile", {
         position: "bottom-right",
@@ -479,6 +578,146 @@ useEffect(() => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Logo and Banner Upload Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Logo Upload */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Logo
+                  </label>
+                  <div className={`border-2 border-dashed rounded-lg p-4 ${
+                    theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                  }`}>
+                    {logoPreview ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={logoPreview} 
+                          alt="Logo Preview" 
+                          className="w-32 h-32 object-contain mb-2 rounded-lg"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = 
+                              `<div class="w-32 h-32 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 mb-2">
+                                 <span class="text-gray-500 dark:text-gray-400">Invalid Image</span>
+                               </div>`;
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={removeLogo}
+                          className={`text-sm px-3 py-1 rounded-md ${
+                            theme === 'dark'
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-red-500 hover:bg-red-600 text-white'
+                          }`}
+                        >
+                          Remove Logo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-full mb-2 ${
+                          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+                        }`}>
+                          <span className={`text-2xl ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            🏪
+                          </span>
+                        </div>
+                        <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Upload your shop logo
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      name="logo"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium ${
+                        theme === 'dark'
+                          ? 'file:bg-gray-700 file:text-white text-gray-300'
+                          : 'file:bg-gray-100 file:text-gray-700 text-gray-900'
+                      }`}
+                    />
+                    <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Recommended: Square image, max 2MB
+                    </p>
+                  </div>
+                </div>
+
+                {/* Banner Upload */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Banner
+                  </label>
+                  <div className={`border-2 border-dashed rounded-lg p-4 ${
+                    theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                  }`}>
+                    {bannerPreview ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={bannerPreview} 
+                          alt="Banner Preview" 
+                          className="w-full h-32 object-cover mb-2 rounded-lg"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = 
+                              `<div class="w-full h-32 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 mb-2">
+                                 <span class="text-gray-500 dark:text-gray-400">Invalid Image</span>
+                               </div>`;
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={removeBanner}
+                          className={`text-sm px-3 py-1 rounded-md ${
+                            theme === 'dark'
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-red-500 hover:bg-red-600 text-white'
+                          }`}
+                        >
+                          Remove Banner
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-full mb-2 ${
+                          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+                        }`}>
+                          <span className={`text-2xl ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            🖼️
+                          </span>
+                        </div>
+                        <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Upload your shop banner
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      name="banner"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium ${
+                        theme === 'dark'
+                          ? 'file:bg-gray-700 file:text-white text-gray-300'
+                          : 'file:bg-gray-100 file:text-gray-700 text-gray-900'
+                      }`}
+                    />
+                    <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Recommended: Landscape image, max 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing form fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Email Field */}
                 <div>
