@@ -3850,7 +3850,7 @@ const sendInvoiceEmail = async () => {
       if (invoiceData.products && invoiceData.products.length > 0) {
         invoiceData.products.forEach((product: InvoiceProduct) => {
           const grossAmt = parseFloat(product.gross_amt) || 0;
-          const quantity = product.qty || 1;
+          
           const discount = parseFloat(product.discount || '0') || 0;
           const gstPercent = parseFloat(product.gst || '0') || 0; // This should be percentage like 18, 28, etc.
           
