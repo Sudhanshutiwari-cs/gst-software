@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
-
+import type { Editor } from '@ckeditor/ckeditor5-core'
+import type { EventInfo } from '@ckeditor/ckeditor5-utils'
 // ========== TYPES ==========
 interface Template {
   id: number;
@@ -400,13 +401,17 @@ export default function TemplatesPage() {
   };
 
   // Handle CKEditor change for terms_conditions
-  const handleTermsConditionsChange = (event: any, editor: any) => {
-    const data = editor.getData();
-    setFormData(prev => ({
-      ...prev,
-      terms_conditions: data
-    }));
-  };
+  const handleTermsConditionsChange = (
+  _event: EventInfo,
+  editor: Editor
+) => {
+  const data = editor.getData()
+
+  setFormData(prev => ({
+    ...prev,
+    terms_conditions: data
+  }))
+}
 
   // Handle form input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
