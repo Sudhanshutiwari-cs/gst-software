@@ -7,8 +7,9 @@ import {
   User, QrCode, Signature, Settings, Copy,
   Building, RefreshCw, AlertCircle,  CreditCard, Hash
 } from 'lucide-react';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import type { CKEditorProps } from "@ckeditor/ckeditor5-react";
+
+import dynamic from "next/dynamic";
 import type { Editor } from '@ckeditor/ckeditor5-core'
 import type { EventInfo } from '@ckeditor/ckeditor5-utils'
 // ========== TYPES ==========
@@ -32,6 +33,12 @@ interface Template {
   updated_at: string;
 }
 
+interface CKEditorComponentProps {
+  editor: unknown;
+  data?: string;
+  onChange?: (event: EventInfo, editor: Editor) => void;
+  config?: Record<string, unknown>;
+}
 interface ApiResponse<T> {
   data?: T;
   message?: string;
@@ -86,6 +93,19 @@ const fetchAllTemplates = async (): Promise<Template[]> => {
   }
 };
 
+
+const CKEditor = dynamic<CKEditorComponentProps>(
+  () =>
+    import("@ckeditor/ckeditor5-react").then(
+      (mod) => mod.CKEditor
+    ),
+  { ssr: false }
+);
+
+const ClassicEditor = dynamic(
+  () => import("@ckeditor/ckeditor5-build-classic"),
+  { ssr: false }
+);
 // Fetch single template by template_name
 const fetchTemplateByName = async (templateName: string): Promise<Template> => {
   try {
@@ -1123,21 +1143,22 @@ export default function TemplatesPage() {
                         </label>
                         {isEditing ? (
                           <div className="border border-gray-300 rounded-lg overflow-hidden">
-                            <CKEditor
-                              editor={ClassicEditor}
-                              data={formData.terms_conditions || ''}
-                              onChange={handleTermsConditionsChange}
-                              config={{
-                                toolbar: [
-                                  'heading', '|',
-                                  'bold', 'italic', 'underline', 'strikethrough', '|',
-                                  'bulletedList', 'numberedList', '|',
-                                  'blockQuote', 'link', '|',
-                                  'undo', 'redo'
-                                ],
-                                placeholder: 'Enter terms and conditions that will appear on bills...',
-                              }}
-                            />
+                           <CKEditor
+  editor={ClassicEditor}
+  data={formData.terms_conditions || ''}
+  onChange={handleTermsConditionsChange}
+  config={{
+    toolbar: [
+      'heading', '|',
+      'bold', 'italic', 'underline', 'strikethrough', '|',
+      'bulletedList', 'numberedList', '|',
+      'blockQuote', 'link', '|',
+      'undo', 'redo'
+    ],
+    placeholder: 'Enter terms and conditions that will appear on bills...',
+  }}
+/>
+
                           </div>
                         ) : (
                           // View mode - display HTML content
