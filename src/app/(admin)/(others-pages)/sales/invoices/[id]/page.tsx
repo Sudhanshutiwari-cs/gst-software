@@ -3881,7 +3881,7 @@ const sendInvoiceEmail = async () => {
         const grossAmt = parseFloat(invoiceData.gross_amt) || 0;
         const discount = parseFloat(invoiceData.discount || '0') || 0;
         const gstPercent = parseFloat(invoiceData.gst || '0') || 0;
-        const quantity = invoiceData.qty || 1;
+        
         
         const subtotalAfterDiscount = grossAmt - discount;
         const gstAmount = (subtotalAfterDiscount * gstPercent) / 100;
@@ -3906,7 +3906,7 @@ const sendInvoiceEmail = async () => {
     };
 
     const totals = calculateInvoiceTotals(invoiceData);
-    const grossAmtNum = totals.totalGrossAmt;
+    
     const gstNum = totals.totalGst;
     const discountNum = totals.totalDiscount;
     const grandTotalNum = totals.totalGrandTotal;
