@@ -1927,7 +1927,7 @@ export default function CreateInvoice() {
               <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700 dark:text-gray-300">Subtotal</span>
+                    <span className="text-slate-700 dark:text-gray-300"> Gross total</span>
                     <span className="font-semibold text-slate-900 dark:text-white">₹ {taxableAmount.toFixed(2)}</span>
                   </div>
 
@@ -1943,10 +1943,7 @@ export default function CreateInvoice() {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700 dark:text-gray-300">Taxable Amount</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">₹ {netAmount.toFixed(2)}</span>
-                  </div>
+                  
 
                   {/* GST/Tax Breakdown Section */}
                   {selectedProducts.length > 0 && (
