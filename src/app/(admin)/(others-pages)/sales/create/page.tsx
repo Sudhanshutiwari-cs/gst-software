@@ -937,18 +937,6 @@ export default function CreateInvoice() {
     }
   }
 
-  const saveAsDraft = async () => {
-    try {
-      const invoiceData = prepareInvoiceData()
-      // For draft, you might want to set payment_status to 'draft'
-      const draftData = { ...invoiceData, payment_status: 'draft' }
-      const result = await createInvoice(draftData)
-      console.log('Draft saved successfully:', result)
-      alert('Draft saved successfully!')
-    } catch (error) {
-      console.error('Error saving draft:', error)
-    }
-  }
 
   const saveAndPrint = async () => {
     try {
@@ -1449,13 +1437,7 @@ export default function CreateInvoice() {
               />
             </div>
             <div className="flex gap-1 md:gap-2">
-              <button
-                onClick={saveAsDraft}
-                disabled={savingInvoice}
-                className="px-2 py-2 text-xs md:px-3 md:text-sm border border-slate-300 dark:border-gray-700 rounded-md hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 dark:text-gray-300"
-              >
-                {savingInvoice ? 'Saving...' : (isMobile ? 'Draft' : 'Save as Draft')}
-              </button>
+              
               <button
                 onClick={saveAndPrint}
                 disabled={savingInvoice}
