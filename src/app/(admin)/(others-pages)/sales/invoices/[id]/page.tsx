@@ -1151,7 +1151,7 @@ const sendInvoiceEmail = async () => {
           (parseFloat(invoiceData.grand_total) || 0).toString(),
         payment_status: invoiceData.invoice.payment_status || 'pending',
         payment_mode: invoiceData.payment_mode || null,
-        utr_number: invoiceData.utr_number || null,
+        utr_number: invoiceData.invoice.utr_number || null,
         created_at: invoiceData.created_at || new Date().toISOString(),
         updated_at: invoiceData.updated_at || new Date().toISOString(),
         shipping_address: invoiceData.shipping_address || null,
@@ -3834,7 +3834,8 @@ const sendInvoiceEmail = async () => {
     console.log("🏦 Bank Details:", {
       bank_name: classicTemplate.data.bank_name,
       acc_number: classicTemplate.data.acc_number,
-      upi_id: classicTemplate.data.upi_id
+      upi_id: classicTemplate.data.upi_id,
+      utr_number: classicTemplate.data.utr_number || 'Not provided'
     });
     console.log("🔄 Starting PDF generation for invoice:", invoiceData.invoice_id);
     console.log("📦 Products data for PDF:", invoiceData.products);
@@ -4713,6 +4714,7 @@ if (Object.keys(gstRates).length > 0) {
                     <p><b>IFSC:</b> ${classicTemplate.data.ifsc_code || 'N/A'}</p>
                     <p><b>UPI:</b> ${classicTemplate.data.upi_id || 'N/A'}</p>
                     <p><b>Account Name:</b> ${classicTemplate.data.acc_holder_name || 'N/A'}</p>
+                    <p><b>UTR Number:</b> ${invoiceData.utr_number || 'N/A'}</p>
                   </div>
                 </div>
 
@@ -4756,7 +4758,7 @@ if (Object.keys(gstRates).length > 0) {
                   <div class="footer-title">Terms and Conditions</div>
                   <div class="terms-conditions">
                     <p><b>E & O.E</b></p>
-                    <p> ${classicTemplate.data.terms_conditions || 'N/A'}</p>
+                    <p style="padding-left: 10px;"> ${classicTemplate.data.terms_conditions || 'N/A'}</p>
                    
                   </div>
                 </div>
