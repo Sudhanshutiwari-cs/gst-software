@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu, Sun, Moon, Monitor, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 
 // Vendor Profile interface
 interface VendorProfile {
@@ -929,8 +929,8 @@ export default function CreateInvoice() {
     try {
       const invoiceData = prepareInvoiceData()
       const result = await createInvoice(invoiceData)
-      console.log('Invoice created successfully:', result)
-      alert('Invoice created successfully!')
+      router.push(`/sales/invoice`)
+      
     } catch (error) {
       console.error('Error saving invoice:', error)
       // Error is already set in createInvoice function
