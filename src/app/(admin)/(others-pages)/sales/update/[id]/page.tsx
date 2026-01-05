@@ -168,6 +168,23 @@ interface InvoiceData {
   utr_number?: string
 }
 
+// Interface for product data from invoice API
+interface InvoiceProductData {
+  id?: string | number;
+  gross_amt: string | number;
+  qty: string | number;
+  gst: string | number;
+  discount: string | number;
+  total: string | number;
+  product_id?: string | number;
+  product_name?: string;
+  product_sku?: string;
+  hsn_code?: string;
+  category?: string;
+  stock?: string | number;
+  description?: string;
+}
+
 const mockBanks: Bank[] = [
   {
     id: '1',
@@ -400,12 +417,12 @@ export default function UpdateInvoice() {
         }
 
         // Create product items from the products array
-        const invoiceItems: InvoiceItem[] = products.map((product: any, index: number) => {
-          const grossAmt = parseFloat(product.gross_amt) || 0
-          const qty = parseInt(product.qty) || 1
-          const gst = parseFloat(product.gst) || 0
-          const discount = parseFloat(product.discount) || 0
-          const total = parseFloat(product.total) || 0
+        const invoiceItems: InvoiceItem[] = products.map((product: InvoiceProductData, index: number) => {
+          const grossAmt = parseFloat(product.gross_amt.toString()) || 0
+          const qty = parseInt(product.qty.toString()) || 1
+          const gst = parseFloat(product.gst.toString()) || 0
+          const discount = parseFloat(product.discount.toString()) || 0
+          const total = parseFloat(product.total.toString()) || 0
           
           // Calculate unit price
           const unitPrice = qty > 0 ? grossAmt / qty : grossAmt
@@ -426,7 +443,7 @@ export default function UpdateInvoice() {
               hsnCode: product.hsn_code,
               taxRate: taxRate,
               category: product.category,
-              stock: parseInt(product.stock) || 0,
+              stock: parseInt(product.stock?.toString() || '0') || 0,
               description: product.description,
               is_active: true
             },
@@ -2810,7 +2827,7 @@ export default function UpdateInvoice() {
                 </form>
               </div>
 
-              {/* Foot er */}
+              {/* Footer */}
               <div className="p-4 md:p-6 border-t border-slate-200 dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
