@@ -927,7 +927,7 @@ export default function CreateInvoice() {
   // Save invoice function
   const saveInvoice = async () => {
     try {
-      const invoiceData = prepareInvoiceData()
+     
 
       router.push(`/sales/invoice`)
       
