@@ -4309,473 +4309,502 @@ const sendInvoiceEmail = async () => {
       throw new Error('Could not create iframe document');
     }
 
-    // Generate GST breakdown HTML if there are multiple GST rates
-   let gstBreakdownHTML = '';
+    // Generate GST breakdown HTML if there are multiple GST rates - UPDATED
+    let gstBreakdownHTML = '';
 
-if (Object.keys(gstRates).length > 0) {
-  gstBreakdownHTML = Object.entries(gstRates)
-    .map(([rate, amount]) => {
-      const gstRate = Number(rate);
+    if (Object.keys(gstRates).length > 0) {
+      gstBreakdownHTML = Object.entries(gstRates)
+        .map(([rate, amount]) => {
+          const gstRate = Number(rate);
 
-      // Split GST equally
-      const halfRate = gstRate / 2;
-      const halfAmount = amount / 2;
+          // Split GST equally
+          const halfRate = gstRate / 2;
+          const halfAmount = amount / 2;
 
-      return `
-        <div class="flex-between border-bottom" style="margin-top: 4px;">
-          <div class="text-sm" style="padding-left: 5px;">CGST @ ${halfRate}%</div>
-          <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(halfAmount)}</div>
-        </div>
-
-        <div class="flex-between border-bottom" style="margin-top: 4px;">
-          <div class="text-sm" style="padding-left: 5px;">SGST @ ${halfRate}%</div>
-          <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(halfAmount)}</div>
-        </div>
-      `;
-    })
-    .join('');
-}
-
+          return `
+            <div class="flex-between border-bottom" style="margin-top: 4px;">
+              <div class="text-sm" style="padding-left: 5px;">
+                CGST @ ${halfRate}% + SGST @ ${halfRate}%
+              </div>
+              <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(amount)}</div>
+            </div>
+          `;
+        })
+        .join('');
+    }
 
     // Write the exact HTML structure with API data
-    iframeDoc.open();
-    iframeDoc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { 
-              margin: 0; 
-              padding: 0; 
-              box-sizing: border-box; 
-              font-family: Arial, Helvetica, sans-serif;
-            }
-            body { 
-              width: 210mm; 
-              min-height: 297mm; 
-              padding: 7mm 7mm 7mm 7mm; 
-              background: white; 
-              color: black;
-              line-height: 1.4;
-              position: relative;
-            }
-            .invoice-container {
-              width: 100%;
-              background: white;
-              border: 1px solid #666;
-              position: relative;
-              min-height: 280mm;
-              padding-bottom: 40mm; /* Space for fixed footer */
-            }
-            .border-bottom {
-              border-bottom: 1px solid #666;
-              padding-bottom: 8px;
-              margin-bottom: 8px;
-            }
-            .text-center { text-align: center; padding: -4px 0 important; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: bold; }
-            .text-sm { font-size: 12px; }
-            .text-base { font-size: 13px; }
-            .text-lg { font-size: 14px; }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 15px 0;
-              font-size: 12px;
-              border-top: 1px solid #666;
-            }
-            th, td {
-              border-bottom: 1px solid #666;
-              border-left: 1px solid #666;
-              padding: 8px;
-              text-align: left;
-              vertical-align: top;
-            }
-            th {
-              background-color: #f5f5f5;
-              font-weight: bold;
-              text-align: center;
-            }
-            .invoice-table th,
-            .invoice-table td {
-            }
-            .invoice-table td:nth-child(1),
-            .invoice-table td:nth-child(3),
-            .invoice-table td:nth-child(4),
-            .invoice-table td:nth-child(5),
-            .invoice-table td:nth-child(6) {
-              text-align: center;
-            }
-            .invoice-table th:nth-child(2),
-            .invoice-table td:nth-child(2) {
-              text-align: left;
-            }
-            .grid-2 {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              margin: 15px 0;
-            }
-            .border-all {
-              border: 1px solid #666;
-              padding-bottom: 10px;
-            }
-            .flex-between {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .signature-box {
-              margin-top: 20px;
-              text-align: right;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-              object-fit: contain;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-            }
-            .logo-placeholder {
-              width: 60px;
-              height: 60px;
-              background: #f5f5f5;
-              border: 1px solid #ddd;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 24px;
-              font-weight: bold;
-              color: #666;
-              border-radius: 4px;
-            }
-            .status-paid { color: green; }
-            .status-pending { color: orange; }
-            .status-unpaid { color: red; }
-            
-            /* Footer Styles */
-            .footer-fixed {
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              border-top: 2px solid #666;
-              background: white;
-              padding: 0;
-              height: 115px;
-              display: flex;
-              align-items: stretch;
-            }
-            .footer-title {
-              font-weight: bold;
-              margin-bottom: 5px;
-              font-size: 12px;
+    // Write the exact HTML structure with API data
+iframeDoc.open();
+iframeDoc.write(`
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+          font-family: Arial, Helvetica, sans-serif;
+        }
+        body { 
+          width: 210mm; 
+          min-height: 297mm; 
+          padding: 7mm 7mm 7mm 7mm; 
+          background: white; 
+          color: black;
+          line-height: 1.4;
+          position: relative;
+        }
+        .invoice-container {
+          width: 100%;
+          background: white;
+          border: 1px solid #666;
+          position: relative;
+          min-height: 280mm;
+          padding-bottom: 40mm; /* Space for fixed footer */
+        }
+        .border-bottom {
+          border-bottom: 1px solid #666;
+          padding-bottom: 8px;
+          margin-bottom: 8px;
+        }
+        .text-center { text-align: center; padding: -4px 0 important; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+        .text-sm { font-size: 12px; }
+        .text-base { font-size: 13px; }
+        .text-lg { font-size: 14px; }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0;
+          font-size: 12px;
+          border-top: 1px solid #666;
+        }
+        th, td {
+          border-bottom: 1px solid #666;
+          border-left: 1px solid #666;
+          padding: 8px;
+          text-align: left;
+          vertical-align: top;
+        }
+        th {
+          background-color: #f5f5f5;
+          font-weight: bold;
+          text-align: center;
+        }
+        .invoice-table th,
+        .invoice-table td {
+        }
+        .invoice-table td:nth-child(1),
+        .invoice-table td:nth-child(3),
+        .invoice-table td:nth-child(4),
+        .invoice-table td:nth-child(5),
+        .invoice-table td:nth-child(6) {
+          text-align: center;
+        }
+        .invoice-table th:nth-child(2),
+        .invoice-table td:nth-child(2) {
+          text-align: left;
+        }
+        .grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          margin: 15px 0;
+        }
+        .border-all {
+          border: 1px solid #666;
+          padding-bottom: 10px;
+        }
+        .flex-between {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .signature-box {
+          margin-top: 20px;
+          text-align: right;
+        }
+        .logo {
+          width: 60px;
+          height: 60px;
+          object-fit: contain;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+        .logo-placeholder {
+          width: 60px;
+          height: 60px;
+          background: #f5f5f5;
+          border: 1px solid #ddd;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: bold;
+          color: #666;
+          border-radius: 4px;
+        }
+        .status-paid { color: green; }
+        .status-pending { color: orange; }
+        .status-unpaid { color: red; }
+        
+        /* Footer Styles */
+        .footer-fixed {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          border-top: 2px solid #666;
+          background: white;
+          padding: 0;
+          height: 115px;
+          display: flex;
+          align-items: stretch;
+        }
+        .footer-title {
+          font-weight: bold;
+          margin-bottom: 5px;
+          font-size: 12px;
+          color: #1e40af;
+        }
+        .bank-details {
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        .terms-conditions {
+          font-size: 10px;
+          line-height: 1.2;
+        }
+        /* CKEditor content styles */
+        .ck-content {
+          font-size: 10px;
+          line-height: 1.2;
+          color: #333;
+        }
+        .ck-content ul, .ck-content ol {
+          margin: 0;
+          padding-left: 15px;
+        }
+        .ck-content li {
+          margin-bottom: 2px;
+        }
+        .ck-content p {
+          margin: 0 0 3px 0;
+        }
+        .ck-content strong, .ck-content b {
+          font-weight: bold;
+        }
+        .ck-content em, .ck-content i {
+          font-style: italic;
+        }
+        .ck-content u {
+          text-decoration: underline;
+        }
+        .final-signature {
+          margin-top: 20px;
+          text-align: right;
+          border-top: 1px solid #000;
+          padding-top: 10px;
+        }
+        .page-break {
+          page-break-inside: avoid;
+        }
+        .footer-columns {
+          display: flex;
+          width: 100%;
+          height: 100%;
+        }
+        .terms-column {
+          flex: 1;
+          border-right: 1px solid #666;
+          padding: 10px 15px 10px 10px;
+          overflow-y: auto;
+          max-height: 115px;
+        }
+        .bank-column {
+          flex: 1;
+          padding: 10px 10px 10px 15px;
+        }
+        
+        /* Bank & Signature Section Styles */
+        .bank-signature-section {
+          margin: 20px 0 25px 0;
+          border-top: 1px solid #666;
+          border-bottom: 1px solid #666;
+          padding: 0;
+          background-color: #fff;
+          page-break-inside: avoid;
+          display: flex;
+        }
+        .bank-details-column {
+          flex: 1;
+          border-right: 1px solid #666;
+          padding: 15px;
+        }
+        .signature-column {
+          flex: 1;
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .thank-you-note {
+          font-size: 11px;
+          line-height: 1.4;
+          color: #1e40af;
+          text-align: center;
+          padding: 10px;
+          font-style: italic;
+          border: 1px dashed #1e40af;
+          background-color: #f0f8ff;
+          margin-bottom: 10px;
+        }
+        .signature-space {
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+        .signature-line {
+          width: 100%;
+          border-top: 1px solid #000;
+          margin-top: 10px;
+          padding-top: 5px;
+          text-align: center;
+        }
+        .signature-image-container {
+          text-align: center;
+          margin-bottom: 10px;
+        }
+        .signature-image {
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          margin: 0 auto 10px auto;
+          display: block;
+        }
+        
+        /* Remove old footer styles */
+        .footer-section {
+          display: none;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="invoice-container">
+        <!-- Invoice Title -->
+        <div class="text-center">
+          <h1
+            class="text-lg font-bold"
+            style="
               color: #1e40af;
-            }
-            .bank-details {
-              font-size: 11px;
-              line-height: 1.4;
-            }
-            .terms-conditions {
-              font-size: 10px;
-              line-height: 1.2;
-            }
-            .final-signature {
-              margin-top: 20px;
-              text-align: right;
-              border-top: 1px solid #000;
-              padding-top: 10px;
-            }
-            .page-break {
-              page-break-inside: avoid;
-            }
-            .footer-columns {
-              display: flex;
-              width: 100%;
-              height: 100%;
-            }
-            .terms-column {
-              flex: 1;
-              border-right: 1px solid #666;
-              padding: 10px 15px 10px 10px;
-            }
-            .bank-column {
-              flex: 1;
-              padding: 10px 10px 10px 15px;
-            }
+              letter-spacing: 2px;
+              margin: 0;
+              padding: -4px 0px important;
+            "
+          >
+            TAX INVOICE
+          </h1>
+        </div>
+
+        <!-- Header Section -->
+        <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
+          <!-- Left Box -->
+          <div style="border-right: 1px solid #666; padding: 10px;">
+            <!-- Logo and Details -->
+            <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
+              ${logoHTML}
             
-            /* Bank & Signature Section Styles */
-            .bank-signature-section {
-              margin: 20px 0 25px 0;
-              border-top: 1px solid #666;
-              border-bottom: 1px solid #666;
-              padding: 0;
-              background-color: #fff;
-              page-break-inside: avoid;
-              display: flex;
-            }
-            .bank-details-column {
-              flex: 1;
-              border-right: 1px solid #666;
-              padding: 15px;
-            }
-            .signature-column {
-              flex: 1;
-              padding: 15px;
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-            }
-            .thank-you-note {
-              font-size: 11px;
-              line-height: 1.4;
-              color: #1e40af;
-              text-align: center;
-              padding: 10px;
-              font-style: italic;
-              border: 1px dashed #1e40af;
-              background-color: #f0f8ff;
-              margin-bottom: 10px;
-            }
-            .signature-space {
-              flex-grow: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: flex-end;
-            }
-            .signature-line {
-              width: 100%;
-              border-top: 1px solid #000;
-              margin-top: 10px;
-              padding-top: 5px;
-              text-align: center;
-            }
-            .signature-image-container {
-              text-align: center;
-              margin-bottom: 10px;
-            }
-            .signature-image {
-              width: 80px;
-              height: 80px;
-              object-fit: contain;
-              margin: 0 auto 10px auto;
-              display: block;
-            }
+              <div>
+                <h2 class="font-bold text-base">${vendorName}</h2>
+                <p class="text-sm">${vendorAddress}</p>
+                <p class="text-sm">Mobile: ${vendorPhone}</p>
+                ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
+              </div>
+            </div>
             
-            /* Remove old footer styles */
-            .footer-section {
-              display: none;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="invoice-container">
-            <!-- Invoice Title -->
-            <div class="text-center">
-              <h1
-                class="text-lg font-bold"
-                style="
-                  color: #1e40af;
-                  letter-spacing: 2px;
-                  margin: 0;
-                  padding: -4px 0px important;
-                "
-              >
-                TAX INVOICE
-              </h1>
+            <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
+              <p class="font-bold text-sm">Customer Details:</p>
+              <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
+              ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
+              ${invoiceData.to_email ? `<p class="text-sm">${invoiceData.to_email}</p>` : ''}
             </div>
+          </div>
 
-            <!-- Header Section -->
-            <div class="grid-2" style="border-bottom: 1px solid #666; border-top: 1px solid #666; margin-top: 15px;">
-              <!-- Left Box -->
-              <div style="border-right: 1px solid #666; padding: 10px;">
-                <!-- Logo and Details -->
-                <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 10px;">
-                  ${logoHTML}
-                
-                  <div>
-                    <h2 class="font-bold text-base">${vendorName}</h2>
-                    <p class="text-sm">${vendorAddress}</p>
-                    <p class="text-sm">Mobile: ${vendorPhone}</p>
-                    ${vendor?.gst_number ? `<p class="text-sm">GST: ${vendor.gst_number}</p>` : ''}
-                  </div>
-                </div>
-                
-                <div style="border-top: 1px solid #666; margin: 0 -10px; padding-top: 10px; padding-bottom: 10px; padding-left: 10px; padding-right: 10px;">
-                  <p class="font-bold text-sm">Customer Details:</p>
-                  <p class="text-sm">${invoiceData.billing_to || 'Customer Name'}</p>
-                  ${invoiceData.mobile ? `<p class="text-sm">Ph: ${invoiceData.mobile}</p>` : ''}
-                  ${invoiceData.to_email ? `<p class="text-sm">${invoiceData.to_email}</p>` : ''}
-                </div>
-              </div>
-
-              <!-- Right Box -->
-              <div style="
-                padding-right: 0px;
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                font-size: 12px;
-              ">
-                <!-- Invoice Number -->
-                <div style="padding: 10px;border-right: 1px solid #666; border-bottom: 1px solid #666;">
-                  <div class="font-bold">Invoice #</div>
-                  <div>
-                    ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
-                  </div>
-                </div>
-
-                <!-- Invoice Date -->
-                <div style="padding: 6px; border-bottom: 1px solid #666;">
-                  <div class="font-bold">Invoice Date</div>
-                  <div>${invoiceDate}</div>
-                </div>
-
-                <!-- Due Date -->
-                <div style="padding: 6px; border-right: 1px solid #666;">
-                  <div class="font-bold">Due Date</div>
-                  <div>${dueDate}</div>
-                </div>
-
-                <!-- Status -->
-                <div style="padding: 6px;">
-                  <div class="font-bold">Status</div>
-                  <div class="status-${invoiceData.payment_status}">
-                    ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
-                  </div>
-                </div>
+          <!-- Right Box -->
+          <div style="
+            padding-right: 0px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            font-size: 12px;
+          ">
+            <!-- Invoice Number -->
+            <div style="padding: 10px;border-right: 1px solid #666; border-bottom: 1px solid #666;">
+              <div class="font-bold">Invoice #</div>
+              <div>
+                ${invoiceData.invoice_number || invoiceData.invoice_id || 'N/A'}
               </div>
             </div>
 
-            <!-- Items Table -->
-            <table class="invoice-table page-break">
-              <thead>
-                <tr>
-                  <th style="width: 40px; padding: 8px; border: none; border-bottom: 1px solid #666;">#</th>
-                  <th style="padding: 8px;">Item Description</th>
-                  <th style="width: 80px; padding: 8px;">HSN/SAC</th>
-                  <th style="width: 100px; padding: 8px;">Rate / Item</th>
-                  <th style="width: 70px; padding: 8px;">Qty</th>
-                  <th style="width: 120px; padding: 8px;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-            </table>
-
-            <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
-              Total Items / Qty : ${totalItems} / ${totalQuantity}
-            </p>
-
-            <!-- Totals Box -->
-            <div class="page-break" style="border-top: 1px solid #666; margin-top: 20px;">
-              <div class="flex-between border-bottom">
-                <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
-                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
-              </div>
-              
-              <!-- GST Breakdown -->
-              ${gstBreakdownHTML}
-              
-              ${gstNum > 0 ? `
-              <div class="flex-between border-bottom" style="margin-top: 8px;">
-                <div class="font-bold text-sm" style="padding-left: 5px;">Total GST</div>
-                <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
-              </div>
-              ` : ''}
-              
-              ${discountNum > 0 ? `
-              <div class="flex-between border-bottom" style=" padding-left: 5px;  padding-right: 5px; margin-top: 8px;">
-                <span class="font-bold text-sm">Total Discount</span>
-                <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
-              </div>
-              ` : ''}
-              
-              <div class="flex-between" style="padding-top: 2px;">
-                <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
-                <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
-              </div>
+            <!-- Invoice Date -->
+            <div style="padding: 6px; border-bottom: 1px solid #666;">
+              <div class="font-bold">Invoice Date</div>
+              <div>${invoiceDate}</div>
             </div>
 
-            <!-- Bank Details & Authorized Signatory Section -->
-            <div class="bank-signature-section page-break">
-              <!-- Left Column: Bank Details -->
-              <div style="display: flex; border-right: 1px solid #666;">
-
-                <!-- Left: Bank Details -->
-                <div style="width: 80%; font-size: 13px; padding: 10px;">
-                  <div style="font-weight: bold; margin-bottom: 6px;">
-                    Bank Details
-                  </div>
-                  <div>
-                    <p><b>Account Number:</b> ${classicTemplate.data.acc_number || 'N/A'}</p>
-                    <p><b>Bank:</b> ${classicTemplate.data.bank_name || 'N/A'}</p>
-                    <p><b>IFSC:</b> ${classicTemplate.data.ifsc_code || 'N/A'}</p>
-                    <p><b>UPI:</b> ${classicTemplate.data.upi_id || 'N/A'}</p>
-                    <p><b>Account Name:</b> ${classicTemplate.data.acc_holder_name || 'N/A'}</p>
-                    <p><b>UTR Number:</b> ${invoiceData.utr_number || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <!-- Right: QR Code -->
-                <div style="
-                  width: 50%;
-                  padding: 10px;
-                  border-left: 1px solid #666;
-                  text-align: center;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: center;
-                  align-items: center;
-                ">
-                  
-                  ${qrCodeHTML}
-                </div>
-              </div>
-              
-              <!-- Right Column: Signature -->
-              <div class="signature-column">
-                <!-- Signature Space -->
-                <div class="signature-space">
-                  <!-- Signature Image -->
-                  ${signatureHTML}
-                  
-                  <div class="signature-line">
-                    <p class="text-sm font-bold" style="margin-bottom: 2px;">For ${vendorName}</p>
-                    <p class="text-sm">Authorized Signatory</p>
-                  </div>
-                </div>
-              </div>
+            <!-- Due Date -->
+            <div style="padding: 6px; border-right: 1px solid #666;">
+              <div class="font-bold">Due Date</div>
+              <div>${dueDate}</div>
             </div>
 
-            <!-- Fixed Footer Section with Terms & Conditions -->
-            <div class="footer-fixed page-break">
-              <!-- Two-column layout for Terms & Conditions -->
-              <div class="footer-columns">
-                <!-- Terms and Conditions -->
-                <div class="terms-column">
-                  <div class="footer-title">Terms and Conditions</div>
-                  <div class="terms-conditions">
-                    <p><b>E & O.E</b></p>
-                    <p style="padding-left: 10px;"> ${classicTemplate.data.terms_conditions || 'N/A'}</p>
-                   
-                  </div>
-                </div>
-
-                <!-- Empty column for alignment -->
-                <div class="bank-column" style="background-color: #f9f9f9;">
-                  <div class="thank-you-note">
-                    Thank you for your business! We appreciate your trust in us and look forward to serving you again.
-                  </div>
-                </div>
+            <!-- Status -->
+            <div style="padding: 6px;">
+              <div class="font-bold">Status</div>
+              <div class="status-${invoiceData.payment_status}">
+                ${invoiceData.payment_status?.toUpperCase() || 'PENDING'}
               </div>
             </div>
           </div>
-        </body>
-      </html>
-    `);
-    iframeDoc.close();
+        </div>
+
+        <!-- Items Table -->
+        <table class="invoice-table page-break">
+          <thead>
+            <tr>
+              <th style="width: 40px; padding: 8px; border: none; border-bottom: 1px solid #666;">#</th>
+              <th style="padding: 8px;">Item Description</th>
+              <th style="width: 80px; padding: 8px;">HSN/SAC</th>
+              <th style="width: 100px; padding: 8px;">Rate / Item</th>
+              <th style="width: 70px; padding: 8px;">Qty</th>
+              <th style="width: 120px; padding: 8px;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+
+        <p class="text-sm" style="margin-top: 15px; padding-left: 5px; font-weight: bold;">
+          Total Items / Qty : ${totalItems} / ${totalQuantity}
+        </p>
+
+        <!-- Totals Box -->
+        <div class="page-break" style="border-top: 1px solid #666; margin-top: 20px;">
+          <div class="flex-between border-bottom">
+            <div class="font-bold text-sm" style="padding-left: 5px;">Subtotal</div>
+            <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(subtotalAmount)}</div>
+          </div>
+          
+          <!-- GST Breakdown - Updated to show CGST & SGST in same line -->
+          ${gstBreakdownHTML}
+          
+          ${gstNum > 0 ? `
+          <div class="flex-between border-bottom" style="margin-top: 8px;">
+            <div class="font-bold text-sm" style="padding-left: 5px;">Total GST</div>
+            <div class="text-sm" style="padding-right: 5px;">₹${formatCurrency(gstNum)}</div>
+          </div>
+          ` : ''}
+          
+          ${discountNum > 0 ? `
+          <div class="flex-between border-bottom" style=" padding-left: 5px;  padding-right: 5px; margin-top: 8px;">
+            <span class="font-bold text-sm">Total Discount</span>
+            <span class="text-sm">-₹${formatCurrency(discountNum)}</span>
+          </div>
+          ` : ''}
+          
+          <div class="flex-between" style="padding-top: 2px;">
+            <div class="font-bold text-lg" style="padding-left: 5px;">Amount Payable:</div>
+            <div class="font-bold text-lg" style="padding-right: 5px;">₹${formatCurrency(grandTotalNum)}</div>
+          </div>
+        </div>
+
+        <!-- Bank Details & Authorized Signatory Section -->
+        <div class="bank-signature-section page-break">
+          <!-- Left Column: Bank Details -->
+          <div style="display: flex; border-right: 1px solid #666;">
+
+            <!-- Left: Bank Details -->
+            <div style="width: 80%; font-size: 13px; padding: 10px;">
+              <div style="font-weight: bold; margin-bottom: 6px;">
+                Bank Details
+              </div>
+              <div>
+                <p><b>Account Number:</b> ${classicTemplate.data.acc_number || 'N/A'}</p>
+                <p><b>Bank:</b> ${classicTemplate.data.bank_name || 'N/A'}</p>
+                <p><b>IFSC:</b> ${classicTemplate.data.ifsc_code || 'N/A'}</p>
+                <p><b>UPI:</b> ${classicTemplate.data.upi_id || 'N/A'}</p>
+                <p><b>Account Name:</b> ${classicTemplate.data.acc_holder_name || 'N/A'}</p>
+                <p><b>UTR Number:</b> ${invoiceData.utr_number || 'N/A'}</p>
+              </div>
+            </div>
+
+            <!-- Right: QR Code -->
+            <div style="
+              width: 50%;
+              padding: 10px;
+              border-left: 1px solid #666;
+              text-align: center;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+            ">
+              
+              ${qrCodeHTML}
+            </div>
+          </div>
+          
+          <!-- Right Column: Signature -->
+          <div class="signature-column">
+            <!-- Signature Space -->
+            <div class="signature-space">
+              <!-- Signature Image -->
+              ${signatureHTML}
+              
+              <div class="signature-line">
+                <p class="text-sm font-bold" style="margin-bottom: 2px;">For ${vendorName}</p>
+                <p class="text-sm">Authorized Signatory</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fixed Footer Section with Terms & Conditions -->
+        <div class="footer-fixed page-break">
+          <!-- Two-column layout for Terms & Conditions -->
+          <div class="footer-columns">
+            <!-- Terms and Conditions -->
+            <div class="terms-column">
+              <div class="footer-title">Terms and Conditions</div>
+              <div class="terms-conditions ck-content">
+                <p><b>E & O.E</b></p>
+                <div style="padding-left: 10px;">
+                  ${classicTemplate.data.terms_conditions || 
+                    `<p>1. Payment due within ${invoiceData.due_date ? formatDate(invoiceData.due_date) : '30'} days</p>
+                    <p>2. Late payment interest @ 18% p.a.</p>
+                    <p>3. Goods once sold will not be taken back</p>
+                    <p>4. All disputes subject to ${vendor?.city || 'Mumbai'} jurisdiction</p>`}
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty column for alignment -->
+            <div class="bank-column" style="background-color: #f9f9f9;">
+              <div class="thank-you-note">
+                Thank you for your business! We appreciate your trust in us and look forward to serving you again.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+  </html>
+`);
+iframeDoc.close();
 
     // Wait for iframe to render and images to load
     await new Promise(resolve => setTimeout(resolve, 3000));
