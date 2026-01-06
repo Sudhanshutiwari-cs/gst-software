@@ -140,7 +140,7 @@ export default function SwipeLoginForm() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [countryOpen, setCountryOpen] = useState(false);
+ 
   const [currentStep, setCurrentStep] = useState<"mobile" | "otp" | "complete">("mobile");
   const router = useRouter();
 
@@ -548,7 +548,7 @@ export default function SwipeLoginForm() {
           {/* Footer links */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-700">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
                 className="text-[#4F46E5] hover:text-[#4338CA] font-medium transition-colors duration-200"
