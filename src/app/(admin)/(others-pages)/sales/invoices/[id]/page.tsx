@@ -4319,7 +4319,7 @@ const sendInvoiceEmail = async () => {
 
           // Split GST equally
           const halfRate = gstRate / 2;
-          const halfAmount = amount / 2;
+        
 
           return `
             <div class="flex-between border-bottom" style="margin-top: 4px;">
