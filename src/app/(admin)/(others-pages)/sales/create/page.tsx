@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, Plus, AlertCircle, X, UserPlus, Loader2, Menu, Sun, Moon, Monitor, ArrowLeft } from 'lucide-react'
-import { redirect, useRouter } from 'next/navigation'
+import {  useRouter } from 'next/navigation'
 
 // Vendor Profile interface
 interface VendorProfile {
@@ -928,7 +928,7 @@ export default function CreateInvoice() {
   const saveInvoice = async () => {
     try {
       const invoiceData = prepareInvoiceData()
-      const result = await createInvoice(invoiceData)
+
       router.push(`/sales/invoice`)
       
     } catch (error) {
