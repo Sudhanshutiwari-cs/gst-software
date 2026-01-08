@@ -22,6 +22,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@react-jvectormap/core": "^1.0.4",
     "@react-jvectormap/world": "^1.1.2",
+    "@react-oauth/google": "^0.13.4",
     "@react-pdf/renderer": "^4.3.1",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/postcss": "^4.0.9",

@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Image from "next/image";
+import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 
 import Checkbox from "@/components/form/input/Checkbox";
 import Label from "@/components/form/Label";
@@ -15,29 +16,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// Define proper TypeScript interfaces for the error response
-interface ApiErrorResponse {
-  message?: string;
-  error?: string;
-  status?: number;
-}
-
-interface ApiError extends Error {
-  response?: {
-    data: ApiErrorResponse;
-    status: number;
-    statusText: string;
-  };
-  request?: XMLHttpRequest;
-}
-
+// Define proper TypeScript interfaces
 interface User {
   id: number;
   role: string;
   mobile_number: string;
   email: string | null;
   otp_expiry: string | null;
-  // Add other user properties as needed
+  name?: string;
+  avatar?: string;
+  google_id?: string;
 }
 
 interface SignInResponse {
@@ -46,34 +34,41 @@ interface SignInResponse {
   jwt_token: string;
   unique_id: string;
   user: User;
+  expires_in?: number;
+}
+
+// Google user info interface
+interface GoogleUserInfo {
+  sub?: string;
+  email?: string;
+  email_verified?: boolean;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  locale?: string;
 }
 
 // Token storage utility functions
 const TokenManager = {
-  // Store token based on user's "keep me logged in" preference
   setToken: (token: string, keepLoggedIn: boolean = false): void => {
     if (typeof window === 'undefined') return;
 
     if (keepLoggedIn) {
-      // Store in localStorage for persistent login
       localStorage.setItem('authToken', token);
-      localStorage.setItem('tokenExpiry', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString()); // 7 days
+      localStorage.setItem('tokenExpiry', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
     } else {
-      // Store in sessionStorage for session-only login
       sessionStorage.setItem('authToken', token);
     }
 
-    // Also set a flag to remember the preference
     localStorage.setItem('keepLoggedIn', keepLoggedIn.toString());
   },
 
-  // Get token from storage (checks both localStorage and sessionStorage)
   getToken: (): string | null => {
     if (typeof window === 'undefined') return null;
 
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
 
-    // Check if token has expired (for localStorage tokens)
     if (token && localStorage.getItem('authToken')) {
       const expiry = localStorage.getItem('tokenExpiry');
       if (expiry && Date.now() > parseInt(expiry)) {
@@ -85,7 +80,6 @@ const TokenManager = {
     return token;
   },
 
-  // Clear all tokens
   clearToken: (): void => {
     if (typeof window === 'undefined') return;
 
@@ -97,43 +91,42 @@ const TokenManager = {
     sessionStorage.removeItem('authToken');
   },
 
-  // Check if user is authenticated
   isAuthenticated: (): boolean => {
     return TokenManager.getToken() !== null;
   },
 
-  // Store user data
   setUserData: (userData: User, uniqueId: string): void => {
     if (typeof window === 'undefined') return;
     localStorage.setItem('userData', JSON.stringify(userData));
     localStorage.setItem('uniqueId', uniqueId);
   },
 
-  // Get user data
   getUserData: (): User | null => {
     if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem('userData');
     return userData ? JSON.parse(userData) : null;
   },
 
-  // Get unique ID
   getUniqueId: (): string | null => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('uniqueId');
   },
 
-  // Set default authorization header for API calls
   setAuthHeader: (token: string): void => {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (api && api.defaults && api.defaults.headers) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
   },
 
-  // Remove authorization header
   removeAuthHeader: (): void => {
-    delete api.defaults.headers.common['Authorization'];
+    if (api && api.defaults && api.defaults.headers) {
+      delete api.defaults.headers.common['Authorization'];
+    }
   }
 };
 
-export default function SwipeLoginForm() {
+// Main login component with Google OAuth
+function LoginFormContent() {
   const [isChecked, setIsChecked] = useState(false);
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -141,14 +134,10 @@ export default function SwipeLoginForm() {
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<"mobile" | "otp" | "complete">("mobile");
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
-  // Type guard to check if it's an Axios error
-  const isAxiosError = (error: unknown): error is ApiError => {
-    return typeof error === 'object' && error !== null && 'isAxiosError' in error;
-  };
-
-  // Enhanced toast function with better defaults
+  // Enhanced toast
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const options = {
       position: "top-right" as const,
@@ -174,23 +163,19 @@ export default function SwipeLoginForm() {
     }
   };
 
-  // Mock OTP sending function
+  // Mock OTP functions
   const handleSendOtp = () => {
     if (mobileNumber.length === 10) {
-      // Mock OTP sending - no API call
-      console.log(`Mock OTP sent to ${mobileNumber}`);
       setIsOtpSent(true);
       setCurrentStep("otp");
-      // Mock OTP - in real app this would come from backend
       showToast("Mock OTP: 123456", 'info');
     } else {
       showToast("Please enter a valid 10-digit mobile number", 'error');
     }
   };
 
-  // Mock OTP verification function
   const handleVerifyOtp = () => {
-    if (otp === "123456") { // Mock OTP validation
+    if (otp === "123456") {
       setIsOtpVerified(true);
       setCurrentStep("complete");
       showToast("Mobile number verified successfully!", 'success');
@@ -203,31 +188,123 @@ export default function SwipeLoginForm() {
   const handleAuthenticationSuccess = (responseData: SignInResponse) => {
     const { jwt_token, user, unique_id } = responseData;
 
-    // Store token based on user preference
+    // Create a safe user object with defaults
+    const safeUser: User = {
+      id: user?.id || 0,
+      role: user?.role || 'user',
+      mobile_number: user?.mobile_number || '',
+      email: user?.email || null,
+      otp_expiry: user?.otp_expiry || null,
+      name: user?.name || '',
+      avatar: user?.avatar || '',
+      google_id: user?.google_id || ''
+    };
+
     TokenManager.setToken(jwt_token, isChecked);
-
-    // Store user data and unique ID
-    TokenManager.setUserData(user, unique_id);
-
-    // Set default authorization header for future API calls
+    TokenManager.setUserData(safeUser, unique_id || '');
     TokenManager.setAuthHeader(jwt_token);
-
-    console.log("Authentication successful. Token and user data stored:", {
-      storage: isChecked ? 'localStorage (persistent)' : 'sessionStorage (session-only)',
-      user: user,
-      uniqueId: unique_id,
-      token: jwt_token.substring(0, 20) + '...'
-    });
 
     showToast("Login successful!", 'success');
     
-    // Redirect after a short delay
     setTimeout(() => {
       router.push("/dashboard");
     }, 1000);
   };
 
-  // Handle sign in with REAL API integration
+  // Handle Google login
+  const handleGoogleLogin = async (accessToken: string) => {
+    setGoogleLoading(true);
+
+    try {
+      // Get user info from Google using the access token
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!userInfoResponse.ok) {
+        throw new Error(`Google API error: ${userInfoResponse.status}`);
+      }
+
+      const userInfo: GoogleUserInfo = await userInfoResponse.json();
+
+      // Verify required fields
+      if (!userInfo.email || !userInfo.name) {
+        throw new Error('Missing required user information from Google');
+      }
+
+      // Prepare payload for your API
+      const payload = {
+        email: userInfo.email,
+        owner_name: userInfo.name,
+        google_id: userInfo.sub || '',
+        avatar: userInfo.picture || '',
+        email_verified: userInfo.email_verified || false,
+        google_access_token: accessToken,
+      };
+
+      // Send to your API
+      const response = await api.post<SignInResponse>(
+        "https://manhemdigitalsolutions.com/pos-admin/api/vendor/auth/google-login",
+        payload
+      );
+
+      if (response.status === 200 && response.data) {
+        const responseData = response.data;
+        
+        if (responseData.jwt_token) {
+          handleAuthenticationSuccess(responseData);
+        } else if (responseData.success && responseData.message) {
+          showToast(responseData.message, 'success');
+          // Try to proceed anyway if we have a token
+          if (responseData.jwt_token) {
+            handleAuthenticationSuccess(responseData);
+          }
+        } else {
+          throw new Error(responseData.message || "Unexpected response from server");
+        }
+      } else {
+        throw new Error(`Server returned status: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      
+      if (error.response) {
+        const errorMessage = error.response.data?.message ||
+          error.response.data?.error ||
+          error.response.data?.detail ||
+          `Server error: ${error.response.status}`;
+        showToast(errorMessage, 'error');
+      } else if (error.request) {
+        showToast("Network error: Could not reach server", 'error');
+      } else {
+        showToast(`Error: ${error.message || "An unknown error occurred"}`, 'error');
+      }
+      
+      TokenManager.clearToken();
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // Google OAuth login using @react-oauth/google
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      if (response.access_token) {
+        await handleGoogleLogin(response.access_token);
+      } else {
+        showToast("No access token received from Google", 'error');
+      }
+    },
+    onError: (error) => {
+      showToast(`Google login failed: ${error.error_description || error.error}`, 'error');
+    },
+    flow: 'implicit',
+    scope: 'profile email',
+  });
+
+  // Handle regular sign in
   const handleSignIn = async () => {
     if (!isOtpVerified) {
       showToast("Please verify your mobile number first", 'error');
@@ -235,57 +312,38 @@ export default function SwipeLoginForm() {
     }
 
     setIsLoading(true);
+
     try {
       const signInData = {
         phone: mobileNumber,
         otp: otp,
-        // Add any additional fields required by your signin API
         keep_me_logged_in: isChecked
       };
 
-      // REAL API call to signin endpoint with proper response type
       const response = await api.post<SignInResponse>('/vendor/login', signInData);
 
       if (response.status === 200) {
         const { data } = response;
 
-        // Check if login was successful
         if (data.success && data.jwt_token) {
           handleAuthenticationSuccess(data);
         } else {
           throw new Error(data.message || "Login failed");
         }
-
-        console.log("Full sign in response:", data);
       }
-    } catch (error: unknown) {
-      console.error("Sign in error:", error);
-
-      // Clear any existing tokens on error
+    } catch (error: any) {
       TokenManager.clearToken();
-
-      // Handle different types of errors
-      if (isAxiosError(error)) {
-        // Server responded with error status
-        if (error.response) {
-          const errorMessage = error.response.data?.message ||
-            error.response.data?.error ||
-            error.response.statusText ||
-            "Sign in failed";
-          showToast(errorMessage, 'error');
-        } else if (error.request) {
-          // Request was made but no response received
-          showToast("Network error", 'error');
-        } else {
-          // Something else happened
-          showToast("Network error", 'error');
-        }
-      } else if (error instanceof Error) {
-        // Native JavaScript error
-        showToast(`Error: ${error.message}`, 'error');
-      } else {
-        // Unknown error type
+      
+      if (error.response) {
+        const errorMessage = error.response.data?.message ||
+          error.response.data?.error ||
+          error.response.statusText ||
+          "Sign in failed";
+        showToast(errorMessage, 'error');
+      } else if (error.request) {
         showToast("Network error", 'error');
+      } else {
+        showToast(`Error: ${error.message || "Network error"}`, 'error');
       }
     } finally {
       setIsLoading(false);
@@ -309,7 +367,6 @@ export default function SwipeLoginForm() {
     return "Sign In";
   };
 
-  // Add back button to go from OTP step to mobile step
   const goBackToMobile = () => {
     setCurrentStep("mobile");
     setOtp("");
@@ -317,7 +374,6 @@ export default function SwipeLoginForm() {
 
   return (
     <>
-      {/* Toast Container at root level */}
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -332,11 +388,9 @@ export default function SwipeLoginForm() {
         style={{ zIndex: 9999 }}
       />
 
-      {/* Main container with background image */}
+      {/* Main container */}
       <div className="min-h-screen relative">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          {/* Replace with your actual image path */}
           <Image
             src="https://res.cloudinary.com/doficc2yl/image/upload/v1767728899/Gemini_Generated_Image_hxormjhxormjhxor_zkmjay.png"
             alt="Background"
@@ -345,15 +399,11 @@ export default function SwipeLoginForm() {
             priority
             sizes="100vw"
           />
-          {/* Optional overlay for better readability */}
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
         </div>
 
-        {/* Centering container */}
         <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 relative">
-            {/* Country selector removed as per your code */}
-
             {/* Logo */}
             <div className="text-center mb-6">
               <h1 className="text-4xl font-bold text-[#1a1a2e] tracking-tight">
@@ -385,17 +435,16 @@ export default function SwipeLoginForm() {
               </Avatar>
             </div>
 
-            {/* Social proof text */}
+            {/* Social proof */}
             <p className="text-center text-foreground font-medium mb-6">
               20 Lakh+ Businesses <span className="text-red-500">❤️</span> us.
             </p>
 
-            {/* Welcome text */}
             <h2 className="text-center text-2xl font-semibold text-foreground mb-6">
               Welcome <span>🙏</span>
             </h2>
 
-            {/* Mobile input - Only show when not verified */}
+            {/* Mobile input */}
             {currentStep === "mobile" && (
               <div className="mb-2">
                 <div className="flex items-center border border-input rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent">
@@ -416,7 +465,7 @@ export default function SwipeLoginForm() {
               </div>
             )}
 
-            {/* OTP input - Show when OTP is sent but not verified */}
+            {/* OTP input */}
             {currentStep === "otp" && (
               <div className="mb-2">
                 <div className="flex items-center justify-between mb-3">
@@ -475,7 +524,7 @@ export default function SwipeLoginForm() {
               </div>
             )}
 
-            {/* Verified state - Show when OTP is verified */}
+            {/* Verified state */}
             {currentStep === "complete" && (
               <div className="mb-4">
                 <div className="p-4 bg-green-50/90 border border-green-200 rounded-lg">
@@ -526,6 +575,7 @@ export default function SwipeLoginForm() {
               onClick={handleContinue}
               disabled={
                 isLoading ||
+                googleLoading ||
                 (currentStep === "mobile" && mobileNumber.length !== 10) ||
                 (currentStep === "otp" && otp.length !== 6)
               }
@@ -541,32 +591,46 @@ export default function SwipeLoginForm() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white/95 text-gray-500">OR</span>
+              </div>
             </div>
 
-            {/* Google sign in */}
+            {/* Google Sign In Button */}
             <Button
               variant="outline"
-              className="w-full py-6 text-base font-medium rounded-lg bg-white/80 hover:bg-white/100 border-gray-300 transition-all duration-200"
+              onClick={() => googleLogin()}
+              disabled={googleLoading || isLoading}
+              className="w-full py-6 text-base font-medium rounded-lg bg-white/80 hover:bg-white/100 border-gray-300 transition-all duration-200 disabled:opacity-50"
             >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Sign In with Google
+              {googleLoading ? (
+                <>
+                  <div className="w-5 h-5 mr-2 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                  Signing in with Google...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Sign In with Google
+                </>
+              )}
             </Button>
 
             {/* Footer links */}
@@ -593,6 +657,22 @@ export default function SwipeLoginForm() {
         </div>
       </div>
     </>
+  );
+}
+
+// Main component with Google OAuth Provider
+export default function SwipeLoginForm() {
+  // Get Google Client ID from environment variables
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+  if (!googleClientId) {
+    console.error("Google Client ID is not set. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.");
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <LoginFormContent />
+    </GoogleOAuthProvider>
   );
 }
 
