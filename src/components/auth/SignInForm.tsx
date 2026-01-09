@@ -11,7 +11,7 @@ import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import Checkbox from "@/components/form/input/Checkbox";
 import Label from "@/components/form/Label";
 import Link from "next/link";
-import api from "@/lib/api";
+import api from "@/lib/api"; // Assuming you have an ApiError type
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,23 @@ interface GoogleUserInfo {
   family_name?: string;
   picture?: string;
   locale?: string;
+}
+
+// Error response interfaces
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  detail?: string;
+  [key: string]: unknown;
+}
+
+interface CustomError extends Error {
+  response?: {
+    data: ApiErrorResponse;
+    status: number;
+    statusText: string;
+  };
+  request?: unknown;
 }
 
 // Token storage utility functions
@@ -267,19 +284,21 @@ function LoginFormContent() {
       } else {
         throw new Error(`Server returned status: ${response.status}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google login error:', error);
       
-      if (error.response) {
-        const errorMessage = error.response.data?.message ||
-          error.response.data?.error ||
-          error.response.data?.detail ||
-          `Server error: ${error.response.status}`;
+      const customError = error as CustomError;
+      
+      if (customError.response) {
+        const errorMessage = customError.response.data?.message ||
+          customError.response.data?.error ||
+          customError.response.data?.detail ||
+          `Server error: ${customError.response.status}`;
         showToast(errorMessage, 'error');
-      } else if (error.request) {
+      } else if (customError.request) {
         showToast("Network error: Could not reach server", 'error');
       } else {
-        showToast(`Error: ${error.message || "An unknown error occurred"}`, 'error');
+        showToast(`Error: ${customError.message || "An unknown error occurred"}`, 'error');
       }
       
       TokenManager.clearToken();
@@ -331,19 +350,21 @@ function LoginFormContent() {
           throw new Error(data.message || "Login failed");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       TokenManager.clearToken();
       
-      if (error.response) {
-        const errorMessage = error.response.data?.message ||
-          error.response.data?.error ||
-          error.response.statusText ||
+      const customError = error as CustomError;
+      
+      if (customError.response) {
+        const errorMessage = customError.response.data?.message ||
+          customError.response.data?.error ||
+          customError.response.statusText ||
           "Sign in failed";
         showToast(errorMessage, 'error');
-      } else if (error.request) {
+      } else if (customError.request) {
         showToast("Network error", 'error');
       } else {
-        showToast(`Error: ${error.message || "Network error"}`, 'error');
+        showToast(`Error: ${customError.message || "Network error"}`, 'error');
       }
     } finally {
       setIsLoading(false);
