@@ -8,6 +8,11 @@ import StatisticsChart from "@/components/ecommerce/StatisticsChart";
 import RecentOrders from "@/components/ecommerce/RecentOrders";
 import { useRouter } from "next/navigation";
 import DemographicCard from "@/components/ecommerce/DemographicCard";
+import { StatsCards } from "@/components/dashboard/stats-cards";
+import { SalesOverview } from "@/components/dashboard/sales-overview";
+import { TotalSubscriber } from "@/components/dashboard/total-subscriber";
+import { SalesDistribution } from "@/components/dashboard/sales-distribution";
+import { IntegrationList } from "@/components/dashboard/integration-list";
 
 // Define the complete vendor profile type
 interface VendorProfile {
@@ -314,30 +319,20 @@ export default function Ecommerce() {
           <ProfileIncompleteWarning />
           
           {/* Blurred Dashboard Content */}
-          <div className="filter blur-sm pointer-events-none">
-            <div className="grid grid-cols-12 gap-4 md:gap-6">
-              <div className="col-span-12 space-y-6 xl:col-span-7">
-                <EcommerceMetrics />
-                <MonthlySalesChart />
-              </div>
+          <div className="min-h-screen bg-[#f8f9fc] p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
 
-              <div className="col-span-12 xl:col-span-5">
-                <MonthlyTarget />
-              </div>
-
-              <div className="col-span-12">
-                <StatisticsChart />
-              </div>
-
-              <div className="col-span-12 xl:col-span-5">
-                <DemographicCard />
-              </div>
-
-              <div className="col-span-12 xl:col-span-7">
-                <RecentOrders />
-              </div>
-            </div>
-          </div>
+        <StatsCards />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <SalesOverview />
+          <TotalSubscriber />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <SalesDistribution />
+          <IntegrationList />
+        </div>
+      </div>
+    </div>
           
           {/* Centered Completion Prompt - No "Later" option */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -372,28 +367,20 @@ export default function Ecommerce() {
 
     // Full dashboard when profile is complete
     return (
-      <div className="grid grid-cols-12 gap-4 md:gap-6">
-        <div className="col-span-12 space-y-6 xl:col-span-7">
-          <EcommerceMetrics />
-          <MonthlySalesChart />
-        </div>
+      <div className="min-h-screen bg-[#f8f9fc] p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
 
-        <div className="col-span-12 xl:col-span-5">
-          <MonthlyTarget />
+        <StatsCards />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <SalesOverview />
+          <TotalSubscriber />
         </div>
-
-        <div className="col-span-12">
-          <StatisticsChart />
-        </div>
-
-        <div className="col-span-12 xl:col-span-5">
-          <DemographicCard />
-        </div>
-
-        <div className="col-span-12 xl:col-span-7">
-          <RecentOrders />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <SalesDistribution />
+          <IntegrationList />
         </div>
       </div>
+    </div>
     );
   };
 

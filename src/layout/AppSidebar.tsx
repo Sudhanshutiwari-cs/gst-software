@@ -1,442 +1,318 @@
-"use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useSidebar } from "../context/SidebarContext";
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
 import {
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  PageIcon,
-  TableIcon,
-} from "../icons/index";
-import { Album, User2Icon } from "lucide-react";
+  LayoutDashboard,
+  CreditCard,
+  Users,
+  MessageSquare,
+  Package,
+  FileText,
+  BarChart3,
+  Zap,
+  Settings,
+  Shield,
+  HelpCircle,
+  ChevronDown,
+  PanelLeftClose,
+  PanelLeft,
+  ChevronRight,
+  PlusCircle,
+  Eye,
+  Edit,
+  Trash2,
+  List,
+  Filter,
+  Download,
+  Upload,
+  Share2,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// Types for vendor profile
-type VendorProfile = {
-  id: number;
-  owner_name: string;
-  email: string;
-  business_name?: string;
-  logo_url?: string;
-  status?: string;
-};
+interface NavItem {
+  label: string
+  icon: React.ReactNode
+  href: string
+  badge?: string | number
+  badgeVariant?: "default" | "beta"
+  active?: boolean
+  children?: NavItem[] // Nested items
+}
 
-type NavItem = {
-  name: string;
-  icon: React.ReactNode;
-  path?: string;
-  
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-};
+interface NavSection {
+  title: string
+  items: NavItem[]
+}
 
-const navItems: NavItem[] = [
+const navSections: NavSection[] = [
   {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    path: "/dashboard",  
-  },
-  {
-    name: "Products",
-    icon: <TableIcon />,
-    subItems: [
-      { name: "All Products", path: "/products", pro: false },
-      { name: "Add Product", path: "/products/add-products", pro: false }
+    title: "GENERAL",
+    items: [
+      { 
+        label: "Dashboard", 
+        icon: <LayoutDashboard size={18} />, 
+        href: "/dashboard", 
+        active: true 
+      },
+      { 
+        label: "Product", 
+        icon: <Package size={18} />, 
+        href: "/product",
+        children: [
+          { label: "Add Product", icon: <PlusCircle size={16} />, href: "/products/add" },
+          { label: "View Products", icon: <Eye size={16} />, href: "/products" },
+        ]
+      },
+      { 
+        label: "Customers", 
+        icon: <Users size={18} />, 
+        href: "/customers",
+        children: [
+          { label: "All Customers", icon: <Users size={16} />, href: "/customer/view" },
+          { label: "Add Customer", icon: <PlusCircle size={16} />, href: "/customer/add" },
+        ]
+      },
+      { 
+        label: "Sales", 
+        icon: <CreditCard size={18} />,  // Changed from Users to CreditCard
+        href: "/sales",  // Changed from /customers to /sales
+        children: [
+          { label: "All Sales", icon: <FileText size={16} />, href: "/sales/invoice" },
+          { label: "Make Sale", icon: <PlusCircle size={16} />, href: "/sales/create" },
+        ]
+      },
     ],
   },
-  {
-    name: "Customers",
-    icon: <User2Icon />,
-    subItems: [
-      { name: "All Customers", path: "/customer/view", pro: false },
-      { name: "Add Customer", path: "/customer/add", pro: false }
-    ],
-  },
-   {
-    name: "Sales",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "Invoices", path: "/sales/invoice", pro: false },
-      { name: "Add Customer", path: "/customer/add", pro: false }
-    ],
-  },
-  {
-    name: "Templates",
-    icon: <Album />,
-    subItems: [
-      { name: "View", path: "/templates", pro: false },
-    ],
-  },
-];
+]
 
-const othersItems: NavItem[] = [];
+// Missing icon components (kept as-is)
+const ArchiveIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="5" x="2" y="3" rx="1" />
+    <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+    <path d="M10 12h4" />
+  </svg>
+)
 
-const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered, closeSidebar } = useSidebar();
-  const pathname = usePathname();
-  
-  // State for vendor profile
-  const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+const GlobeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" x2="22" y1="12" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+)
 
-  // Fetch vendor profile
-  const fetchVendorProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+const ClockIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+)
 
-      const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/profile', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+const CheckCircleIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+)
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch vendor profile: ${response.status}`);
-      }
+const WorkflowIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="8" y1="12" x2="16" y2="12" />
+    <line x1="12" y1="8" x2="12" y2="16" />
+  </svg>
+)
 
-      const data = await response.json();
-      setVendorProfile(data.data || data);
-    } catch (err) {
-      console.error('Error fetching vendor profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch vendor profile');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const HistoryIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+    <path d="M12 7v5l4 2" />
+  </svg>
+)
 
-  useEffect(() => {
-    fetchVendorProfile();
-  }, [fetchVendorProfile]);
+const UserIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+)
 
-  // Function to handle navigation clicks
-  const handleNavigationClick = () => {
-    // Close sidebar on mobile when a link is clicked
-    if (isMobileOpen) {
-      closeSidebar();
-    }
-  };
+const BellIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+)
 
-  const renderMenuItems = (
-    navItems: NavItem[],
-    menuType: "main" | "others"
-  ) => (
-    <ul className="flex flex-col gap-4">
-      {navItems.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group  ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={` ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
-                }`}
-              >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className={`menu-item-text`}>{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                href={nav.path}
-                onClick={handleNavigationClick}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
-                <span
-                  className={`${
-                    isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
-                >
-                  {nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className={`menu-item-text`}>{nav.name}</span>
-                )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      href={subItem.path}
-                      onClick={handleNavigationClick}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}
-                    >
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge `}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge `}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+const KeyIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
+  </svg>
+)
 
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
-    index: number;
-  } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
-  const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+const MonitorIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="14" x="2" y="3" rx="2" />
+    <line x1="8" x2="16" y1="21" y2="21" />
+    <line x1="12" x2="12" y1="17" y2="21" />
+  </svg>
+)
 
-  const isActive = useCallback((path: string) => path === pathname, [pathname]);
+const PlayIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="6 3 20 12 6 21 6 3" />
+  </svg>
+)
 
-  useEffect(() => {
-    // Check if the current path matches any submenu item
-    let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
-    });
+export function AppSidebar() {
+  const [collapsed, setCollapsed] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
+    '/product': true, // Keep product expanded by default
+  })
 
-    // If no submenu item matches, close the open submenu
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [pathname, isActive]);
+  const toggleItem = (href: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [href]: !prev[href]
+    }))
+  }
 
-  useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
-      }
-    }
-  }, [openSubmenu]);
-
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
-    });
-  };
-
-  // Vendor profile display component
-  const VendorProfileSection = () => {
-    if (!isExpanded && !isHovered && !isMobileOpen) return null;
+  const renderNavItem = (item: NavItem, isChild = false) => {
+    const hasChildren = item.children && item.children.length > 0
+    const isExpanded = expandedItems[item.href] && !collapsed
+    const isActive = item.active
 
     return (
-      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        {loading ? (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
-            <div className="flex-1">
-              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse mb-2"></div>
-              <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded animate-pulse w-2/3"></div>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="text-red-500 text-sm">
-            <p>Failed to load profile</p>
-            <button 
-              onClick={fetchVendorProfile}
-              className="text-xs underline mt-1"
-            >
-              Retry
-            </button>
-          </div>
-        ) : vendorProfile ? (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-semibold">
-              {vendorProfile.logo_url ? (
-                <Image
-                  src={vendorProfile.logo_url}
-                  alt={vendorProfile.owner_name}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                vendorProfile.owner_name?.charAt(0).toUpperCase() || 'V'
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 dark:text-white truncate">
-                {vendorProfile.business_name || vendorProfile. owner_name}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                {vendorProfile.email}
-              </p>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  };
+      <li key={item.label}>
+        <div className="space-y-1">
+          {/* Parent Item */}
+          <a
+            href={hasChildren ? '#' : item.href}
+            onClick={(e) => {
+              if (hasChildren) {
+                e.preventDefault()
+                toggleItem(item.href)
+              }
+            }}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              isActive
+                ? "bg-blue-100 text-blue-700"
+                : "text-black hover:bg-muted hover:text-black", // Changed from text-muted-foreground to text-black
+              isChild && "ml-4",
+              collapsed && "justify-center px-2",
+            )}
+          >
+            <span className={cn(isActive ? "text-blue-600" : "text-gray-600")}> {/* Changed inactive icon color */}
+              {item.icon}
+            </span>
+            
+            {!collapsed && (
+              <>
+                <span className="flex-1">{item.label}</span>
+                <div className="flex items-center gap-2">
+                  {item.badge && (
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-xs font-medium",
+                        item.badgeVariant === "beta"
+                          ? "bg-blue-100 text-blue-600"
+                          : "bg-muted text-gray-600", // Changed badge text color
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                  {hasChildren && (
+                    <ChevronRight 
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200 text-gray-600", // Added text color
+                        isExpanded && "rotate-90"
+                      )} 
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </a>
+
+          {/* Child Items */}
+          {hasChildren && !collapsed && isExpanded && (
+            <ul className="space-y-1 ml-4 border-l border-gray-200 pl-2">
+              {item.children.map((child) => renderNavItem(child, true))}
+            </ul>
+          )}
+        </div>
+      </li>
+    )
+  }
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
-        }
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "flex h-screen flex-col border-r border-gray-200 bg-white transition-all duration-300 sticky top-0",
+        collapsed ? "w-16" : "w-64",
+      )}
     >
-      <div
-        className={`py-4 flex  ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
-      </div>
-      
-      {/* Vendor Profile Section */}
-      <VendorProfileSection />
-
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <nav className="mb-6">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(navItems, "main")}
-            </div>
-
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  ""  //OTHERS
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
+        <div className={cn("flex items-center gap-2", collapsed && "hidden")}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+            <Zap className="h-5 w-5 text-white" />
           </div>
-        </nav>
+          <span className="text-lg font-semibold text-black">GST</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-gray-600" // Changed text color
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {navSections.map((section, idx) => (
+          <div key={section.title} className={cn(idx > 0 && "mt-6")}>
+            {!collapsed && (
+              <p className="mb-2 px-3 text-xs font-medium tracking-wider text-gray-500"> {/* Changed text color */}
+                {section.title}
+              </p>
+            )}
+            <ul className="space-y-1">
+              {section.items.map((item) => renderNavItem(item))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-gray-200 p-3">
+        {/* Upgrade Button */}
+        {!collapsed && (
+          <Button 
+            variant="outline" 
+            className="mt-3 w-full bg-transparent border-gray-300 text-black hover:text-black" // Added text colors
+          >
+            Upgrade Plan
+          </Button>
+        )}
+
+        {/* Copyright */}
+        {!collapsed && (
+          <p className="mt-4 text-center text-xs text-gray-500"> {/* Changed text color */}
+            © 2026 GST, Inc.
+          </p>
+        )}
       </div>
     </aside>
-  );
-};
-
-export default AppSidebar;
+  )
+}
