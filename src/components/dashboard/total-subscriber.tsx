@@ -320,18 +320,21 @@ export function TotalSubscriber() {
                   tickMargin={10}
                 />
                 <YAxis hide />
-                <Tooltip
-                  formatter={(value: number) => [formatNumber(value), "Customers"]}
-                  labelFormatter={(label) => `Day: ${label}`}
-                  contentStyle={{ 
-                    borderRadius: "8px", 
-                    border: "1px solid #e5e7eb",
-                    backgroundColor: "white",
-                    padding: "8px 12px",
-                    fontSize: "12px"
-                  }}
-                  itemStyle={{ color: "#3b82f6", fontWeight: 500 }}
-                />
+               <Tooltip
+  formatter={(value: number | undefined) => [
+    value !== undefined ? formatNumber(value) : "0", 
+    "Customers"
+  ]}
+  labelFormatter={(label) => `Day: ${label}`}
+  contentStyle={{ 
+    borderRadius: "8px", 
+    border: "1px solid #e5e7eb",
+    backgroundColor: "white",
+    padding: "8px 12px",
+    fontSize: "12px"
+  }}
+  itemStyle={{ color: "#3b82f6", fontWeight: 500 }}
+/>
                 <Bar 
                   dataKey="value" 
                   radius={[3, 3, 3, 3]} // Smaller radius
