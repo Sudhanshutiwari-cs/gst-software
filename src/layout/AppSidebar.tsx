@@ -7,31 +7,17 @@ import {
   LayoutDashboard,
   CreditCard,
   Users,
-  MessageSquare,
   Package,
   FileText,
-  BarChart3,
-  Zap,
-  Settings,
-  Shield,
-  HelpCircle,
-  ChevronDown,
-  PanelLeftClose,
-  PanelLeft,
-  ChevronRight,
   PlusCircle,
   Eye,
-  Edit,
-  Trash2,
-  List,
-  Filter,
-  Download,
-  Upload,
-  Share2,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface NavItem {
   label: string
@@ -78,8 +64,8 @@ const navSections: NavSection[] = [
       },
       { 
         label: "Sales", 
-        icon: <CreditCard size={18} />,  // Changed from Users to CreditCard
-        href: "/sales",  // Changed from /customers to /sales
+        icon: <CreditCard size={18} />,
+        href: "/sales",
         children: [
           { label: "All Sales", icon: <FileText size={16} />, href: "/sales/invoice" },
           { label: "Make Sale", icon: <PlusCircle size={16} />, href: "/sales/create" },
@@ -89,91 +75,10 @@ const navSections: NavSection[] = [
   },
 ]
 
-// Missing icon components (kept as-is)
-const ArchiveIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="5" x="2" y="3" rx="1" />
-    <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
-    <path d="M10 12h4" />
-  </svg>
-)
-
-const GlobeIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" x2="22" y1="12" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-)
-
-const ClockIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-)
-
-const CheckCircleIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-    <polyline points="22 4 12 14.01 9 11.01" />
-  </svg>
-)
-
-const WorkflowIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <line x1="8" y1="12" x2="16" y2="12" />
-    <line x1="12" y1="8" x2="12" y2="16" />
-  </svg>
-)
-
-const HistoryIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
-    <path d="M12 7v5l4 2" />
-  </svg>
-)
-
-const UserIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-)
-
-const BellIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-)
-
-const KeyIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
-  </svg>
-)
-
-const MonitorIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="14" x="2" y="3" rx="2" />
-    <line x1="8" x2="16" y1="21" y2="21" />
-    <line x1="12" x2="12" y1="17" y2="21" />
-  </svg>
-)
-
-const PlayIcon = ({ size = 16 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="6 3 20 12 6 21 6 3" />
-  </svg>
-)
-
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
-    '/product': true, // Keep product expanded by default
+    '/product': true,
   })
 
   const toggleItem = (href: string) => {
@@ -204,12 +109,12 @@ export function AppSidebar() {
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-blue-100 text-blue-700"
-                : "text-black hover:bg-muted hover:text-black", // Changed from text-muted-foreground to text-black
+                : "text-black hover:bg-muted hover:text-black",
               isChild && "ml-4",
               collapsed && "justify-center px-2",
             )}
           >
-            <span className={cn(isActive ? "text-blue-600" : "text-gray-600")}> {/* Changed inactive icon color */}
+            <span className={cn(isActive ? "text-blue-600" : "text-gray-600")}>
               {item.icon}
             </span>
             
@@ -223,7 +128,7 @@ export function AppSidebar() {
                         "rounded px-1.5 py-0.5 text-xs font-medium",
                         item.badgeVariant === "beta"
                           ? "bg-blue-100 text-blue-600"
-                          : "bg-muted text-gray-600", // Changed badge text color
+                          : "bg-muted text-gray-600",
                       )}
                     >
                       {item.badge}
@@ -232,7 +137,7 @@ export function AppSidebar() {
                   {hasChildren && (
                     <ChevronRight 
                       className={cn(
-                        "h-4 w-4 transition-transform duration-200 text-gray-600", // Added text color
+                        "h-4 w-4 transition-transform duration-200 text-gray-600",
                         isExpanded && "rotate-90"
                       )} 
                     />
@@ -243,7 +148,7 @@ export function AppSidebar() {
           </a>
 
           {/* Child Items */}
-          {hasChildren && !collapsed && isExpanded && (
+          {hasChildren && !collapsed && isExpanded && item.children && (
             <ul className="space-y-1 ml-4 border-l border-gray-200 pl-2">
               {item.children.map((child) => renderNavItem(child, true))}
             </ul>
@@ -271,7 +176,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-gray-600" // Changed text color
+          className="h-8 w-8 text-gray-600"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -283,7 +188,7 @@ export function AppSidebar() {
         {navSections.map((section, idx) => (
           <div key={section.title} className={cn(idx > 0 && "mt-6")}>
             {!collapsed && (
-              <p className="mb-2 px-3 text-xs font-medium tracking-wider text-gray-500"> {/* Changed text color */}
+              <p className="mb-2 px-3 text-xs font-medium tracking-wider text-gray-500">
                 {section.title}
               </p>
             )}
@@ -300,7 +205,7 @@ export function AppSidebar() {
         {!collapsed && (
           <Button 
             variant="outline" 
-            className="mt-3 w-full bg-transparent border-gray-300 text-black hover:text-black" // Added text colors
+            className="mt-3 w-full bg-transparent border-gray-300 text-black hover:text-black"
           >
             Upgrade Plan
           </Button>
@@ -308,7 +213,7 @@ export function AppSidebar() {
 
         {/* Copyright */}
         {!collapsed && (
-          <p className="mt-4 text-center text-xs text-gray-500"> {/* Changed text color */}
+          <p className="mt-4 text-center text-xs text-gray-500">
             © 2026 GST, Inc.
           </p>
         )}
