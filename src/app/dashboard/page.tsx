@@ -1,13 +1,7 @@
 "use client";
 
-import { EcommerceMetrics } from "@/components/ecommerce/EcommerceMetrics";
 import React, { useEffect, useState } from "react";
-import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
-import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
-import StatisticsChart from "@/components/ecommerce/StatisticsChart";
-import RecentOrders from "@/components/ecommerce/RecentOrders";
 import { useRouter } from "next/navigation";
-import DemographicCard from "@/components/ecommerce/DemographicCard";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { SalesOverview } from "@/components/dashboard/sales-overview";
 import { TotalSubscriber } from "@/components/dashboard/total-subscriber";
