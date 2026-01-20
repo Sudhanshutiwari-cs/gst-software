@@ -3,7 +3,7 @@ import { Eye, DollarSign, TrendingDown, TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
-// Types for API responses (keep your existing types here)
+// Types for API responses
 interface InvoiceProduct {
   id: number;
   invoice_id: string;
@@ -38,12 +38,12 @@ interface Invoice {
 
 interface Product {
   id: number;
-  [key: string]: any;
+  [key: string]: unknown; // Changed from any to unknown
 }
 
 interface Customer {
   id: number;
-  [key: string]: any;
+  [key: string]: unknown; // Changed from any to unknown
 }
 
 interface ApiResponse<T> {
@@ -51,7 +51,7 @@ interface ApiResponse<T> {
   products?: T[];
   customers?: T[];
   invoices?: T[];
-  [key: string]: any;
+  [key: string]: unknown; // Changed from any to unknown
 }
 
 interface ApiStats {
@@ -64,16 +64,20 @@ interface ApiStats {
 }
 
 // Helper function to extract array from API response
-function extractArrayFromResponse<T>(data: any, possibleKeys: string[]): T[] {
+function extractArrayFromResponse<T>(data: unknown, possibleKeys: string[]): T[] {
   if (!data) return [];
   
   if (Array.isArray(data)) {
-    return data;
+    return data as T[];
   }
   
-  for (const key of possibleKeys) {
-    if (data[key] && Array.isArray(data[key])) {
-      return data[key];
+  if (typeof data === 'object' && data !== null) {
+    const dataObj = data as Record<string, unknown>;
+    for (const key of possibleKeys) {
+      const value = dataObj[key];
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
     }
   }
   
@@ -133,7 +137,6 @@ export function StatsCards() {
         }
 
         if (!productsRes.ok || !customersRes.ok || !invoicesRes.ok) {
-          const errorText = await productsRes.text().catch(() => 'Unknown error')
           throw new Error(`Failed to fetch data: ${productsRes.status} ${productsRes.statusText}`)
         }
 
