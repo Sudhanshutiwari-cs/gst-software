@@ -12,7 +12,7 @@ const data = [
 ]
 
 export function SalesDistribution() {
-  const total = data.reduce((acc, curr) => acc + curr.value, 0)
+
 
   return (
     <Card className="bg-card">
