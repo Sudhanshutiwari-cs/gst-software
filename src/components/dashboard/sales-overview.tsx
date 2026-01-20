@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Filter, ArrowDownUp, TrendingUp, Calendar, Download, MoreVertical, ChevronUp, ChevronDown } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Area, ComposedChart, Cell } from "recharts"
+import { Calendar, Download, MoreVertical, ChevronUp, ChevronDown } from "lucide-react"
+import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Area, ComposedChart, Cell } from "recharts"
 import { useEffect, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -23,20 +23,37 @@ interface Invoice {
   payment_mode: string | null;
   utr_number: string | null;
   created_at: string;
-  products: any[];
+  products: Product[];
+}
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  [key: string]: unknown;
 }
 
 interface ApiResponse {
   data?: Invoice[];
   invoices?: Invoice[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface MonthlyData {
   month: string;
   totalSales: number;
   growth?: number;
-  [key: string]: number;
+  color: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: MonthlyData;
+  }>;
+  label?: string;
 }
 
 // Helper function to format INR
@@ -70,7 +87,6 @@ export function SalesOverview() {
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [totalSales, setTotalSales] = useState<number>(0);
   const [growthPercentage, setGrowthPercentage] = useState<number>(0);
-  const [growthAmount, setGrowthAmount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<string>('year');
@@ -190,9 +206,7 @@ export function SalesOverview() {
       
       if (prevMonth > 0) {
         const growth = ((lastMonth - prevMonth) / prevMonth) * 100;
-        const amountGrowth = lastMonth - prevMonth;
         setGrowthPercentage(growth);
-        setGrowthAmount(amountGrowth);
       }
     }
   };
@@ -201,18 +215,19 @@ export function SalesOverview() {
     console.log('Export data');
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
           <p className="font-semibold text-gray-900">{label}</p>
           <p className="text-sm text-gray-600">
             Sales: <span className="font-medium text-blue-600">{formatINR(payload[0].value)}</span>
           </p>
-          {payload[0].payload.growth !== undefined && (
+          {data.growth !== undefined && (
             <p className="text-sm">
-              Growth: <span className={`font-medium ${payload[0].payload.growth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                {payload[0].payload.growth >= 0 ? '+' : ''}{payload[0].payload.growth.toFixed(1)}%
+              Growth: <span className={`font-medium ${data.growth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {data.growth >= 0 ? '+' : ''}{data.growth.toFixed(1)}%
               </span>
             </p>
           )}
@@ -240,7 +255,7 @@ export function SalesOverview() {
         <div className="h-[200px] bg-gray-100 rounded-lg animate-pulse"></div>
         <div className="mt-4 flex justify-center gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-2 bg-gray-200 rounded w-8 animate-pulse"></div>
+            <div key={`pulse-${i}`} className="h-2 bg-gray-200 rounded w-8 animate-pulse"></div>
           ))}
         </div>
       </CardContent>
@@ -444,7 +459,7 @@ export function SalesOverview() {
                   dataKey="totalSales" 
                   radius={[4, 4, 0, 0]}
                   barSize={24} // Smaller bar width
-                  onMouseEnter={(data, index) => setHoveredBar(index)}
+                  onMouseEnter={(_, index) => setHoveredBar(index)}
                   onMouseLeave={() => setHoveredBar(null)}
                 >
                   {monthlyData.map((entry, index) => (
@@ -477,7 +492,7 @@ export function SalesOverview() {
               <span className="text-xs text-blue-600">Click on bars for details</span>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {monthlyData.slice(0, 6).map((data, index) => (
+              {monthlyData.slice(0, 6).map((data) => (
                 <div 
                   key={data.month} 
                   className="flex flex-col items-center p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-100"
