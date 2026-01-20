@@ -66,7 +66,7 @@ export function IntegrationList() {
                   value={integration.rate}
                   className="h-1.5 w-16"
                   style={{
-                    // @ts-ignore
+                    // @ts-expect-error Custom CSS property for progress color
                     "--progress-color": integration.color.replace("bg-", ""),
                   }}
                 />
