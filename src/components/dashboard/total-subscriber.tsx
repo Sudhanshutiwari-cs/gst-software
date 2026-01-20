@@ -18,12 +18,7 @@ interface Customer {
   [key: string]: string | number | boolean | null | undefined;
 }
 
-interface ApiResponse {
-  data?: Customer[];
-  customers?: Customer[];
-  // Use unknown or specific types for additional fields
-  [key: string]: unknown;
-}
+
 
 interface DailyData {
   day: string;

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Download, MoreVertical, ChevronUp, ChevronDown } from "lucide-react"
+import { Calendar, Download, MoreVertical, ChevronUp, ChevronDown, TrendingUp } from "lucide-react"
 import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Area, ComposedChart, Cell } from "recharts"
 import { useEffect, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"

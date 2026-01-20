@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Eye, DollarSign, TrendingDown, TrendingUp } from "lucide-react"
+import { Eye, DollarSign,  TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
