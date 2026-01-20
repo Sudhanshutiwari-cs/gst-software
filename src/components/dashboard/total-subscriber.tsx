@@ -14,13 +14,15 @@ interface Customer {
   mobile?: string;
   created_at?: string;
   updated_at?: string;
-  [key: string]: any; // Other possible fields
+  // Use unknown or specific types for additional fields
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 interface ApiResponse {
   data?: Customer[];
   customers?: Customer[];
-  [key: string]: any;
+  // Use unknown or specific types for additional fields
+  [key: string]: unknown;
 }
 
 interface DailyData {
@@ -82,7 +84,7 @@ export function TotalSubscriber() {
           throw new Error(`Failed to fetch customers: ${response.status} ${response.statusText}`);
         }
 
-        const data: ApiResponse = await response.json();
+        const data = await response.json();
         
         // Extract customers array from response
         let customersArray: Customer[] = [];
