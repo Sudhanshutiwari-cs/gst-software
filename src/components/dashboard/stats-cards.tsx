@@ -167,7 +167,7 @@ export function StatsCards() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const { theme, mounted } = useTheme()
+  const {  mounted } = useTheme()
 
   useEffect(() => {
     const fetchStatsData = async () => {

@@ -15,10 +15,9 @@ import {
   PanelLeft,
   Zap,
   FileCode,
-  FileSpreadsheet,
-  FileJson,
+
   Receipt,
-  File,
+  
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -148,7 +147,7 @@ export function AppSidebar() {
   })
   const [heights, setHeights] = useState<Record<string, number>>({})
   const submenuRefs = useRef<Record<string, HTMLUListElement | null>>({})
-  const { theme, mounted } = useTheme()
+  const {  mounted } = useTheme()
 
   // Calculate heights when items are expanded
   useEffect(() => {
