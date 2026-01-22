@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, Users, TrendingUp } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip, TooltipProps } from "recharts"
 import { useEffect, useState } from "react"
+import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent"
 
 // Types for customer data
 interface Customer {
@@ -14,7 +15,6 @@ interface Customer {
   mobile?: string;
   created_at?: string;
   updated_at?: string;
-
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -23,6 +23,34 @@ interface DailyData {
   value: number;
   count: number;
 }
+
+// Type for CustomTooltip props
+interface CustomTooltipProps extends TooltipProps<ValueType, NameType> {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    dataKey: string;
+    payload: DailyData;
+  }>;
+  label?: string;
+}
+
+// Custom tooltip component for dark mode
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-semibold text-gray-900 dark:text-gray-100">{`Day: ${label}`}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Customers: <span className="font-medium text-blue-600 dark:text-blue-400">
+            {payload[0].value.toLocaleString()}
+          </span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 // Custom hook for theme management
 const useTheme = () => {
@@ -239,21 +267,6 @@ export function TotalSubscriber() {
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
-  };
-
-  // Custom tooltip component for dark mode
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-semibold text-gray-900 dark:text-gray-100">{`Day: ${label}`}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Customers: <span className="font-medium text-blue-600 dark:text-blue-400">{formatNumber(payload[0].value)}</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   if (!mounted || loading) {
