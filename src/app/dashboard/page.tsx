@@ -8,7 +8,7 @@ import { TotalSubscriber } from "@/components/dashboard/total-subscriber";
 import { SalesDistribution } from "@/components/dashboard/sales-distribution";
 import { IntegrationList } from "@/components/dashboard/integration-list";
 
-// Define the complete vendor profile type
+// Define the complete vendor profile type with is_verified
 interface VendorProfile {
   // Profile fields
   business_name?: string | null;
@@ -27,6 +27,12 @@ interface VendorProfile {
   pincode?: string | null;
   country?: string | null;
   
+  // Verification status
+  is_verified?: boolean;
+  status?: {
+    is_verified?: boolean;
+  };
+  
   // Possible nested structures
   data?: {
     business_name?: string | null;
@@ -44,6 +50,7 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
+    is_verified?: boolean;
   };
   vendor?: {
     business_name?: string | null;
@@ -61,6 +68,7 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
+    is_verified?: boolean;
   };
   profile?: {
     business_name?: string | null;
@@ -78,6 +86,7 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
+    is_verified?: boolean;
   };
 }
 
@@ -180,6 +189,7 @@ export default function Ecommerce() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const { theme, mounted } = useTheme();
   const router = useRouter();
 
@@ -230,6 +240,10 @@ export default function Ecommerce() {
         
         setVendorProfile(data);
         
+        // Check verification status
+        const verified = checkVerificationStatus(data);
+        setIsVerified(verified);
+        
       } catch (error) {
         console.error('Error fetching vendor profile:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch profile');
@@ -249,6 +263,33 @@ export default function Ecommerce() {
       console.log('Profile complete:', complete);
     }
   }, [vendorProfile]);
+
+  // Function to check verification status from different possible response structures
+  const checkVerificationStatus = (profile: VendorProfile): boolean => {
+    // Check in various possible locations
+    if (profile.is_verified !== undefined) {
+      return profile.is_verified;
+    }
+    
+    if (profile.status?.is_verified !== undefined) {
+      return profile.status.is_verified;
+    }
+    
+    if (profile.data?.is_verified !== undefined) {
+      return profile.data.is_verified;
+    }
+    
+    if (profile.vendor?.is_verified !== undefined) {
+      return profile.vendor.is_verified;
+    }
+    
+    if (profile.profile?.is_verified !== undefined) {
+      return profile.profile.is_verified;
+    }
+    
+    // Default to false if not found
+    return false;
+  };
 
   // Function to check if all required profile fields are filled
   const isVendorProfileComplete = (profile: VendorProfile): boolean => {
@@ -331,6 +372,37 @@ export default function Ecommerce() {
     );
   };
 
+  // Verification Required Warning Component
+  const VerificationRequiredWarning = () => {
+    if (loading || isVerified) return null;
+
+    return (
+      <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-red-800 dark:text-red-200 font-medium">
+                Account Verification Required
+              </p>
+              <p className="text-red-700 dark:text-red-300 text-sm mt-1">
+                Your account needs to be verified to access the dashboard. Please contact support.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => router.push('/contact-support')}
+            className="px-4 py-2 z-50 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors duration-200 whitespace-nowrap"
+          >
+            Contact Support
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Greeting Component
   const GreetingMessage = () => {
     if (loading) {
@@ -364,7 +436,7 @@ export default function Ecommerce() {
           {greeting}, {ownerName}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Welcome back to your dashboard
+          {isVerified ? "Welcome back to your dashboard" : "Account verification pending"}
         </p>
       </div>
     );
@@ -392,51 +464,86 @@ export default function Ecommerce() {
       );
     }
 
-    if (!isProfileComplete) {
+    // Check if profile is complete AND verified
+    const canAccessDashboard = isProfileComplete && isVerified;
+
+    if (!canAccessDashboard) {
       return (
         <div className="relative">
-          {/* Warning message above the blurred content */}
-          <ProfileIncompleteWarning />
+          {/* Warning messages above the blurred content */}
+          {!isProfileComplete && <ProfileIncompleteWarning />}
+          {!isVerified && <VerificationRequiredWarning />}
           
           {/* Blurred Dashboard Content */}
-          <div className="min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
-            <div className="mx-auto max-w-7xl space-y-6">
-              <StatsCards />
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SalesOverview />
-                <TotalSubscriber />
-              </div>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SalesDistribution />
-                <IntegrationList />
+          <div className="relative min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
+            <div className="blur-sm pointer-events-none">
+              <div className="mx-auto max-w-7xl space-y-6">
+                <StatsCards />
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <SalesOverview />
+                  <TotalSubscriber />
+                </div>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <SalesDistribution />
+                  <IntegrationList />
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Centered Completion Prompt - No "Later" option */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md mx-4">
-              <div className="w-20 h-20 mx-auto mb-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                Complete Your Profile
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
-                Profile completion is required to access your dashboard. Please provide all your business details to continue.
-              </p>
-              <div className="space-y-3">
-                <button 
-                  onClick={() => router.push('/profile/complete')}
-                  className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
-                >
-                  Complete Profile Now
-                </button>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  You must complete your profile to proceed
-                </p>
+            
+            {/* Overlay with message */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/5">
+              <div className="text-center p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md mx-4">
+                {!isVerified ? (
+                  <>
+                    <div className="w-20 h-20 mx-auto mb-6 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                      <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                      Account Verification Required
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
+                      Your account needs to be verified by our team to access the dashboard.
+                    </p>
+                    <div className="space-y-3">
+                      <button 
+                        onClick={() => router.push('/contact-support')}
+                        className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
+                      >
+                        Contact Support for Verification
+                      </button>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Verification is mandatory for security purposes
+                      </p>
+                    </div>
+                  </>
+                ) : !isProfileComplete ? (
+                  <>
+                    <div className="w-20 h-20 mx-auto mb-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                      Complete Your Profile
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
+                      Profile completion is required to access your dashboard. Please provide all your business details to continue.
+                    </p>
+                    <div className="space-y-3">
+                      <button 
+                        onClick={() => router.push('/profile/complete')}
+                        className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
+                      >
+                        Complete Profile Now
+                      </button>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        You must complete your profile to proceed
+                      </p>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -444,7 +551,7 @@ export default function Ecommerce() {
       );
     }
 
-    // Full dashboard when profile is complete
+    // Full dashboard when profile is complete AND verified
     return (
       <div className="min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
         <div className="mx-auto max-w-7xl space-y-6">
