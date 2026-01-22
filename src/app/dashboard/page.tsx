@@ -94,12 +94,93 @@ function getGreeting(): string {
   }
 }
 
+// Custom hook for theme management
+const useTheme = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Get initial theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      // Check system preference
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = systemPrefersDark ? 'dark' : 'light';
+      setTheme(initialTheme);
+      applyTheme(initialTheme);
+      localStorage.setItem('theme', initialTheme);
+    }
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newTheme = e.matches ? 'dark' : 'light';
+      // Only apply system theme if user hasn't set a preference
+      if (!localStorage.getItem('theme')) {
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    // Listen for storage changes (for cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = e.newValue as 'light' | 'dark';
+        if (newTheme && (newTheme === 'light' || newTheme === 'dark')) {
+          setTheme(newTheme);
+          applyTheme(newTheme);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const applyTheme = (theme: 'light' | 'dark') => {
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Dispatch a storage event to sync across tabs
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'theme',
+      newValue: newTheme
+    }));
+  };
+
+  return { theme, toggleTheme, mounted };
+};
+
 export default function Ecommerce() {
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
-
+  const { theme, mounted } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -291,6 +372,11 @@ export default function Ecommerce() {
 
   // Dashboard Content Component
   const DashboardContent = () => {
+    if (!mounted) {
+      // Prevent flash of unstyled content
+      return null;
+    }
+
     if (loading) {
       return (
         <div className="grid grid-cols-12 gap-4 md:gap-6">
@@ -313,20 +399,19 @@ export default function Ecommerce() {
           <ProfileIncompleteWarning />
           
           {/* Blurred Dashboard Content */}
-          <div className="min-h-screen bg-[#f8f9fc] p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-
-        <StatsCards />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SalesOverview />
-          <TotalSubscriber />
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SalesDistribution />
-          <IntegrationList />
-        </div>
-      </div>
-    </div>
+          <div className="min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
+            <div className="mx-auto max-w-7xl space-y-6">
+              <StatsCards />
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <SalesOverview />
+                <TotalSubscriber />
+              </div>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <SalesDistribution />
+                <IntegrationList />
+              </div>
+            </div>
+          </div>
           
           {/* Centered Completion Prompt - No "Later" option */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -361,20 +446,19 @@ export default function Ecommerce() {
 
     // Full dashboard when profile is complete
     return (
-      <div className="min-h-screen bg-[#f8f9fc] p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-
-        <StatsCards />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SalesOverview />
-          <TotalSubscriber />
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SalesDistribution />
-          <IntegrationList />
+      <div className="min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <StatsCards />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SalesOverview />
+            <TotalSubscriber />
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SalesDistribution />
+            <IntegrationList />
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 

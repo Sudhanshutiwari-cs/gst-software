@@ -1,7 +1,77 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
-import { Eye, DollarSign,  TrendingUp } from "lucide-react"
+import { Eye, DollarSign, TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+
+// Custom hook for theme management
+const useTheme = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Get initial theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      // Check system preference
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = systemPrefersDark ? 'dark' : 'light';
+      setTheme(initialTheme);
+      applyTheme(initialTheme);
+      localStorage.setItem('theme', initialTheme);
+    }
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newTheme = e.matches ? 'dark' : 'light';
+      // Only apply system theme if user hasn't set a preference
+      if (!localStorage.getItem('theme')) {
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    // Listen for storage changes (for cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = e.newValue as 'light' | 'dark';
+        if (newTheme && (newTheme === 'light' || newTheme === 'dark')) {
+          setTheme(newTheme);
+          applyTheme(newTheme);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const applyTheme = (theme: 'light' | 'dark') => {
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
+  return { theme, mounted };
+};
 
 // Types for API responses
 interface InvoiceProduct {
@@ -38,12 +108,12 @@ interface Invoice {
 
 interface Product {
   id: number;
-  [key: string]: unknown; // Changed from any to unknown
+  [key: string]: unknown;
 }
 
 interface Customer {
   id: number;
-  [key: string]: unknown; // Changed from any to unknown
+  [key: string]: unknown;
 }
 
 interface ApiResponse<T> {
@@ -51,16 +121,13 @@ interface ApiResponse<T> {
   products?: T[];
   customers?: T[];
   invoices?: T[];
-  [key: string]: unknown; // Changed from any to unknown
+  [key: string]: unknown;
 }
 
 interface ApiStats {
   totalSales: number;
   totalCustomers: number;
   totalProducts: number;
-  salesChange?: number;
-  customersChange?: number;
-  productsChange?: number;
 }
 
 // Helper function to extract array from API response
@@ -100,6 +167,7 @@ export function StatsCards() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { theme, mounted } = useTheme()
 
   useEffect(() => {
     const fetchStatsData = async () => {
@@ -156,33 +224,10 @@ export function StatsCards() {
           return sum + invoiceTotal
         }, 0)
 
-        const calculateChange = (current: number, previous?: number): number => {
-          if (!previous || previous === 0) return 0
-          return ((current - previous) / previous) * 100
-        }
-
-        const previousStatsStr = localStorage.getItem('previous_stats')
-        const previousStats = previousStatsStr ? JSON.parse(previousStatsStr) : null
-        
-        const salesChange = calculateChange(totalSales, previousStats?.totalSales)
-        const customersChange = calculateChange(totalCustomers, previousStats?.totalCustomers)
-        const productsChange = calculateChange(totalProducts, previousStats?.totalProducts)
-
-        const currentStats = {
-          totalSales,
-          totalCustomers,
-          totalProducts,
-          timestamp: new Date().toISOString()
-        }
-        localStorage.setItem('previous_stats', JSON.stringify(currentStats))
-
         setStats({
           totalSales,
           totalCustomers,
           totalProducts,
-          salesChange,
-          customersChange,
-          productsChange
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -194,13 +239,6 @@ export function StatsCards() {
 
     fetchStatsData()
   }, [])
-
-  // Format percentage change
-  const formatChange = (change: number | undefined) => {
-    if (change === undefined || isNaN(change)) return "0%"
-    const sign = change >= 0 ? "+" : ""
-    return `${sign}${Math.abs(change).toFixed(1)}%`
-  }
 
   // Handle login redirect
   const handleLoginRedirect = () => {
@@ -216,20 +254,19 @@ export function StatsCards() {
     }, 100)
   }
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="bg-card">
+          <Card key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <CardContent className="p-3 sm:p-4">
               <div className="animate-pulse space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="h-3.5 bg-gray-200 rounded w-20"></div>
-                  <div className="rounded-md p-1.5 bg-gray-200 w-8 h-8"></div>
+                  <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                  <div className="rounded-md p-1.5 bg-gray-200 dark:bg-gray-700 w-8 h-8"></div>
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <div className="h-6 bg-gray-200 rounded w-20"></div>
-                  <div className="h-3 bg-gray-200 rounded w-10"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
                 </div>
               </div>
             </CardContent>
@@ -242,22 +279,22 @@ export function StatsCards() {
   if (error) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="bg-card col-span-3">
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 col-span-3">
           <CardContent className="p-3 sm:p-4">
             <div className="text-center">
-              <p className="text-red-500 text-sm mb-1.5">{error}</p>
+              <p className="text-red-500 dark:text-red-400 text-sm mb-1.5">{error}</p>
               <div className="flex justify-center gap-2 mt-2">
                 {error.includes("Session expired") || error.includes("No authentication token") ? (
                   <button
                     onClick={handleLoginRedirect}
-                    className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded transition-colors"
                   >
                     Go to Login
                   </button>
                 ) : (
                   <button
                     onClick={handleRetry}
-                    className="px-3 py-1.5 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                    className="px-3 py-1.5 text-sm bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded transition-colors"
                   >
                     Retry
                   </button>
@@ -273,9 +310,9 @@ export function StatsCards() {
   if (!stats) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="bg-card col-span-3">
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 col-span-3">
           <CardContent className="p-3 sm:p-4">
-            <div className="text-center text-muted-foreground text-sm">
+            <div className="text-center text-gray-600 dark:text-gray-400 text-sm">
               No statistics data available
             </div>
           </CardContent>
@@ -288,51 +325,51 @@ export function StatsCards() {
     {
       title: "Total Sales",
       value: formatINR(stats.totalSales),
-      change: formatChange(stats.salesChange),
-      isPositive: (stats.salesChange || 0) >= 0,
       icon: DollarSign,
-      iconBg: (stats.salesChange || 0) >= 0 ? "bg-emerald-100" : "bg-red-100",
-      iconColor: (stats.salesChange || 0) >= 0 ? "text-emerald-600" : "text-red-500",
-      changeColor: (stats.salesChange || 0) >= 0 ? "text-emerald-500" : "text-red-500",
+      iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
     },
     {
       title: "Total Customers",
       value: stats.totalCustomers.toLocaleString(),
-      change: formatChange(stats.customersChange),
-      isPositive: (stats.customersChange || 0) >= 0,
       icon: Eye,
-      iconBg: (stats.customersChange || 0) >= 0 ? "bg-emerald-100" : "bg-red-100",
-      iconColor: (stats.customersChange || 0) >= 0 ? "text-emerald-600" : "text-red-500",
-      changeColor: (stats.customersChange || 0) >= 0 ? "text-emerald-500" : "text-red-500",
+      iconBg: "bg-blue-100 dark:bg-blue-900/30",
+      iconColor: "text-blue-600 dark:text-blue-400",
     },
     {
       title: "Total Products",
       value: stats.totalProducts.toLocaleString(),
-      change: formatChange(stats.productsChange),
-      isPositive: (stats.productsChange || 0) >= 0,
       icon: TrendingUp,
-      iconBg: (stats.productsChange || 0) >= 0 ? "bg-emerald-100" : "bg-red-100",
-      iconColor: (stats.productsChange || 0) >= 0 ? "text-emerald-600" : "text-red-500",
-      changeColor: (stats.productsChange || 0) >= 0 ? "text-emerald-500" : "text-red-500",
+      iconBg: "bg-violet-100 dark:bg-violet-900/30",
+      iconColor: "text-violet-600 dark:text-violet-400",
     },
   ]
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {statsCards.map((stat) => (
-        <Card key={stat.title} className="bg-card">
+        <Card 
+          key={stat.title} 
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300"
+        >
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground font-medium">{stat.title}</span>
-              <div className={`rounded-md p-2 ${stat.iconBg}`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {stat.title}
+              </span>
+              <div className={`rounded-lg p-2 ${stat.iconBg} transition-all duration-300 hover:scale-105`}>
                 <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
               </div>
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground">{stat.value}</span>
-              <span className={`text-sm font-medium ${stat.changeColor}`}>
-                {stat.change}
+            <div className="space-y-2">
+              <span className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 block">
+                {stat.value}
               </span>
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  Live updated data
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

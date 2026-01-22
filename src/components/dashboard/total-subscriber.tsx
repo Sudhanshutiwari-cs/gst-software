@@ -14,17 +14,83 @@ interface Customer {
   mobile?: string;
   created_at?: string;
   updated_at?: string;
-  // Use unknown or specific types for additional fields
+
   [key: string]: string | number | boolean | null | undefined;
 }
-
-
 
 interface DailyData {
   day: string;
   value: number;
   count: number;
 }
+
+// Custom hook for theme management
+const useTheme = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Get initial theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      // Check system preference
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = systemPrefersDark ? 'dark' : 'light';
+      setTheme(initialTheme);
+      applyTheme(initialTheme);
+      localStorage.setItem('theme', initialTheme);
+    }
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newTheme = e.matches ? 'dark' : 'light';
+      // Only apply system theme if user hasn't set a preference
+      if (!localStorage.getItem('theme')) {
+        setTheme(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    // Listen for storage changes (for cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        const newTheme = e.newValue as 'light' | 'dark';
+        if (newTheme && (newTheme === 'light' || newTheme === 'dark')) {
+          setTheme(newTheme);
+          applyTheme(newTheme);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const applyTheme = (theme: 'light' | 'dark') => {
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
+  return { theme, mounted };
+};
 
 export function TotalSubscriber() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -37,6 +103,7 @@ export function TotalSubscriber() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<string>('weekly'); // weekly, monthly, yearly
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const { theme, mounted } = useTheme();
 
   // Days of the week for chart
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -174,20 +241,35 @@ export function TotalSubscriber() {
     return num.toLocaleString();
   };
 
-  if (loading) {
+  // Custom tooltip component for dark mode
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-900 dark:text-gray-100">{`Day: ${label}`}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Customers: <span className="font-medium text-blue-600 dark:text-blue-400">{formatNumber(payload[0].value)}</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (!mounted || loading) {
     return (
-      <Card className="bg-white border border-gray-200 shadow-sm">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-              <CardTitle className="text-base font-medium text-gray-900">Total Customers</CardTitle>
+              <CardTitle className="text-base font-medium text-gray-900 dark:text-gray-100">Total Customers</CardTitle>
             </div>
             <div className="mt-2 animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-24"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
               <div className="mt-2 flex items-center gap-2">
-                <div className="h-4 bg-gray-200 rounded w-12"></div>
-                <div className="h-4 bg-gray-200 rounded w-20"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
               </div>
             </div>
           </div>
@@ -195,7 +277,7 @@ export function TotalSubscriber() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="text-gray-500 border-gray-300 bg-white"
+              className="text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
               disabled
             >
               Weekly
@@ -205,10 +287,10 @@ export function TotalSubscriber() {
         </CardHeader>
         <CardContent>
           <div className="h-[220px] flex items-center justify-center">
-            <div className="text-gray-500">Loading customer data...</div>
+            <div className="text-gray-500 dark:text-gray-400">Loading customer data...</div>
           </div>
           <div className="mt-2 text-center animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto"></div>
           </div>
         </CardContent>
       </Card>
@@ -217,27 +299,27 @@ export function TotalSubscriber() {
 
   if (error) {
     return (
-      <Card className="bg-white border border-gray-200 shadow-sm">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-red-500" />
-              <CardTitle className="text-base font-medium text-gray-900">Total Customers</CardTitle>
-            </div>
+              <CardTitle className="text-base font-medium text-gray-900 dark:text-gray-100">Total Customers</CardTitle>
+            </div> 
             <div className="mt-2">
-              <span className="text-sm text-red-500">Error: {error}</span>
+              <span className="text-sm text-red-500 dark:text-red-400">Error: {error}</span>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[220px] flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-gray-500 mb-4">Failed to load customer data</p>
+        </CardHeader> 
+        <CardContent> 
+          <div className="h-[220px] flex items-center justify-center"> 
+            <div className="text-center"> 
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Failed to load customer data</p>
               <Button 
                 onClick={() => window.location.reload()} 
                 variant="outline" 
                 size="sm"
-                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                className="border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
               >
                 Retry
               </Button>
@@ -249,21 +331,21 @@ export function TotalSubscriber() {
   }
 
   return (
-    <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-blue-500" />
-            <CardTitle className="text-base font-medium text-gray-900">Total Customers</CardTitle>
+            <CardTitle className="text-base font-medium text-gray-900 dark:text-gray-100">Total Customers</CardTitle>
           </div>
           <div className="mt-2">
-            <span className="text-3xl font-bold text-gray-900">{formatNumber(totalCustomers)}</span>
+            <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(totalCustomers)}</span>
             <div className="mt-1 flex items-center gap-2 text-sm">
-              <span className={`flex items-center ${growthPercentage >= 0 ? 'text-emerald-500' : 'text-red-500'} font-medium`}>
+              <span className={`flex items-center ${growthPercentage >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'} font-medium`}>
                 <TrendingUp className="mr-1 h-3 w-3" />
                 {growthPercentage >= 0 ? '+' : ''}{growthPercentage.toFixed(1)}%
               </span>
-              <span className="text-gray-600">
+              <span className="text-gray-600 dark:text-gray-400">
                 {growthCount >= 0 ? '+ ' : '- '}{formatNumber(Math.abs(growthCount))} {growthCount >= 0 ? 'increased' : 'decreased'}
               </span>
             </div>
@@ -275,7 +357,7 @@ export function TotalSubscriber() {
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-gray-600 border-gray-300 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+            className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             {timeRange.charAt(0).toUpperCase() + timeRange.slice(1)}
@@ -283,15 +365,15 @@ export function TotalSubscriber() {
           </Button>
           
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-1 w-32 bg-white border border-blue-200 rounded-md shadow-lg z-10">
+            <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-md shadow-lg z-10">
               {['daily', 'weekly', 'monthly', 'yearly'].map((range) => (
                 <button
                   key={range}
                   onClick={() => handleTimeRangeChange(range)}
-                  className={`block w-full text-left px-3 py-2 text-sm capitalize hover:bg-blue-50 ${
+                  className={`block w-full text-left px-3 py-2 text-sm capitalize hover:bg-blue-50 dark:hover:bg-gray-700 ${
                     timeRange === range 
-                      ? 'bg-blue-100 text-blue-700 border-l-2 border-blue-500' 
-                      : 'text-gray-700'
+                      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-l-2 border-blue-500' 
+                      : 'text-gray-700 dark:text-gray-300'
                   }`}
                 >
                   {range}
@@ -308,54 +390,55 @@ export function TotalSubscriber() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={dailyData} 
-                barCategoryGap="35%" // Increased gap for smaller bars
-                barGap={8} // Gap between bars
+                barCategoryGap="35%"
+                barGap={8}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
                 <XAxis 
                   dataKey="day" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: "#6b7280", fontSize: 12, fontWeight: 500 }}
+                  tick={{ 
+                    fill: theme === 'dark' ? '#d1d5db' : "#6b7280", 
+                    fontSize: 12, 
+                    fontWeight: 500 
+                  }}
                   tickMargin={10}
                 />
                 <YAxis hide />
-               <Tooltip
-  formatter={(value: number | undefined) => [
-    value !== undefined ? formatNumber(value) : "0", 
-    "Customers"
-  ]}
-  labelFormatter={(label) => `Day: ${label}`}
-  contentStyle={{ 
-    borderRadius: "8px", 
-    border: "1px solid #e5e7eb",
-    backgroundColor: "white",
-    padding: "8px 12px",
-    fontSize: "12px"
-  }}
-  itemStyle={{ color: "#3b82f6", fontWeight: 500 }}
-/>
+                <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey="value" 
-                  radius={[3, 3, 3, 3]} // Smaller radius
-                  barSize={18} // Smaller bar width
+                  radius={[3, 3, 3, 3]}
+                  barSize={18}
                   name="Customers"
                 >
-                  {dailyData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.count === maxDailyCount && maxDailyCount > 0 ? "#2563eb" : "#93c5fd"} 
-                      className="transition-all duration-300"
-                    />
-                  ))}
+                  {dailyData.map((entry, index) => {
+                    const isMaxDay = entry.count === maxDailyCount && maxDailyCount > 0;
+                    const fillColor = theme === 'dark' 
+                      ? (isMaxDay ? '#3b82f6' : '#60a5fa')  // Brighter colors for dark mode
+                      : (isMaxDay ? '#2563eb' : '#93c5fd');
+                    
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={fillColor} 
+                        className="transition-all duration-300"
+                        style={{ 
+                          opacity: isMaxDay ? 1 : 0.9,
+                          filter: isMaxDay ? 'none' : 'brightness(0.95)'
+                        }}
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex flex-col items-center justify-center">
-              <Users className="h-12 w-12 text-blue-200 mb-2" />
-              <p className="text-gray-600 text-center">No customer data available</p>
-              <p className="text-sm text-gray-400 mt-1">Customer data will appear here</p>
+              <Users className="h-12 w-12 text-blue-200 dark:text-blue-800 mb-2" />
+              <p className="text-gray-600 dark:text-gray-400 text-center">No customer data available</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Customer data will appear here</p>
             </div>
           )}
         </div>
@@ -363,11 +446,11 @@ export function TotalSubscriber() {
         {maxDailyCount > 0 && (
           <div className="mt-2 text-center">
             <div className="inline-flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-              <span className="text-lg font-semibold text-gray-900">
+              <div className={`h-2 w-2 rounded-full ${theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
+              <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatNumber(maxDailyCount)}
               </span>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 customers on {dailyData.find(d => d.count === maxDailyCount)?.day || 'peak day'}
               </span>
             </div>
@@ -376,25 +459,25 @@ export function TotalSubscriber() {
         
         {/* Additional Stats */}
         {customers.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-blue-100">
+          <div className="mt-4 pt-4 border-t border-blue-100 dark:border-blue-900/30">
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {formatNumber(customers.filter(c => c.email).length)}
                 </div>
-                <div className="text-xs text-blue-600">With Email</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">With Email</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {formatNumber(customers.filter(c => c.mobile).length)}
                 </div>
-                <div className="text-xs text-blue-600">With Mobile</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">With Mobile</div>
               </div>
             </div>
             
             {/* Recent Customers Count */}
             <div className="mt-4 text-center">
-              <div className="text-sm text-blue-600 font-medium">
+              <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">
                 {customers.filter(c => {
                   if (!c.created_at) return false;
                   const createdDate = new Date(c.created_at);
