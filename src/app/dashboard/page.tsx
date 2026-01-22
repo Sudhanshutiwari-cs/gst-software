@@ -190,7 +190,7 @@ export default function Ecommerce() {
   const [error, setError] = useState<string | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [isVerified, setIsVerified] = useState<boolean>(false);
-  const { theme, mounted } = useTheme();
+  const {  mounted } = useTheme();
   const router = useRouter();
 
   useEffect(() => {

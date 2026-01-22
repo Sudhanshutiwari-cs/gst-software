@@ -126,7 +126,7 @@ export function SalesDistribution() {
   ]);
 
   const [totalSales, setTotalSales] = useState(0);
-  const [timeRange, setTimeRange] = useState('Monthly');
+  const [timeRange] = useState('Monthly');
 
   useEffect(() => {
     // Calculate total sales whenever data changes
