@@ -14,6 +14,11 @@ import {
   PanelLeftClose,
   PanelLeft,
   Zap,
+  FileCode,
+  FileSpreadsheet,
+  FileJson,
+  Receipt,
+  File,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -102,7 +107,7 @@ const navSections: NavSection[] = [
         icon: <Package size={18} />, 
         href: "/product",
         children: [
-          { label: "Add Product", icon: <PlusCircle size={16} />, href: "/products/add" },
+          { label: "Add Product", icon: <PlusCircle size={16} />, href: "/products/add-products" },
           { label: "View Products", icon: <Eye size={16} />, href: "/products" },
         ]
       },
@@ -122,6 +127,14 @@ const navSections: NavSection[] = [
         children: [
           { label: "All Sales", icon: <FileText size={16} />, href: "/sales/invoice" },
           { label: "Make Sale", icon: <PlusCircle size={16} />, href: "/sales/create" },
+        ]
+      },
+      { 
+        label: "Templates", 
+        icon: <FileCode size={18} />,
+        href: "/templates",
+        children: [
+          { label: "Invoice Templates", icon: <Receipt size={16} />, href: "/templates" }
         ]
       },
     ],
