@@ -8,7 +8,16 @@ import { TotalSubscriber } from "@/components/dashboard/total-subscriber";
 import { SalesDistribution } from "@/components/dashboard/sales-distribution";
 import { IntegrationList } from "@/components/dashboard/integration-list";
 
-// Define the complete vendor profile type with is_verified
+// Define types for vendor status response
+interface VendorStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    status: 'active' | 'inactive' | 'pending' | 'suspended';
+  };
+}
+
+// Define the complete vendor profile type
 interface VendorProfile {
   // Profile fields
   business_name?: string | null;
@@ -27,12 +36,6 @@ interface VendorProfile {
   pincode?: string | null;
   country?: string | null;
   
-  // Verification status
-  is_verified?: boolean;
-  status?: {
-    is_verified?: boolean;
-  };
-  
   // Possible nested structures
   data?: {
     business_name?: string | null;
@@ -50,7 +53,6 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
-    is_verified?: boolean;
   };
   vendor?: {
     business_name?: string | null;
@@ -68,7 +70,6 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
-    is_verified?: boolean;
   };
   profile?: {
     business_name?: string | null;
@@ -86,7 +87,6 @@ interface VendorProfile {
     state?: string | null;
     pincode?: string | null;
     country?: string | null;
-    is_verified?: boolean;
   };
 }
 
@@ -111,14 +111,12 @@ const useTheme = () => {
   useEffect(() => {
     setMounted(true);
     
-    // Get initial theme from localStorage or system preference
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     
     if (savedTheme) {
       setTheme(savedTheme);
       applyTheme(savedTheme);
     } else {
-      // Check system preference
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const initialTheme = systemPrefersDark ? 'dark' : 'light';
       setTheme(initialTheme);
@@ -126,11 +124,9 @@ const useTheme = () => {
       localStorage.setItem('theme', initialTheme);
     }
 
-    // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       const newTheme = e.matches ? 'dark' : 'light';
-      // Only apply system theme if user hasn't set a preference
       if (!localStorage.getItem('theme')) {
         setTheme(newTheme);
         applyTheme(newTheme);
@@ -139,7 +135,6 @@ const useTheme = () => {
 
     mediaQuery.addEventListener('change', handleChange);
 
-    // Listen for storage changes (for cross-tab sync)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme') {
         const newTheme = e.newValue as 'light' | 'dark';
@@ -174,7 +169,6 @@ const useTheme = () => {
     applyTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     
-    // Dispatch a storage event to sync across tabs
     window.dispatchEvent(new StorageEvent('storage', {
       key: 'theme',
       newValue: newTheme
@@ -186,31 +180,88 @@ const useTheme = () => {
 
 export default function Ecommerce() {
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+  const [vendorStatus, setVendorStatus] = useState<'active' | 'inactive' | 'pending' | 'suspended' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
-  const [isVerified, setIsVerified] = useState<boolean>(false);
-  const {  mounted } = useTheme();
+  const { mounted } = useTheme();
   const router = useRouter();
 
+  // Helper function to get auth token
+  const getAuthToken = () => {
+    if (typeof window === 'undefined') return null;
+    
+    return localStorage.getItem("authToken") || 
+           localStorage.getItem("jwtToken") || 
+           sessionStorage.getItem("authToken") || 
+           sessionStorage.getItem("jwtToken");
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("jwtToken") || sessionStorage.getItem("authToken") || sessionStorage.getItem("jwtToken");
+    const token = getAuthToken();
     if (!token) {
       router.push("/login");
     }
   }, [router]);
 
+  // Fetch vendor status
+  useEffect(() => {
+    async function fetchVendorStatus() {
+      try {
+        const token = getAuthToken();
+        
+        if (!token) {
+          setStatusError("No authentication token found");
+          setLoadingStatus(false);
+          return;
+        }
+
+        console.log('Fetching vendor status...');
+        
+        const response = await fetch('https://manhemdigitalsolutions.com/pos-admin/api/vendor/status', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        });
+
+        console.log('Status response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch vendor status: ${response.status}`);
+        }
+
+        const data: VendorStatusResponse = await response.json();
+        console.log('Vendor status API Response:', data);
+        
+        if (data.success && data.data) {
+          setVendorStatus(data.data.status);
+        } else {
+          throw new Error(data.message || 'Failed to fetch vendor status');
+        }
+        
+      } catch (error) {
+        console.error('Error fetching vendor status:', error);
+        setStatusError(error instanceof Error ? error.message : 'Failed to fetch vendor status');
+        // Set default status to inactive on error
+        setVendorStatus('inactive');
+      } finally {
+        setLoadingStatus(false);
+      }
+    }
+
+    fetchVendorStatus();
+  }, []);
+
+  // Fetch vendor profile
   useEffect(() => {
     async function fetchVendorProfile() {
       try {
-        let token = null;
-        
-        if (typeof window !== 'undefined') {
-          token = localStorage.getItem('authToken') || 
-                  localStorage.getItem('jwtToken') || 
-                  sessionStorage.getItem('authToken') ||
-                  sessionStorage.getItem('jwtToken');
-        }
+        const token = getAuthToken();
 
         console.log('Token found:', token ? 'Yes' : 'No');
 
@@ -229,20 +280,16 @@ export default function Ecommerce() {
           },
         });
 
-        console.log('Response status:', response.status);
+        console.log('Profile response status:', response.status);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch profile: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('API Response data:', data);
+        console.log('Profile API Response data:', data);
         
         setVendorProfile(data);
-        
-        // Check verification status
-        const verified = checkVerificationStatus(data);
-        setIsVerified(verified);
         
       } catch (error) {
         console.error('Error fetching vendor profile:', error);
@@ -264,31 +311,9 @@ export default function Ecommerce() {
     }
   }, [vendorProfile]);
 
-  // Function to check verification status from different possible response structures
-  const checkVerificationStatus = (profile: VendorProfile): boolean => {
-    // Check in various possible locations
-    if (profile.is_verified !== undefined) {
-      return profile.is_verified;
-    }
-    
-    if (profile.status?.is_verified !== undefined) {
-      return profile.status.is_verified;
-    }
-    
-    if (profile.data?.is_verified !== undefined) {
-      return profile.data.is_verified;
-    }
-    
-    if (profile.vendor?.is_verified !== undefined) {
-      return profile.vendor.is_verified;
-    }
-    
-    if (profile.profile?.is_verified !== undefined) {
-      return profile.profile.is_verified;
-    }
-    
-    // Default to false if not found
-    return false;
+  // Function to check if vendor is active
+  const isVendorActive = (): boolean => {
+    return vendorStatus === 'active';
   };
 
   // Function to check if all required profile fields are filled
@@ -372,29 +397,81 @@ export default function Ecommerce() {
     );
   };
 
-  // Verification Required Warning Component
-  const VerificationRequiredWarning = () => {
-    if (loading || isVerified) return null;
+  // Account Status Warning Component
+  const AccountStatusWarning = () => {
+    if (loadingStatus || isVendorActive()) return null;
+
+    const getStatusConfig = () => {
+      switch (vendorStatus) {
+        case 'inactive':
+          return {
+            title: 'Account Inactive',
+            message: 'Your account is currently inactive. Please contact support to activate your account.',
+            bgColor: 'bg-red-50 dark:bg-red-900/20',
+            borderColor: 'border-red-200 dark:border-red-800',
+            textColor: 'text-red-800 dark:text-red-200',
+            iconColor: 'text-red-600 dark:text-red-400',
+            buttonColor: 'bg-red-600 hover:bg-red-700'
+          };
+        case 'pending':
+          return {
+            title: 'Account Pending Approval',
+            message: 'Your account is pending approval. Our team will review your account shortly.',
+            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+            borderColor: 'border-blue-200 dark:border-blue-800',
+            textColor: 'text-blue-800 dark:text-blue-200',
+            iconColor: 'text-blue-600 dark:text-blue-400',
+            buttonColor: 'bg-blue-600 hover:bg-blue-700'
+          };
+        case 'suspended':
+          return {
+            title: 'Account Suspended',
+            message: 'Your account has been suspended. Please contact support for more information.',
+            bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+            borderColor: 'border-orange-200 dark:border-orange-800',
+            textColor: 'text-orange-800 dark:text-orange-200',
+            iconColor: 'text-orange-600 dark:text-orange-400',
+            buttonColor: 'bg-orange-600 hover:bg-orange-700'
+          };
+        default:
+          return {
+            title: 'Account Status Issue',
+            message: 'There is an issue with your account status. Please contact support.',
+            bgColor: 'bg-red-50 dark:bg-red-900/20',
+            borderColor: 'border-red-200 dark:border-red-800',
+            textColor: 'text-red-800 dark:text-red-200',
+            iconColor: 'text-red-600 dark:text-red-400',
+            buttonColor: 'bg-red-600 hover:bg-red-700'
+          };
+      }
+    };
+
+    const config = getStatusConfig();
 
     return (
-      <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+      <div className={`mb-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <svg className={`w-5 h-5 ${config.iconColor} mr-2`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-red-800 dark:text-red-200 font-medium">
-                Account Verification Required
+              <p className={`${config.textColor} font-medium`}>
+                {config.title}
               </p>
-              <p className="text-red-700 dark:text-red-300 text-sm mt-1">
-                Your account needs to be verified to access the dashboard. Please contact support.
+              <p className={`${config.textColor} text-sm mt-1 opacity-90`}>
+                {config.message}
               </p>
+              {statusError && (
+                <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                  Error: {statusError}
+                </p>
+              )}
             </div>
           </div>
           <button 
             onClick={() => router.push('/contact-support')}
-            className="px-4 py-2 z-50 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors duration-200 whitespace-nowrap"
+            className={`px-4 py-2 z-50 ${config.buttonColor} text-white text-sm rounded-lg transition-colors duration-200 whitespace-nowrap`}
           >
             Contact Support
           </button>
@@ -405,7 +482,7 @@ export default function Ecommerce() {
 
   // Greeting Component
   const GreetingMessage = () => {
-    if (loading) {
+    if (loading || loadingStatus) {
       return (
         <div className="mb-6">
           <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
@@ -414,14 +491,14 @@ export default function Ecommerce() {
       );
     }
 
-    if (error) {
+    if (error || statusError) {
       return (
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Welcome!
           </h1>
           <p className="text-red-500 dark:text-red-400 mt-1">
-            Unable to load profile: {error}
+            {error || statusError}
           </p>
         </div>
       );
@@ -429,6 +506,7 @@ export default function Ecommerce() {
 
     const greeting = getGreeting();
     const ownerName = getOwnerName(vendorProfile);
+    const isActive = isVendorActive();
 
     return (
       <div className="mb-6">
@@ -436,7 +514,7 @@ export default function Ecommerce() {
           {greeting}, {ownerName}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          {isVerified ? "Welcome back to your dashboard" : "Account verification pending"}
+          {isActive ? "Welcome back to your dashboard" : `Account status: ${vendorStatus}`}
         </p>
       </div>
     );
@@ -445,11 +523,10 @@ export default function Ecommerce() {
   // Dashboard Content Component
   const DashboardContent = () => {
     if (!mounted) {
-      // Prevent flash of unstyled content
       return null;
     }
 
-    if (loading) {
+    if (loading || loadingStatus) {
       return (
         <div className="grid grid-cols-12 gap-4 md:gap-6">
           {/* Loading skeletons */}
@@ -464,15 +541,15 @@ export default function Ecommerce() {
       );
     }
 
-    // Check if profile is complete AND verified
-    const canAccessDashboard = isProfileComplete && isVerified;
+    // Check if profile is complete AND vendor is active
+    const canAccessDashboard = isProfileComplete && isVendorActive();
 
     if (!canAccessDashboard) {
       return (
         <div className="relative">
           {/* Warning messages above the blurred content */}
           {!isProfileComplete && <ProfileIncompleteWarning />}
-          {!isVerified && <VerificationRequiredWarning />}
+          {!isVendorActive() && <AccountStatusWarning />}
           
           {/* Blurred Dashboard Content */}
           <div className="relative min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
@@ -493,7 +570,7 @@ export default function Ecommerce() {
             {/* Overlay with message */}
             <div className="absolute inset-0 flex items-center justify-center bg-black/5">
               <div className="text-center p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md mx-4">
-                {!isVerified ? (
+                {!isVendorActive() ? (
                   <>
                     <div className="w-20 h-20 mx-auto mb-6 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
                       <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
@@ -501,20 +578,25 @@ export default function Ecommerce() {
                       </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                      Account Verification Required
+                      Account Status: {vendorStatus?.toUpperCase()}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
-                      Your account needs to be verified by our team to access the dashboard.
+                      {vendorStatus === 'inactive' 
+                        ? 'Your account is currently inactive. Please contact support to activate your account.'
+                        : vendorStatus === 'pending'
+                        ? 'Your account is pending approval. Our team will review your account shortly.'
+                        : 'Your account has been suspended. Please contact support for more information.'
+                      }
                     </p>
                     <div className="space-y-3">
                       <button 
                         onClick={() => router.push('/contact-support')}
                         className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
                       >
-                        Contact Support for Verification
+                        Contact Support
                       </button>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Verification is mandatory for security purposes
+                        Active account status is required to access the dashboard
                       </p>
                     </div>
                   </>
@@ -551,7 +633,7 @@ export default function Ecommerce() {
       );
     }
 
-    // Full dashboard when profile is complete AND verified
+    // Full dashboard when profile is complete AND vendor is active
     return (
       <div className="min-h-screen bg-[#f8f9fc] dark:bg-gray-900 p-6">
         <div className="mx-auto max-w-7xl space-y-6">
